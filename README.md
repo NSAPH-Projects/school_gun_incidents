@@ -1,1 +1,1 @@
-# firearm_store_proximity_school_shootings
+# Repository for the project on "Firearm store proximity and school shootings"

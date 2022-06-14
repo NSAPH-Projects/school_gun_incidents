@@ -32,9 +32,10 @@ covars <- covars[!covars %in% exclude_unclear_vars]
 
 ##### Exclude variables #####
 
-exclude_misc_covars <- c("incomebyage_avgia15_cy", "sports_mp33018a_b_i",
-                  "employmentunemployment_unemrt16cy", "employmentunemployment_unemp_cy_p",
-                  "GEOID", "POP100") # note: POP100 is duplicate of P0010001
+exclude_misc_covars <- c("sports_mp33018a_b_i", "GEOID", "POP100", # POP100 is duplicate of P0010001
+                         "crime_crmcyperc", "crime_crmcyproc") # cor(total_crime, property_crime) = 0.99 and cor(total_crime, personal_crime) = 0.79, so keep only total
+exclude_ses_covars <- c("incomebyage_avgia15_cy", "employmentunemployment_unemrt16cy", "employmentunemployment_unemp_cy_p",
+                        "wealth_avgdi_cy", "householdincome_pci_cy") # cor(median_household_income, average_disposable_income) = 0.98 and cor(median_household_income, income_per_capita) = 0.88
 exclude_group_quarters_covars <- c("P0050002", "P0050006", "P0050007") # keep: P0050001, P0050003, P0050004, P0050005, P0050008, P0050009, P0050010
 exclude_housing_covars <- c("HU100", "H0010002", "H0010003") # HU100 is duplicate of H0010001; H0010003 = H0010001 - H0010002; cor(H0010001, H0010002) is ~0.95
 race18plus_covars <- c("P0030001", "P0030009", "P0040002", "P0040003", "P0040004", "P0040007", "P0040008", "P0040006", "P0040009",
@@ -54,21 +55,21 @@ nonHispLat_covars <- c("P0020003", "P0020007", "P0020008", "P0020006", "P0020009
 pct_vars <- c("PCT_P0020007", "PCT_P0020008", "PCT_P0020006", "PCT_P0020002", "PCT_P0020009", "PCT_H0010002", "PCT_H0010003", "PCT_P0030001", "PCT_P0020011", "PCT_P0020010", "PCT_P0020005")
 
 # combine all variables to be excluded
-all_exclude_vars <- c(unclear_vars, exclude_misc_covars, exclude_group_quarters_covars, exclude_housing_covars,
+all_exclude_vars <- c(unclear_vars, exclude_misc_covars, exclude_ses_covars, exclude_group_quarters_covars, exclude_housing_covars,
                       race18plus_covars, exclude_num_race_covars, biracial_covars, exclude_uniracial_covars, nonHispLat_covars, pct_vars)
 all_include_vars <- all_vars[!all_vars %in% all_exclude_vars]
 
 # subset data and rename variables
 tracts_2020_subset_vars <- subset(tracts_2020_all_data, select=all_include_vars)
 
-setnames(tracts_2020_subset_vars, old = c("P0010001", "P0010003", "P0010004", "P0010005", "P0010006", "P0010007", "P0010009", "P0020002",
-                                          "P0050001", "P0050003", "P0050004", "P0050005", "P0050008", "P0050009", "P0050010", "H0010001", "daytimepopulation_dpop_cy",
-                                          "householdincome_medhinc_cy", "householdincome_pci_cy", "wealth_avgdi_cy", "incomebyage_media15_cy",
-                                          "crime_crmcytotc", "crime_crmcyperc", "crime_crmcyproc"),
-         new = c("total_population", "white_only_pop", "black_only_pop", "american_indian_alaskan_native_only_pop", "asian_only_pop", "native_hawaiian_pacific_islander_only_pop", "biracial_pop", "hispanic_latino_pop",
-                 "total_group_quarters", "adult_correctional_pop", "juvenile_detention_pop", "nursing_pop", "university_pop", "military_pop", "other_noninstitutional_pop", "total_housing_units", "daytime_pop_2021",
-                 "median_household_inc_2021", "inc_per_capita_2021", "avg_disposable_inc_2021", "median_household_inc_15to24_2021",
-                 "total_crime_2021", "personal_crime_2021", "property_crime_2021"))
+setnames(tracts_2020_subset_vars, old = c("P0010003", "P0010004", "P0010005", "P0010006", "P0010007", "P0010009", "P0020002",
+                                          "P0050001", "P0050003", "P0050004", "P0050005", "P0050008", "P0050009", "P0050010",
+                                          "householdincome_medhinc_cy", "incomebyage_media15_cy",
+                                          "P0010001", "daytimepopulation_dpop_cy", "H0010001", "crime_crmcytotc"),
+         new = c("white_only_pop", "black_only_pop", "american_indian_alaskan_native_only_pop", "asian_only_pop", "native_hawaiian_pacific_islander_only_pop", "biracial_pop", "hispanic_latino_pop",
+                 "total_group_quarters", "adult_correctional_pop", "juvenile_detention_pop", "nursing_pop", "university_pop", "military_pop", "other_noninstitutional_pop",
+                 "median_household_inc_2021", "median_household_inc_15to24_2021",
+                 "total_population", "daytime_pop_2021", "total_housing_units", "total_crime_2021"))
 
 
 ##### Scale variables to population ##### 
@@ -121,6 +122,7 @@ shooting_tracts_2020_subset_vars <- tracts_2020_vars_scaled[binary_shooting_inci
 exclude_treatment_vars2 <- treatment_vars[outcome_vars != "mean_total_miles"] # include only mean_total_miles as treatment variable
 exclude_outcome_vars2 <- outcome_vars[outcome_vars != "shooter_school_affiliation"] # include only shooter_school_affiliation as outcome variable
 shooting_tracts_2020_subset_vars <- subset(shooting_tracts_2020_subset_vars, select = names(tracts_2020_vars_scaled)[!names(tracts_2020_vars_scaled) %in% c(exclude_treatment_vars2, exclude_outcome_vars2)])
+shooting_tracts_2020_subset_vars[, prop_military := NULL] # remove prop_military covariate because it equals 0 for all tracts in this dataset
 fwrite(shooting_tracts_2020_subset_vars, paste0(dir, "Data/shooting_tracts_2020_subset_vars.csv"))
 
 

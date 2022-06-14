@@ -35,5 +35,7 @@ sum(quarters$sum2 != quarters$P0050001) # Observe: 003, 004, 005, 008, 009, and 
 
 # Check collinearity between variables
 View(cor(all_tracts_2020_subset_vars, use = "pairwise.complete.obs"))
-View(cor(shooting_tracts_2020_subset_vars, use = "pairwise.complete.obs"))
+View(cor(subset(shooting_tracts_2020_subset_vars, select =
+                  names(shooting_tracts_2020_subset_vars)[names(shooting_tracts_2020_subset_vars) != "shooter_school_affiliation"]),
+         use = "pairwise.complete.obs"))
 

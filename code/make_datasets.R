@@ -1,13 +1,14 @@
 library(readxl)
 library(data.table)
 
-##### Import raw data #####
+##### Import raw data and save raw data as csv #####
 
 dir <- "Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 
 tracts_2020_all_data <- read_excel(paste0(dir, "data/tracts_2020_all_data.xlsx"))
 tracts_2020_all_data <- tracts_2020_all_data[, 2:ncol(tracts_2020_all_data)] # remove "OBJECTID" variable
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
+fwrite(tracts_2020_all_data, paste0(dir, "Data/tracts_2020_all_data.csv"))
 
 
 ##### Sort variables into treatment, outcome, and covariates #####
@@ -27,7 +28,13 @@ unclear_vars <- c("NEAR_DIST", "Quarter", "Reliability")
 
 covars <- all_vars[!all_vars %in% treatment_vars]
 covars <- covars[!covars %in% outcome_vars]
-covars <- covars[!covars %in% exclude_unclear_vars]
+covars <- covars[!covars %in% unclear_vars]
+
+
+##### Add variables ##### 
+
+tracts_2020_subset_vars <- tracts_2020_all_data
+tracts_2020_subset_vars[, pop_below18 := P0010001 - P0030001]
 
 
 ##### Exclude variables #####
@@ -37,7 +44,7 @@ exclude_misc_covars <- c("sports_mp33018a_b_i", "GEOID", "POP100", # POP100 is d
 exclude_ses_covars <- c("incomebyage_avgia15_cy", "employmentunemployment_unemrt16cy", "employmentunemployment_unemp_cy_p",
                         "wealth_avgdi_cy", "householdincome_pci_cy") # cor(median_household_income, average_disposable_income) = 0.98 and cor(median_household_income, income_per_capita) = 0.88
 exclude_group_quarters_covars <- c("P0050002", "P0050006", "P0050007") # keep: P0050001, P0050003, P0050004, P0050005, P0050008, P0050009, P0050010
-exclude_housing_covars <- c("HU100", "H0010002", "H0010003") # HU100 is duplicate of H0010001; H0010003 = H0010001 - H0010002; cor(H0010001, H0010002) is ~0.95
+exclude_housing_covars <- c("HU100", "H0010002", "H0010003") # HU100 is duplicate of H0010001; H0010003 = H0010001 - H0010002; cor(H0010001, H0010002) = 0.95
 race18plus_covars <- c("P0030001", "P0030009", "P0040002", "P0040003", "P0040004", "P0040007", "P0040008", "P0040006", "P0040009",
                                "P0040010", "P0040005", "P0040011", "P0040012", "P0040022", "P0040023", "P0040024", "P0040025",
                                "P0040026", "P0040018", "P0040019", "P0040020", "P0040021", "P0040027", "P0040014", "P0040015",
@@ -59,8 +66,11 @@ all_exclude_vars <- c(unclear_vars, exclude_misc_covars, exclude_ses_covars, exc
                       race18plus_covars, exclude_num_race_covars, biracial_covars, exclude_uniracial_covars, nonHispLat_covars, pct_vars)
 all_include_vars <- all_vars[!all_vars %in% all_exclude_vars]
 
-# subset data and rename variables
-tracts_2020_subset_vars <- subset(tracts_2020_all_data, select=all_include_vars)
+# subset data
+tracts_2020_subset_vars <- subset(tracts_2020_subset_vars, select=all_include_vars)
+
+
+##### Rename variables ##### 
 
 setnames(tracts_2020_subset_vars, old = c("P0010003", "P0010004", "P0010005", "P0010006", "P0010007", "P0010009", "P0020002",
                                           "P0050001", "P0050003", "P0050004", "P0050005", "P0050008", "P0050009", "P0050010",
@@ -91,7 +101,6 @@ tracts_2020_vars_scaled[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/
                                prop_grad_deg_25plus_2021 = educationalattainment_graddeg_cy_p/100,
                                prop_unemployed_2021 = employmentunemployment_unemprt_cy/100,
                                prop_unemployed_16to24_2021 = employmentunemployment_unage16cy_p/100)]
-                              # prop_occupied_housing = occupied_housing_units/total_housing_units
 tracts_2020_vars_scaled[, `:=`(prop_group_quartered = total_group_quarters/total_population, 
                                prop_adult_correctional = adult_correctional_pop/total_population, 
                                prop_juvenile_detention = juvenile_detention_pop/total_population, 
@@ -110,7 +119,7 @@ tracts_2020_vars_scaled <- tracts_2020_vars_scaled[, `:=`(white_only_pop = NULL,
 
 ##### Make preliminary dataset (1 treatment, 1 outcome) for all Census tracts containing a school #####
 
-exclude_treatment_vars1 <- treatment_vars[outcome_vars != "mean_total_miles"] # include only mean_total_miles as treatment variable
+exclude_treatment_vars1 <- treatment_vars[treatment_vars != "mean_total_miles"] # include only mean_total_miles as treatment variable
 exclude_outcome_vars1 <- outcome_vars[outcome_vars != "binary_shooting_incident"] # include only binary_shooting_incident as outcome variable
 all_tracts_2020_subset_vars <- subset(tracts_2020_vars_scaled, select = names(tracts_2020_vars_scaled)[!names(tracts_2020_vars_scaled) %in% c(exclude_treatment_vars1, exclude_outcome_vars1)])
 fwrite(all_tracts_2020_subset_vars, paste0(dir, "Data/all_tracts_2020_subset_vars.csv"))
@@ -119,7 +128,7 @@ fwrite(all_tracts_2020_subset_vars, paste0(dir, "Data/all_tracts_2020_subset_var
 
 shooting_tracts_2020_subset_vars <- tracts_2020_vars_scaled[binary_shooting_incident == 1, ] # filter to 829 tracts that had at least 1 shooting
 
-exclude_treatment_vars2 <- treatment_vars[outcome_vars != "mean_total_miles"] # include only mean_total_miles as treatment variable
+exclude_treatment_vars2 <- treatment_vars[treatment_vars != "mean_total_miles"] # include only mean_total_miles as treatment variable
 exclude_outcome_vars2 <- outcome_vars[outcome_vars != "shooter_school_affiliation"] # include only shooter_school_affiliation as outcome variable
 shooting_tracts_2020_subset_vars <- subset(shooting_tracts_2020_subset_vars, select = names(tracts_2020_vars_scaled)[!names(tracts_2020_vars_scaled) %in% c(exclude_treatment_vars2, exclude_outcome_vars2)])
 shooting_tracts_2020_subset_vars[, prop_military := NULL] # remove prop_military covariate because it equals 0 for all tracts in this dataset

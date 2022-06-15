@@ -1,6 +1,6 @@
 library(data.table)
 
-dir <- "Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
+dir <- "~/Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 all_tracts_2020_subset_vars <- fread(paste0(dir, "data/all_tracts_2020_subset_vars.csv"))
 shooting_tracts_2020_subset_vars <- fread(paste0(dir, "data/shooting_tracts_2020_subset_vars.csv"))
 

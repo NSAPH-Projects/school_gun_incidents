@@ -1,17 +1,14 @@
+library(data.table)
+library(DescTools)
 library(usmap)
 library(ggplot2)
 
-dir <- "Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
+dir <- "~/Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 
 # set up
 all_tracts_2020_subset_vars <- fread(paste0(dir, "data/all_tracts_2020_subset_vars.csv"))
-shooting_tracts_2020_subset_vars <- fread(paste0(dir, "data/shooting_tracts_2020_subset_vars.csv"))
-
-all_tracts_2020_subset_vars[nchar(state_fips) == 1, state_fips := paste0("0", state_fips)]
-all_tracts_2020_subset_vars[nchar(county_fips) == 4, county_fips := paste0("0", county_fips)]
-shooting_tracts_2020_subset_vars[nchar(state_fips) == 1, state_fips := paste0("0", state_fips)]
-shooting_tracts_2020_subset_vars[nchar(county_fips) == 4, county_fips := paste0("0", county_fips)]
-
+# all_tracts_2020_subset_vars[nchar(state_fips) == 1, state_fips := paste0("0", state_fips)]
+# all_tracts_2020_subset_vars[nchar(county_fips) == 4, county_fips := paste0("0", county_fips)]
 
 # get mean(mean_total_miles) for each state/county
 df_states <- all_tracts_2020_subset_vars[, .(mean_total_miles = mean(mean_total_miles, na.rm = T)), by = state_fips]
@@ -25,14 +22,21 @@ counties_map <- plot_usmap(regions = "counties", data = df_counties, values = "m
 ggsave(paste0(dir, "figures/", "states_map_mean_miles.png"), states_map)
 ggsave(paste0(dir, "figures/", "counties_map_mean_miles.png"), counties_map)
 
-# plot mean(mean_total_miles) for each state/county, coding as {1,2,3,4,5} according to all states'/counties' mean(mean_total_miles)
-# load function discretize_1_var from discretize_variables.R; I'll make a script of functions soon
-df_states[, mean_miles_discretized := discretize_1_var(mean_total_miles)]
-df_counties[, mean_miles_discretized := discretize_1_var(mean_total_miles)]
-states_map_discretized <- plot_usmap(regions = "states", data = df_states, values = "mean_miles_discretized")
-counties_map_discretized <- plot_usmap(regions = "counties", data = df_counties, values = "mean_miles_discretized")
-ggsave(paste0(dir, "figures/", "states_map_mean_miles_discretized.png"), states_map_discretized)
-ggsave(paste0(dir, "figures/", "counties_map_mean_miles_discretized.png"), counties_map_discretized)
+# winsorize at 95th and 99th percentiles
+df_states[, mean_miles_winsorized95 := Winsorize(mean_total_miles, probs = c(0, 0.95))][
+  , mean_miles_winsorized99 := Winsorize(mean_total_miles, probs = c(0, 0.99))]
+df_counties[, mean_miles_winsorized95 := Winsorize(mean_total_miles, probs = c(0, 0.95))][
+  , mean_miles_winsorized99 := Winsorize(mean_total_miles, probs = c(0, 0.99))]
+
+# plot 95th- and 99th-percentile winsorized mean(mean_total_miles) for each state/county
+states_map_winsorized95 <- plot_usmap(regions = "states", data = df_states, values = "mean_miles_winsorized95")
+counties_map_winsorized95 <- plot_usmap(regions = "counties", data = df_counties, values = "mean_miles_winsorized95")
+states_map_winsorized99 <- plot_usmap(regions = "states", data = df_states, values = "mean_miles_winsorized99")
+counties_map_winsorized99 <- plot_usmap(regions = "counties", data = df_counties, values = "mean_miles_winsorized99")
+ggsave(paste0(dir, "figures/", "states_map_mean_miles_winsorized95.png"), states_map_winsorized95)
+ggsave(paste0(dir, "figures/", "counties_map_mean_miles_winsorized95.png"), counties_map_winsorized95)
+ggsave(paste0(dir, "figures/", "states_map_mean_miles_winsorized99.png"), states_map_winsorized99)
+ggsave(paste0(dir, "figures/", "counties_map_mean_miles_winsorized99.png"), counties_map_winsorized99)
 
 
 

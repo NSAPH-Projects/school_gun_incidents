@@ -1,6 +1,9 @@
 # Import data
 library(readxl)
-tracts_2020_all_data <- read_excel("Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/data/tracts_2020_all_data.xlsx")
+
+dir <- "~/Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
+
+tracts_2020_all_data <- read_excel(paste0(dir, "data/tracts_2020_all_data.xlsx"))
 all_tracts_2020_subset_vars <- fread(paste0(dir, "data/all_tracts_2020_subset_vars.csv"))
 shooting_tracts_2020_subset_vars <- fread(paste0(dir, "data/shooting_tracts_2020_subset_vars.csv"))
 

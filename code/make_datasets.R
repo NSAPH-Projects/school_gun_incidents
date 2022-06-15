@@ -1,9 +1,9 @@
-# library(readxl)
+library(readxl)
 library(data.table)
 
 ##### Import raw data #####
 
-dir <- "Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
+dir <- "~/Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 
 tracts_2020_all_data <- read_excel(paste0(dir, "data/tracts_2020_all_data.xlsx"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)

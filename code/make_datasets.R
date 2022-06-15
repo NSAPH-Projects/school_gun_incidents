@@ -1,14 +1,20 @@
-library(readxl)
+# library(readxl)
 library(data.table)
 
-##### Import raw data and save raw data as csv #####
+##### Import raw data #####
 
 dir <- "Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 
 tracts_2020_all_data <- read_excel(paste0(dir, "data/tracts_2020_all_data.xlsx"))
-tracts_2020_all_data <- tracts_2020_all_data[, 2:ncol(tracts_2020_all_data)] # remove "OBJECTID" variable
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
-fwrite(tracts_2020_all_data, paste0(dir, "Data/tracts_2020_all_data.csv"))
+
+
+#### Process supplementary datasets ####
+
+county_data <- read_excel(paste0(dir, "data/NCHSURCodes2013.xlsx"))
+county_data <- as.data.table(county_data)
+county_data <- county_data[, .(county_fips = as.character(`FIPS code`), urban_rural = `1990-based code`)] # urban_rural variable is NCHS 2013's code (1 = "Large central metro", 6 = "Noncore")
+county_data[nchar(county_fips) == 4, county_fips := paste0("0", county_fips)]
 
 
 ##### Sort variables into treatment, outcome, and covariates #####
@@ -22,7 +28,7 @@ outcome_vars <- c("binary_shooting_incident", "count_school_shootings", "num_sho
                   "Accomplice", "Shots_Fired", "First_Shot", "Situation", "Time_Period", "During_School", "Hostages", "Barricade", "Active_Shooter_FBI", "Officer_Involved", "shooter_injury", "shooter_outcome",
                   "Media_Attention", "Narrative", "Number_News",
                   "Summary", "Sources",
-                  "Date", "incident_date", "Incident_ID", "Location", "Location_Type", "School", "City", "County_Name", "State_1", "State_Name",
+                  "Date", "incident_date", "Incident_ID", "Location", "Location_Type", "School", "City", "State_1",
                   "shooter_age", "shooter_race", "shooter_gender", "Gang_Related", "Bullied", "Domestic_Violence")
 unclear_vars <- c("NEAR_DIST", "Quarter", "Reliability")
 
@@ -35,11 +41,16 @@ covars <- covars[!covars %in% unclear_vars]
 
 tracts_2020_subset_vars <- tracts_2020_all_data
 tracts_2020_subset_vars[, pop_below18 := P0010001 - P0030001]
+tracts_2020_subset_vars[, state_fips := substr(GEOID, 1, 2)]
+tracts_2020_subset_vars[, county_fips := substr(GEOID, 1, 5)]
+tracts_2020_subset_vars <- merge(tracts_2020_subset_vars, county_data, by="county_fips", all.x=T, all.y=F)
+
+all_vars <- names(tracts_2020_subset_vars)
 
 
 ##### Exclude variables #####
 
-exclude_misc_covars <- c("sports_mp33018a_b_i", "GEOID", "POP100", # POP100 is duplicate of P0010001
+exclude_misc_covars <- c("OBJECTID", "GEOID", "sports_mp33018a_b_i", "POP100", # POP100 is duplicate of P0010001
                          "crime_crmcyperc", "crime_crmcyproc") # cor(total_crime, property_crime) = 0.99 and cor(total_crime, personal_crime) = 0.79, so keep only total
 exclude_ses_covars <- c("incomebyage_avgia15_cy", "employmentunemployment_unemrt16cy", "employmentunemployment_unemp_cy_p",
                         "wealth_avgdi_cy", "householdincome_pci_cy") # cor(median_household_income, average_disposable_income) = 0.98 and cor(median_household_income, income_per_capita) = 0.88
@@ -139,3 +150,4 @@ fwrite(shooting_tracts_2020_subset_vars, paste0(dir, "Data/shooting_tracts_2020_
 # exclude_treatment_vars2 <- treatment_vars[outcome_vars != "count_gun_dealers"] # include only count_gun_dealers as treatment variable
 # shooting_tracts_2020_subset_vars[, dealers_per_capita := count_gun_dealers/P0010001]
 # shooting_tracts_2020_subset_vars[, dealers_per_area := count_gun_dealers/Shape_Area]
+

@@ -42,8 +42,10 @@ discretize_vars <- function(dt, exclude_vars = NA, output_filename){
 }
 
 all_tracts_2020_discretized <- discretize_vars(all_tracts_2020_subset_vars,
-                                               c("binary_shooting_incident", "mean_total_miles", "county_fips", "County_Name", "state_fips", "State_Name", "urban_rural"),
+                                               c("binary_shooting_incident", "mean_total_miles", "county_fips", "County_Name", "state_fips", "State_Name", "urban_rural",
+                                                 "FIRST_weapontype", "Preplanned", "Shots_Fired", "Targets", "shooter_school_affiliation"),
                                                paste0(dir, "data/all_tracts_2020_discretized.csv"))
 shooting_tracts_2020_discretized <- discretize_vars(shooting_tracts_2020_subset_vars,
-                                                    c("shooter_school_affiliation", "mean_total_miles", "county_fips", "County_Name", "state_fips", "State_Name", "urban_rural"),
+                                                    c("shooter_school_affiliation", "mean_total_miles", "county_fips", "County_Name", "state_fips", "State_Name", "urban_rural",
+                                                    "FIRST_weapontype", "Preplanned", "Shots_Fired", "Targets"),
                                                     paste0(dir, "data/shooting_tracts_2020_discretized.csv"))

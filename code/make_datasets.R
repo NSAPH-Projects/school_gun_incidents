@@ -70,15 +70,14 @@ exclude_uniracial_covars <- c("P0010008") # keep: P0010001 (total population), P
 nonHispLat_covars <- c("P0020003", "P0020007", "P0020008", "P0020006", "P0020009", "P0020004", "P0020011", "P0020012"
                        , "P0020022", "P0020023", "P0020024", "P0020025", "P0020026", "P0020018", "P0020019", "P0020020",
                        "P0020021", "P0020027", "P0020014", "P0020015", "P0020013", "P0020016", "P0020017", "P0020010", "P0020005") # keep: P0020002 (Hispanic/Latino population)
-pct_vars <- c("PCT_P0020007", "PCT_P0020008", "PCT_P0020006", "PCT_P0020002", "PCT_P0020009", "PCT_H0010002", "PCT_H0010003", "PCT_P0030001", "PCT_P0020011", "PCT_P0020010", "PCT_P0020005")
+pct_covars <- c("PCT_P0020007", "PCT_P0020008", "PCT_P0020006", "PCT_P0020002", "PCT_P0020009", "PCT_H0010002", "PCT_H0010003", "PCT_P0030001", "PCT_P0020011", "PCT_P0020010", "PCT_P0020005")
 
-# combine all variables to be excluded
-all_exclude_vars <- c(unclear_vars, exclude_misc_covars, exclude_ses_covars, exclude_group_quarters_covars, exclude_housing_covars,
-                      race18plus_covars, exclude_num_race_covars, biracial_covars, exclude_uniracial_covars, nonHispLat_covars, pct_vars)
-all_include_vars <- all_vars[!all_vars %in% all_exclude_vars]
+# combine all covariates to be excluded
+all_exclude_covars <- c(unclear_vars, exclude_misc_covars, exclude_ses_covars, exclude_group_quarters_covars, exclude_housing_covars,
+                      race18plus_covars, exclude_num_race_covars, biracial_covars, exclude_uniracial_covars, nonHispLat_covars, pct_covars)
 
 # subset data
-tracts_2020_subset_vars <- subset(tracts_2020_subset_vars, select=all_include_vars)
+tracts_2020_subset_vars <- subset(tracts_2020_subset_vars, select=all_vars[!all_vars %in% all_exclude_covars])
 
 
 ##### Rename variables ##### 
@@ -130,8 +129,9 @@ tracts_2020_vars_scaled <- tracts_2020_vars_scaled[, `:=`(white_only_pop = NULL,
 
 ##### Make preliminary dataset (1 treatment, 1 outcome) for all Census tracts containing a school #####
 
-exclude_treatment_vars1 <- treatment_vars[treatment_vars != "mean_total_miles"] # include only mean_total_miles as treatment variable
-exclude_outcome_vars1 <- outcome_vars[outcome_vars != "binary_shooting_incident"] # include only binary_shooting_incident as outcome variable
+exclude_treatment_vars1 <- c("mean_total_miles", "count_gun_dealers") # keep: mean_total_miles, count_gun_dealers
+exclude_outcome_vars1 <- outcome_vars[!outcome_vars %in% c("binary_shooting_incident", "FIRST_weapontype", "Preplanned",
+                                                             "Shots_Fired", "Targets", "shooter_school_affiliation")] # keep these outcome variables
 all_tracts_2020_subset_vars <- subset(tracts_2020_vars_scaled, select = names(tracts_2020_vars_scaled)[!names(tracts_2020_vars_scaled) %in% c(exclude_treatment_vars1, exclude_outcome_vars1)])
 fwrite(all_tracts_2020_subset_vars, paste0(dir, "Data/all_tracts_2020_subset_vars.csv"))
 
@@ -139,8 +139,9 @@ fwrite(all_tracts_2020_subset_vars, paste0(dir, "Data/all_tracts_2020_subset_var
 
 shooting_tracts_2020_subset_vars <- tracts_2020_vars_scaled[binary_shooting_incident == 1, ] # filter to 829 tracts that had at least 1 shooting
 
-exclude_treatment_vars2 <- treatment_vars[treatment_vars != "mean_total_miles"] # include only mean_total_miles as treatment variable
-exclude_outcome_vars2 <- outcome_vars[outcome_vars != "shooter_school_affiliation"] # include only shooter_school_affiliation as outcome variable
+exclude_treatment_vars2 <- c("max_total_miles", "min_total_miles") # keep: mean_total_miles, count_gun_dealers
+exclude_outcome_vars2 <- outcome_vars[!outcome_vars %in% c("FIRST_weapontype", "Preplanned",
+                                                           "Shots_Fired", "Targets", "shooter_school_affiliation")] # keep these outcome variables
 shooting_tracts_2020_subset_vars <- subset(shooting_tracts_2020_subset_vars, select = names(tracts_2020_vars_scaled)[!names(tracts_2020_vars_scaled) %in% c(exclude_treatment_vars2, exclude_outcome_vars2)])
 shooting_tracts_2020_subset_vars[, prop_military := NULL] # remove prop_military covariate because it equals 0 for all tracts in this dataset
 fwrite(shooting_tracts_2020_subset_vars, paste0(dir, "Data/shooting_tracts_2020_subset_vars.csv"))

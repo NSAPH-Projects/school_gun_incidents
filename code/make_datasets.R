@@ -129,7 +129,7 @@ tracts_2020_vars_scaled <- tracts_2020_vars_scaled[, `:=`(white_only_pop = NULL,
 
 ##### Make preliminary dataset (1 treatment, 1 outcome) for all Census tracts containing a school #####
 
-exclude_treatment_vars1 <- c("mean_total_miles", "count_gun_dealers") # keep: mean_total_miles, count_gun_dealers
+exclude_treatment_vars1 <- c("max_total_miles", "min_total_miles") # keep: mean_total_miles, count_gun_dealers
 exclude_outcome_vars1 <- outcome_vars[!outcome_vars %in% c("binary_shooting_incident", "FIRST_weapontype", "Preplanned",
                                                              "Shots_Fired", "Targets", "shooter_school_affiliation")] # keep these outcome variables
 all_tracts_2020_subset_vars <- subset(tracts_2020_vars_scaled, select = names(tracts_2020_vars_scaled)[!names(tracts_2020_vars_scaled) %in% c(exclude_treatment_vars1, exclude_outcome_vars1)])

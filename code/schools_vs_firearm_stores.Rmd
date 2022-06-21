@@ -1,0 +1,530 @@
+---
+title: "Causal Analysis Schools Vs Firearm Stores"
+author: "Falco and Michelle"
+date: "6/20/2022"
+output: html_document
+---
+
+# Introduction
+
+In the following document we depict the code used to build, describe, clean the data set, and to perform the causal analyses. The code is stored in a GitHub repository at <https://github.com/NSAPH/firearm_store_proximity_school_shootings>.  Feel free to reach out for any question regarding the following code at: fbargaglistoffi@hsph.harvard.edu.
+
+```{r library_upload, message=FALSE, warning=FALSE, include=TRUE, results='hide', include=FALSE}
+# Upload Functions and Packages
+rm(list=ls())
+library(tmle)
+library(CausalGPS)
+library(MASS)
+library(ggplot2)
+library(tidyr)
+library(pscl)
+library(dplyr)
+library(SuperLearner)
+```
+
+```{r setup, include=FALSE}
+# Set the Working Directory
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '~/OneDrive - Harvard University/Research/Schools Vs Firearms')
+```
+
+# Data Wraggling
+
+Upload the data
+
+```{r, message=FALSE, warning=FALSE}
+data <- read.csv("data/all_tracts_2020_subset_vars.csv", header = TRUE, stringsAsFactors = FALSE)
+data$urban_rural <- as.integer(data$urban_rural)
+colnames(data)
+dim(data)
+```
+
+Remove the NAs. Refine this analysis at a later stage.
+
+```{r}
+na.omit.data <- na.omit(data)
+dim(na.omit.data)
+```
+
+Generate the outcome, treatment and confounders' matrices. The unit of analysis is any cencus track with at least one school. The outcome variable is whether there was a shooting in that cencus tract, the treatment variable is the average distance, within a cencus tract, between schools and gun stores. 
+
+```{r}
+## Outcome Variable 
+y <- na.omit.data[,c("binary_shooting_incident")]
+
+## Treatment Variable
+na.omit.data$mean_total_km <- na.omit.data$mean_total_miles * 1.609344
+na.omit.data$mean_total_100m <- na.omit.data$mean_total_km*10
+# a <- na.omit.data[,c("mean_total_100m")]
+a <- na.omit.data[,c("mean_total_km")]
+ceiling_a <- ceiling(a)
+# a <- na.omit.data[, c("mean_total_miles")]
+
+## Confounders
+na.omit.data$log_median_hh_income <- log(na.omit.data$median_household_inc_2021 + 0.01)
+na.omit.data$log_median_hh_income_15to24 <- log(na.omit.data$median_household_inc_15to24_2021 + 0.01)
+x <- na.omit.data[, c("total_population", "total_housing_units", "urban_rural",
+              "log_median_hh_income", "count_schools", "state_fips", "county_fips",
+              "log_median_hh_income_15to24", "total_crime_2021", "count_gun_dealers",
+              "daytime_pop_2021", "prop_white_only", "prop_black_only", 
+              "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+              "prop_food_stamps_2019", "prop_public_assist_income_2019",
+              "prop_below_poverty_2019", "prop_without_vehicles_2019",
+              "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
+              "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
+              "prop_unemployed_16to24_2021", "prop_group_quartered",
+              "prop_adult_correctional", "prop_juvenile_detention", 
+              "prop_nursing", "prop_university", "prop_military",
+              "prop_other_noninstitutional", "pop_below18")]
+x <- t(apply(x, 1, unlist))
+
+## Generate Analysis Data
+data_analysis <- cbind(y, a, as.data.frame(x))
+```
+
+Check the distribution of the treatment.
+
+```{r}
+quantile(a)
+plot(density(a))
+plot(density(a[which(a < quantile(a, 0.99))]))
+plot(density(a[which(a < quantile(a, 0.95))]))
+plot(density(a[which(a < quantile(a, 0.90))]))
+```
+
+Map of school to gun store proximity at county level.
+
+![](/Users/falco/Desktop/figures/counties_map_mean_miles.png)
+Map of school to gun store proximity at state level.
+
+![](/Users/falco/Desktop/figures/states_map_mean_miles.png)
+Map of school to gun store proximity at county level (trimming exposure larger than 99th percentile).
+
+![](/Users/falco/Desktop/figures/counties_map_mean_miles_winsorized99.png)
+
+Map of school to gun store proximity at state level (trimming exposure larger than 99th percentile).
+
+![](/Users/falco/Desktop/figures/states_map_mean_miles_winsorized99.png)
+
+Map of school to gun store proximity at county level (trimming exposure larger than 95th percentile).
+
+![](/Users/falco/Desktop/figures/counties_map_mean_miles_winsorized95.png)
+Map of school to gun store proximity at state level (trimming exposure larger than 95th percentile).
+
+![](/Users/falco/Desktop/figures/states_map_mean_miles_winsorized95.png)
+
+# Exploratory Data Analysis
+
+Run a logistic regression to explore the associations between the treatment and the outcome controlling for all the confounders.
+
+```{r, message=FALSE, warning=FALSE}
+# Logistic Regression (unrestricted a, 57793 observations)
+logistic_model <- glm(y ~ a + x, 
+                      data = data_analysis, 
+                      family = "binomial")
+summary(logistic_model)
+```
+
+Run a negative binomial regression to explore the associations between the treatment and the outcome controlling for all the confounders.
+
+```{r, message=FALSE, warning=FALSE}
+# Negative Binomial
+negative_binomial <- glm.nb(y ~ a + x, data = data_analysis)
+summary(negative_binomial)
+
+# Zero Inflated Negative Binomial
+zinb <- zeroinfl(y ~ a | a ,
+                 dist = "negbin", data = data_analysis)
+summary(zinb)
+```
+
+```{r}
+dat <- table(ceiling_a, data_analysis$y)
+events <- dat[,2]
+denominator <- dat[,1]
+dat <- cbind(events, denominator, events/(events + denominator))
+dat
+```
+
+# Causal Analysis with GPS matching
+
+We start by trimming the tails at the 99th percentile of GPS.
+
+```{r}
+# CausalGPS
+trim = 0.01
+attempts = 5
+match_pop <- generate_pseudo_pop(Y = y, w = a, c = as.data.frame(x),
+                                 ci_appr = "matching",
+                                 pred_model = "sl",
+                                 gps_model = "parametric",
+                                 use_cov_transform = TRUE,
+                                 transformers = list("pow2", "pow3"),
+                                 sl_lib = c("m_xgboost"),
+                                 params = list(xgb_nrounds = c(50)),
+                                 nthread = 4, # number of cores
+                                 covar_bl_method = "absolute",
+                                 covar_bl_trs = 0.1,
+                                 covar_bl_trs_type = "mean",
+                                 trim_quantiles = c(trim, 1 - trim), # trimmed, you can change,
+                                 optimized_compile = TRUE, # column counter for how many times matched,
+                                 max_attempt = attempts,
+                                 matching_fun = "matching_l1",
+                                 delta_n = 0.2,
+                                 scale = 1.0)
+```
+
+Generate the absolute correlation.
+
+```{r}
+# absolute correlation unmatched
+cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
+
+cor_val_matched <- match_pop$adjusted_corr_results
+cor_val_unmatched <- match_pop$original_corr_results
+
+print(cor_val_unmatched)
+print(cor_val_matched)
+
+abs_cor = data.frame(cov = c("total_population", "total_housing_units", "urban_rural",
+                             "log_median_hh_income", "count_schools", "state_fips",
+                             "county_fips", "log_median_hh_income_15to24",
+                             "total_crime_2021", "count_gun_dealers",
+                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
+                             "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
+                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
+                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
+                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
+                             "prop_unemployed_16to24_2021", "prop_group_quartered",
+                             "prop_adult_correctional", "prop_juvenile_detention", 
+                             "prop_nursing", "prop_university", "prop_military",
+                             "prop_other_noninstitutional", "pop_below18"),
+                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
+  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
+```
+
+Plot the balance.
+
+```{r}
+ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
+  geom_point() +
+  geom_line() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+Run a logistic regression on the matched data.
+
+```{r}
+# merge individual level data
+pseudo <- match_pop$pseudo_pop
+
+outcome_m <- estimate_pmetric_erf(formula = Y ~ w,
+                                  family = binomial,
+                                  data = pseudo,
+                                  ci_appr = "matching")
+summary(outcome_m)
+```
+
+Run a non-linear model on the matched data.
+
+```{r}
+erf_obj <- estimate_npmetric_erf(as.double(pseudo$Y),
+                                 as.double(pseudo$w),
+                                 bw_seq=seq(0.2,2,0.2),
+                                 w_vals = seq(0,15,0.5),
+                                 nthread = 1)
+
+#summary(erf_obj)
+plot(erf_obj)
+```
+
+We run the same analyses but, this time, trimming the GPS at the 95th percentile.
+
+```{r}
+trim = 0.05
+attempts = 5
+match_pop_trim <- generate_pseudo_pop(Y = y, w = a, c = as.data.frame(x),
+                                      ci_appr = "matching",
+                                      pred_model = "sl",
+                                      gps_model = "parametric",
+                                      use_cov_transform = TRUE,
+                                      transformers = list("pow2", "pow3"),
+                                      sl_lib = c("m_xgboost"),
+                                      params = list(xgb_nrounds = c(50)),
+                                      nthread = 4, # number of cores
+                                      covar_bl_method = "absolute",
+                                      covar_bl_trs = 0.1,
+                                      covar_bl_trs_type = "mean",
+                                      trim_quantiles = c(trim, 1 - trim),
+                                      optimized_compile = TRUE, #column counter for how many times matched,
+                                      max_attempt = attempts,
+                                      matching_fun = "matching_l1",
+                                      delta_n = 0.2,
+                                      scale = 1.0)
+
+# absolute correlation unmatched
+cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
+
+cor_val_matched <- match_pop_trim$adjusted_corr_results
+cor_val_unmatched <- match_pop_trim$original_corr_results
+
+print(cor_val_unmatched)
+print(cor_val_matched)
+
+abs_cor = data.frame(cov = c("total_population", "total_housing_units", "urban_rural",
+                             "log_median_hh_income", "count_schools", "state_fips",
+                             "county_fips", "log_median_hh_income_15to24",
+                             "total_crime_2021", "count_gun_dealers",
+                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
+                             "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
+                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
+                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
+                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
+                             "prop_unemployed_16to24_2021", "prop_group_quartered",
+                             "prop_adult_correctional", "prop_juvenile_detention", 
+                             "prop_nursing", "prop_university", "prop_military",
+                             "prop_other_noninstitutional", "pop_below18"),
+                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
+  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
+```
+
+Check the balance.
+
+```{r}
+ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
+  geom_point() +
+  geom_line() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+Run a logistic regression on the matched data.
+
+```{r}
+pseudo_trim <- match_pop_trim$pseudo_pop
+outcome_m_trim <- estimate_pmetric_erf(formula = Y ~ w,
+                                       family = binomial,
+                                       data = pseudo_trim,
+                                       ci_appr = "matching")
+summary(outcome_m_trim)
+```
+
+Run a non-parametric model on the matched data.
+
+```{r}
+erf_obj_trim <- estimate_npmetric_erf(as.double(pseudo_trim$Y),
+                                      as.double(pseudo_trim$w),
+                                      bw_seq=seq(0.2,2,0.2),
+                                      w_vals = seq(0,15,0.5),
+                                      nthread = 1)
+
+plot(erf_obj_trim)
+```
+
+We run the same analyses but, this time, trimming the GPS at the 95th percentile and the exposure at the same percentile.
+
+```{r}
+data_analysis_trim <- data_analysis[which(a < quantile(a, 0.95)),]
+data_analysis_trim$x <- data_analysis_trim[, c("total_population", "total_housing_units",
+                                               "urban_rural","log_median_hh_income",
+                                               "count_schools", "state_fips", "county_fips",
+                                               "log_median_hh_income_15to24", "total_crime_2021",
+                                               "count_gun_dealers", "daytime_pop_2021",
+                                               "prop_white_only", "prop_black_only", 
+                                               "prop_asian_only", "prop_biracial",
+                                               "prop_hispanic_latino", "prop_food_stamps_2019",
+                                               "prop_public_assist_income_2019",
+                                               "prop_below_poverty_2019",
+                                               "prop_without_vehicles_2019",
+                                               "prop_hunted_with_shotgun_2021",
+                                               "prop_bachelor_deg_25plus_2021", 
+                                               "prop_grad_deg_25plus_2021",
+                                               "prop_unemployed_2021",
+                                               "prop_unemployed_16to24_2021",
+                                               "prop_group_quartered",
+                                               "prop_adult_correctional",
+                                               "prop_juvenile_detention", 
+                                               "prop_nursing", "prop_university",
+                                               "prop_military",
+                                               "prop_other_noninstitutional",
+                                               "pop_below18")]
+```
+
+```{r}
+trim = 0.05
+attempts = 5
+match_pop_trim_wins <- generate_pseudo_pop(Y = data_analysis_trim$y,
+                                           w = data_analysis_trim$a,
+                                           c = as.data.frame(data_analysis_trim$x),
+                                           ci_appr = "matching",
+                                           pred_model = "sl",
+                                           gps_model = "parametric",
+                                           use_cov_transform = TRUE,
+                                           transformers = list("pow2", "pow3"),
+                                           sl_lib = c("m_xgboost"),
+                                           params = list(xgb_nrounds = c(50)),
+                                           nthread = 4, # number of cores
+                                           covar_bl_method = "absolute",
+                                           covar_bl_trs = 0.1,
+                                           covar_bl_trs_type = "mean",
+                                           trim_quantiles = c(trim, 1 - trim), 
+                                           optimized_compile = TRUE, 
+                                           max_attempt = attempts,
+                                           matching_fun = "matching_l1",
+                                           delta_n = 0.2,
+                                           scale = 1.0)
+
+# absolute correlation unmatched
+cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
+
+cor_val_matched <- match_pop_trim_wins$adjusted_corr_results
+cor_val_unmatched <- match_pop_trim_wins$original_corr_results
+
+abs_cor = data.frame(cov = c("total_population", "total_housing_units", "urban_rural",
+                             "log_median_hh_income", "count_schools", "state_fips",
+                             "county_fips", "log_median_hh_income_15to24",
+                             "total_crime_2021", "count_gun_dealers",
+                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
+                             "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
+                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
+                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
+                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
+                             "prop_unemployed_16to24_2021", "prop_group_quartered",
+                             "prop_adult_correctional", "prop_juvenile_detention", 
+                             "prop_nursing", "prop_university", "prop_military",
+                             "prop_other_noninstitutional", "pop_below18"),
+                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
+  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
+```
+
+```{r}
+ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
+  geom_point() +
+  geom_line() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+We run a logistic regression on the matched data.
+
+```{r}
+pseudo_trim_wins <- match_pop_trim_wins$pseudo_pop
+outcome_m_trim_wins <- estimate_pmetric_erf(formula = Y ~ w,
+                                            family = binomial,
+                                            data = pseudo_trim_wins,
+                                            ci_appr = "matching")
+summary(outcome_m_trim_wins)
+```
+
+We run a nonparametric model on the matched data.
+
+```{r}
+erf_obj_trim_wins <- estimate_npmetric_erf(as.double(pseudo_trim_wins$Y),
+                                           as.double(pseudo_trim_wins$w),
+                                           bw_seq=seq(0.2,2,0.2),
+                                           w_vals = seq(0,15,0.5),
+                                           nthread = 1)
+
+plot(erf_obj_trim_wins)
+```
+
+Now, we run the exact same analyses but, this time, defining the treatment variable as the ceiling of a. In this way, the group all the treated units within a 1, 2, 3, 4, .. km average distance between school and gun stores.
+
+
+```{r,  message=FALSE, warning=FALSE}
+data_analysis_within_distance <- cbind(y, ceiling_a, as.data.frame(x))
+
+# Logistic Regression (unrestricted a, 57793 observations)
+logistic_model_within_distance <- glm(y ~ ceiling_a + x, 
+                                      data = data_analysis_within_distance, 
+                                      family = "binomial")
+summary(logistic_model_within_distance)
+
+# Negative Binomial
+negative_binomial_within_distance <- glm.nb(y ~ ceiling_a + x,
+                                            data = data_analysis_within_distance)
+summary(negative_binomial_within_distance)
+
+# Logistic Regression (restricted a [95%], 54903 observations)
+data_analysis_trim_within_distance <- data_analysis[which(ceiling_a < quantile(ceiling_a, 0.95)),]
+logistic_model_trim <- glm(y ~ ., 
+                           data = data_analysis_trim_within_distance, 
+                           family = "binomial")
+summary(logistic_model_trim)
+```
+
+```{r,  message=FALSE, warning=FALSE}
+## Trimming 0.01
+# CausalGPS
+trim = 0.01
+attempts = 5
+match_pop <- generate_pseudo_pop(Y = y, w = ceiling_a, c = as.data.frame(x),
+                                 ci_appr = "matching",
+                                 pred_model = "sl",
+                                 gps_model = "parametric",
+                                 use_cov_transform = TRUE,
+                                 transformers = list("pow2", "pow3"),
+                                 sl_lib = c("m_xgboost"),
+                                 params = list(xgb_nrounds = c(50)),
+                                 nthread = 4, # number of cores
+                                 covar_bl_method = "absolute",
+                                 covar_bl_trs = 0.1,
+                                 covar_bl_trs_type = "mean",
+                                 trim_quantiles = c(trim, 1 - trim),
+                                 optimized_compile = TRUE, 
+                                 max_attempt = attempts,
+                                 matching_fun = "matching_l1",
+                                 delta_n = 0.2,
+                                 scale = 1.0)
+
+# absolute correlation unmatched
+cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(ceiling_a)) ,data.table::setDT(data.frame(x)))
+
+cor_val_matched <- match_pop$adjusted_corr_results
+cor_val_unmatched <- match_pop$original_corr_results
+
+abs_cor = data.frame(cov = c("total_population", "total_housing_units", "urban_rural",
+                             "log_median_hh_income", "count_schools", "state_fips",
+                             "county_fips", "log_median_hh_income_15to24",
+                             "total_crime_2021", "count_gun_dealers",
+                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
+                             "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
+                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
+                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
+                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
+                             "prop_unemployed_16to24_2021", "prop_group_quartered",
+                             "prop_adult_correctional", "prop_juvenile_detention", 
+                             "prop_nursing", "prop_university", "prop_military",
+                             "prop_other_noninstitutional", "pop_below18"),
+                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
+  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
+```
+
+```{r,  message=FALSE, warning=FALSE}
+ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
+  geom_point() +
+  geom_line() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+# merge individual level data
+pseudo <- match_pop$pseudo_pop
+outcome_m <- estimate_pmetric_erf(formula = Y ~ w,
+                                  family = binomial,
+                                  data = pseudo,
+                                  ci_appr = "matching")
+summary(outcome_m)
+```
+
+```{r}
+erf_obj_trim <- estimate_npmetric_erf(as.double(pseudo$Y),
+                                      as.double(pseudo$w),
+                                      bw_seq=seq(0.2,2,0.2),
+                                      w_vals = seq(0,15,0.5),
+                                      nthread = 1)
+
+plot(erf_obj_trim)
+```

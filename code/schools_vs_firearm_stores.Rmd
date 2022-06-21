@@ -1,7 +1,7 @@
 ---
-title: "Causal Analysis Schools Vs Firearm Stores"
+title: "Causal Analysis: Schools Vs Firearm Stores"
 author: "Falco and Michelle"
-date: "6/20/2022"
+date: "6/21/2022"
 output: html_document
 ---
 
@@ -28,25 +28,25 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = '~/OneDrive - Harvard University/Research/Schools Vs Firearms')
 ```
 
-# Data Wraggling
+# Data Wrangling
 
-Upload the data
+Upload the data. Exclude ~500 Census tracts in Puerto Rico, 19 Census tracts with population 0, 13 Census tracts with missing treatment variables (`mean_total_miles`, `max_total_miles`, and `min_total_miles`), and 3 Census tracts with missing 2013 NCHS urban-rural classification.
 
 ```{r, message=FALSE, warning=FALSE}
 data <- read.csv("data/all_tracts_2020_subset_vars.csv", header = TRUE, stringsAsFactors = FALSE)
-data$urban_rural <- as.integer(data$urban_rural)
 colnames(data)
 dim(data)
 ```
 
-Remove the NAs. Refine this analysis at a later stage.
-
 ```{r}
-na.omit.data <- na.omit(data)
+# na.omit.data <- na.omit(data) # commented out: don't remove 7 NA's in Targets variable, which correspond to shootings
+na.omit.data <- data[!is.na(data$urban_rural), ]
 dim(na.omit.data)
 ```
 
-Generate the outcome, treatment and confounders' matrices. The unit of analysis is any cencus track with at least one school. The outcome variable is whether there was a shooting in that cencus tract, the treatment variable is the average distance, within a cencus tract, between schools and gun stores. 
+Generate the outcome, treatment and confounders' matrices. The unit of analysis is any Census track with at least one school. The outcome variable is whether there was a shooting in that Census tract, the treatment variable is the average distance, within a Census tract, between schools and gun stores.
+
+Several confounders are included as a proportion (for instance, of 25+ individuals who have a bachelor's degree) over that Census tract's population (`total_population`; year unknown), which is also a variable in this dataset. Several potential confounders (for instance, population of 18+ individuals) are not included in this analysis because they have correlation $>0.84$ with a confounder that is included.
 
 ```{r}
 ## Outcome Variable 
@@ -67,7 +67,7 @@ x <- na.omit.data[, c("total_population", "total_housing_units", "urban_rural",
               "log_median_hh_income", "count_schools", "state_fips", "county_fips",
               "log_median_hh_income_15to24", "total_crime_2021", "count_gun_dealers",
               "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-              "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+              "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
               "prop_food_stamps_2019", "prop_public_assist_income_2019",
               "prop_below_poverty_2019", "prop_without_vehicles_2019",
               "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
@@ -82,6 +82,32 @@ x <- t(apply(x, 1, unlist))
 data_analysis <- cbind(y, a, as.data.frame(x))
 ```
 
+Notes about specific confounders:
+
+- `urban_rural` is the 2013 National Center for Health Statistics (NCHS)'s categorization of each Census tract, a categorical variable taking on values 1, 2, 3, 4, 5, or 6. 1 $=$ "large central metro" and 6 $=$ "Noncore".
+- `prop_food_stamps_2019`, `prop_public_assist_income_2019`, `prop_below_poverty_2019`, and `prop_without_vehicles_2019` are the American Community Survey (ACS)'s 5-year averages. Not sure if this average is 2015-2019 or 2017-2021?
+- We examined "employmentunemployment_unemrt16cy"	("2021 Unemp Rate: Pop 16-24") and "employmentunemployment_unage16cy_p" ("2021 Unemployed Pop 16-24: Percent") and found that they are not equivalent measures. We're not sure if they are rates over the 16-24 population or over the unemployed population. In this analysis, we include the former variable and call it `prop_unemployed_16to24_2021.`
+- `prop_multiracial` is the proportion of individuals in that Census tract who identify as 2+ races; these multiracial individuals' specific races are not included in this analysis.
+
+```{r}
+hist(na.omit.data$prop_multiracial)
+summary(na.omit.data$prop_multiracial)
+```
+
+Variables in raw data that we were not sure about (not included in this analysis but maybe should be included in future):
+
+- "NEAR_DIST"
+- "Quarter"
+- "Reliability"
+- "Shape_Area"
+- "Shape_Length"
+
+Confounders we plan to have in subsequent analyses:
+
+- Census-tract level? 2018 midterm election results
+- mental health
+
+
 Check the distribution of the treatment.
 
 ```{r}
@@ -94,24 +120,33 @@ plot(density(a[which(a < quantile(a, 0.90))]))
 
 Map of school to gun store proximity at county level.
 
-![](/Users/falco/Desktop/figures/counties_map_mean_miles.png)
+<!-- ![](/Users/falco/Desktop/figures/counties_map_mean_miles.png) -->
+![](/Users/s012852/Documents/figures/counties_map_mean_miles.png)
 Map of school to gun store proximity at state level.
 
-![](/Users/falco/Desktop/figures/states_map_mean_miles.png)
-Map of school to gun store proximity at county level (trimming exposure larger than 99th percentile).
+<!-- ![](/Users/falco/Desktop/figures/states_map_mean_miles.png) -->
+![](/Users/s012852/Documents/figures/states_map_mean_miles.png)
 
-![](/Users/falco/Desktop/figures/counties_map_mean_miles_trimmed99.png)
+Map of school to gun store proximity at county level (trimming exposure less than 1st and larger than 99th percentile).
 
-Map of school to gun store proximity at state level (trimming exposure larger than 99th percentile).
+<!-- ![](/Users/falco/Desktop/figures/counties_map_mean_miles_trimmed99.png) -->
+![](/Users/s012852/Documents/figures/counties_map_mean_miles_trimmed99.png)
 
-![](/Users/falco/Desktop/figures/states_map_mean_miles_trimmed99.png)
+Map of school to gun store proximity at state level (trimming exposure less than 1st and larger than 99th percentile).
 
-Map of school to gun store proximity at county level (trimming exposure larger than 95th percentile).
+<!-- ![](/Users/falco/Desktop/figures/states_map_mean_miles_trimmed99.png) -->
+![](/Users/s012852/Documents/figures/states_map_mean_miles_trimmed99.png)
 
-![](/Users/falco/Desktop/figures/counties_map_mean_miles_trimmed95.png)
-Map of school to gun store proximity at state level (trimming exposure larger than 95th percentile).
+Map of school to gun store proximity at county level (trimming exposure less than 5th and larger than 95th percentile).
 
-![](/Users/falco/Desktop/figures/states_map_mean_miles_trimmed95.png)
+<!-- ![](/Users/falco/Desktop/figures/counties_map_mean_miles_trimmed95.png) -->
+![](/Users/s012852/Documents/figures/counties_map_mean_miles_trimmed95.png)
+
+Map of school to gun store proximity at state level (trimming exposure less than 5th and larger than 95th percentile).
+
+<!-- ![](/Users/falco/Desktop/figures/states_map_mean_miles_trimmed95.png) -->
+![](/Users/s012852/Documents/figures/states_map_mean_miles_trimmed95.png)
+
 
 # Exploratory Data Analysis
 
@@ -191,7 +226,7 @@ abs_cor = data.frame(cov = c("total_population", "total_housing_units", "urban_r
                              "county_fips", "log_median_hh_income_15to24",
                              "total_crime_2021", "count_gun_dealers",
                              "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
                              "prop_food_stamps_2019", "prop_public_assist_income_2019",
                              "prop_below_poverty_2019", "prop_without_vehicles_2019",
                              "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
@@ -277,7 +312,7 @@ abs_cor = data.frame(cov = c("total_population", "total_housing_units", "urban_r
                              "county_fips", "log_median_hh_income_15to24",
                              "total_crime_2021", "count_gun_dealers",
                              "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
                              "prop_food_stamps_2019", "prop_public_assist_income_2019",
                              "prop_below_poverty_2019", "prop_without_vehicles_2019",
                              "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
@@ -332,7 +367,7 @@ data_analysis_trim$x <- data_analysis_trim[, c("total_population", "total_housin
                                                "log_median_hh_income_15to24", "total_crime_2021",
                                                "count_gun_dealers", "daytime_pop_2021",
                                                "prop_white_only", "prop_black_only", 
-                                               "prop_asian_only", "prop_biracial",
+                                               "prop_asian_only", "prop_multiracial",
                                                "prop_hispanic_latino", "prop_food_stamps_2019",
                                                "prop_public_assist_income_2019",
                                                "prop_below_poverty_2019",
@@ -386,7 +421,7 @@ abs_cor = data.frame(cov = c("total_population", "total_housing_units", "urban_r
                              "county_fips", "log_median_hh_income_15to24",
                              "total_crime_2021", "count_gun_dealers",
                              "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
                              "prop_food_stamps_2019", "prop_public_assist_income_2019",
                              "prop_below_poverty_2019", "prop_without_vehicles_2019",
                              "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
@@ -489,7 +524,7 @@ abs_cor = data.frame(cov = c("total_population", "total_housing_units", "urban_r
                              "county_fips", "log_median_hh_income_15to24",
                              "total_crime_2021", "count_gun_dealers",
                              "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_biracial", "prop_hispanic_latino", 
+                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
                              "prop_food_stamps_2019", "prop_public_assist_income_2019",
                              "prop_below_poverty_2019", "prop_without_vehicles_2019",
                              "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 

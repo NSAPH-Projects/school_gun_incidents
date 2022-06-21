@@ -25,7 +25,8 @@ library(SuperLearner)
 ```{r setup, include=FALSE}
 # Set the Working Directory
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = '~/OneDrive - Harvard University/Research/Schools Vs Firearms')
+# knitr::opts_knit$set(root.dir = '~/OneDrive - Harvard University/Research/Schools Vs Firearms')
+knitr::opts_knit$set(root.dir = "/Users/s012852/Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/")
 ```
 
 # Data Wrangling
@@ -46,7 +47,9 @@ dim(na.omit.data)
 
 Generate the outcome, treatment and confounders' matrices. The unit of analysis is any Census track with at least one school. The outcome variable is whether there was a shooting in that Census tract, the treatment variable is the average distance, within a Census tract, between schools and gun stores.
 
-Several confounders are included as a proportion (for instance, of 25+ individuals who have a bachelor's degree) over that Census tract's population (`total_population`; year unknown), which is also a variable in this dataset. Several potential confounders (for instance, population of 18+ individuals) are not included in this analysis because they have correlation $>0.84$ with a confounder that is included.
+Several confounders are included as a proportion (for instance, of 25+ individuals who have a bachelor's degree) over that Census tract's population (`total_population`; year unknown), which is also a variable in this dataset.
+
+Several potential confounders (for instance, population of 18+ individuals) are not included in this analysis because they have correlation $>0.83$ with a confounder that is included. The only exception is `pop_below18`, which has a correlation coefficient of 0.871 with `total_population`.
 
 ```{r}
 ## Outcome Variable 
@@ -84,10 +87,12 @@ data_analysis <- cbind(y, a, as.data.frame(x))
 
 Notes about specific confounders:
 
+- `count_gun_dealers` and `count_schools` are included as integers, i.e., not divided by population or area.
 - `urban_rural` is the 2013 National Center for Health Statistics (NCHS)'s categorization of each Census tract, a categorical variable taking on values 1, 2, 3, 4, 5, or 6. 1 $=$ "large central metro" and 6 $=$ "Noncore".
 - `prop_food_stamps_2019`, `prop_public_assist_income_2019`, `prop_below_poverty_2019`, and `prop_without_vehicles_2019` are the American Community Survey (ACS)'s 5-year averages. Not sure if this average is 2015-2019 or 2017-2021?
 - We examined "employmentunemployment_unemrt16cy"	("2021 Unemp Rate: Pop 16-24") and "employmentunemployment_unage16cy_p" ("2021 Unemployed Pop 16-24: Percent") and found that they are not equivalent measures. We're not sure if they are rates over the 16-24 population or over the unemployed population. In this analysis, we include the former variable and call it `prop_unemployed_16to24_2021.`
-- `prop_multiracial` is the proportion of individuals in that Census tract who identify as 2+ races; these multiracial individuals' specific races are not included in this analysis.
+- `prop_multiracial` is the proportion of individuals in that Census tract who identify as 2+ races; these multiracial individuals' specific races are not included in this analysis. (Would it be logical or strange to try to add a fraction of a person to each of their constituent races?)
+- `Shape_Area` and `Shape_Length` are variables in this dataset. Do they measure the area (in what units?) and length (at longest point? in what units?) of a Census tract?
 
 ```{r}
 hist(na.omit.data$prop_multiracial)
@@ -99,12 +104,10 @@ Variables in raw data that we were not sure about (not included in this analysis
 - "NEAR_DIST"
 - "Quarter"
 - "Reliability"
-- "Shape_Area"
-- "Shape_Length"
 
 Confounders we plan to have in subsequent analyses:
 
-- Census-tract level? 2018 midterm election results
+- county-level election results
 - mental health
 
 
@@ -180,6 +183,7 @@ denominator <- dat[,1]
 dat <- cbind(events, denominator, events/(events + denominator))
 dat
 ```
+
 
 # Causal Analysis with GPS matching
 
@@ -563,3 +567,21 @@ erf_obj_trim <- estimate_npmetric_erf(as.double(pseudo$Y),
 
 plot(erf_obj_trim)
 ```
+
+
+# Questions
+
+- So far, the only region we have excluded is Puerto Rico. Should we also exclude D.C., Alaska, and/or Hawaii? Any other grounds for exclusion?
+- Do we have better urban-rural classification than 2013 NCHS? (Michelle found this for free on the NCHS website; it is at the county-level, not Census-tract level)
+- Double-check our understanding of `mean_total_miles`. Should we run a sensitivity analysis using `max_total_miles` and/or `min_total_miles` as the exposure?
+- We had questions about certain variables; see Data Wrangling section above.
+- Any feedback on our variable selection, including our calculation of proportions, is welcome! Any variables we should add besides those listed in Data Wrangling (for instance, home ownership, which may be at the ZIP-code level)?
+- Should we try matching within states? When originally discussed, this idea aimed to control for factors such as local gun control laws. However, from a cursory glance at a few states, matching within a state seems to worsen covariate balance.
+- What do we think of our parametric vs. non-parametric models and results? Too smooth, smooth enough, not smooth enough? Same question for not trimming vs. trimming at the 95th (and 5th?) percentile vs. trimming at the 99th (and 1st?) percentile.
+
+
+# Next Steps
+
+- Incorporate feedback, refine the analysis, use more models
+- Explore other outcomes: weapon type, preplanned, targets (i.e., random vs targeted vs both vs neither), school level (i.e., elementary, middle, high, etc.), number of shots fired
+

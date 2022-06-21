@@ -9,17 +9,31 @@ tracts_2020_all_data <- read_excel(paste0(dir, "data/tracts_2020_all_data.xlsx")
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
 
 
+##### Remove rows #####
+tracts_2020_subset <- tracts_2020_all_data[!startsWith(GEOID, "72")] # remove Puerto Rico
+tracts_2020_subset <- tracts_2020_subset[!is.na(mean_total_miles)] # remove 13 NA's in treatment variable
+tracts_2020_subset <- tracts_2020_subset[P0010001 != 0] # remove 19 Census tracts with total population 0
+
+
 #### Process supplementary datasets ####
 
 county_data <- read_excel(paste0(dir, "data/NCHSURCodes2013.xlsx"))
 county_data <- as.data.table(county_data)
-county_data <- county_data[, .(county_fips = as.character(`FIPS code`), urban_rural = `1990-based code`)] # urban_rural variable is NCHS 2013's code (1 = "Large central metro", 6 = "Noncore")
+county_data <- county_data[, .(county_fips = as.character(`FIPS code`), urban_rural = `2013 code`)] # urban_rural variable is NCHS 2013's code (1 = "Large central metro", 6 = "Noncore")
 county_data[nchar(county_fips) == 4, county_fips := paste0("0", county_fips)]
 
 
-##### Sort variables into treatment, outcome, and covariates #####
+##### Add variables ##### 
 
-all_vars <- names(tracts_2020_all_data)
+tracts_2020_subset[, pop_below18 := P0010001 - P0030001]
+tracts_2020_subset[, state_fips := substr(GEOID, 1, 2)]
+tracts_2020_subset[, county_fips := substr(GEOID, 1, 5)]
+tracts_2020_subset <- merge(tracts_2020_subset, county_data, by="county_fips", all.x=T, all.y=F)
+
+all_vars <- names(tracts_2020_subset)
+
+
+##### Sort variables into treatment, outcome, and covariates #####
 
 treatment_vars <- c("mean_total_miles", "max_total_miles", "min_total_miles",
                     "count_gun_dealers")
@@ -35,17 +49,6 @@ unclear_vars <- c("NEAR_DIST", "Quarter", "Reliability")
 covars <- all_vars[!all_vars %in% treatment_vars]
 covars <- covars[!covars %in% outcome_vars]
 covars <- covars[!covars %in% unclear_vars]
-
-
-##### Add variables ##### 
-
-tracts_2020_subset_vars <- tracts_2020_all_data
-tracts_2020_subset_vars[, pop_below18 := P0010001 - P0030001]
-tracts_2020_subset_vars[, state_fips := substr(GEOID, 1, 2)]
-tracts_2020_subset_vars[, county_fips := substr(GEOID, 1, 5)]
-tracts_2020_subset_vars <- merge(tracts_2020_subset_vars, county_data, by="county_fips", all.x=T, all.y=F)
-
-all_vars <- names(tracts_2020_subset_vars)
 
 
 ##### Exclude variables #####
@@ -77,12 +80,12 @@ all_exclude_covars <- c(unclear_vars, exclude_misc_covars, exclude_ses_covars, e
                       race18plus_covars, exclude_num_race_covars, biracial_covars, exclude_uniracial_covars, nonHispLat_covars, pct_covars)
 
 # subset data
-tracts_2020_subset_vars <- subset(tracts_2020_subset_vars, select=all_vars[!all_vars %in% all_exclude_covars])
+tracts_2020_subset <- subset(tracts_2020_subset, select=all_vars[!all_vars %in% all_exclude_covars])
 
 
 ##### Rename variables ##### 
 
-setnames(tracts_2020_subset_vars, old = c("P0010003", "P0010004", "P0010005", "P0010006", "P0010007", "P0010009", "P0020002",
+setnames(tracts_2020_subset, old = c("P0010003", "P0010004", "P0010005", "P0010006", "P0010007", "P0010009", "P0020002",
                                           "P0050001", "P0050003", "P0050004", "P0050005", "P0050008", "P0050009", "P0050010",
                                           "householdincome_medhinc_cy", "incomebyage_media15_cy",
                                           "P0010001", "daytimepopulation_dpop_cy", "H0010001", "crime_crmcytotc"),
@@ -94,15 +97,15 @@ setnames(tracts_2020_subset_vars, old = c("P0010003", "P0010004", "P0010005", "P
 
 ##### Scale variables to population ##### 
 
-tracts_2020_vars_scaled <- tracts_2020_subset_vars
-tracts_2020_vars_scaled[, `:=`(prop_white_only = white_only_pop/total_population,
+tracts_2020_scaled <- tracts_2020_subset
+tracts_2020_scaled[, `:=`(prop_white_only = white_only_pop/total_population,
                                prop_black_only = black_only_pop/total_population,
                                prop_american_indian_alaskan_native_only = american_indian_alaskan_native_only_pop/total_population,
                                prop_asian_only = asian_only_pop/total_population,
                                prop_native_hawaiian_pacific_islander_only = native_hawaiian_pacific_islander_only_pop/total_population,
                                prop_multiracial = multiracial_pop/total_population,
                                prop_hispanic_latino = hispanic_latino_pop/total_population)]
-tracts_2020_vars_scaled[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/100,
+tracts_2020_scaled[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/100,
                                prop_public_assist_income_2019 = households_acspubai_p/100,
                                prop_below_poverty_2019 = households_acshhbpov_p/100,
                                prop_without_vehicles_2019 = vehiclesavailable_acsoveh0_p/100,
@@ -111,14 +114,14 @@ tracts_2020_vars_scaled[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/
                                prop_grad_deg_25plus_2021 = educationalattainment_graddeg_cy_p/100,
                                prop_unemployed_2021 = employmentunemployment_unemprt_cy/100,
                                prop_unemployed_16to24_2021 = employmentunemployment_unage16cy_p/100)]
-tracts_2020_vars_scaled[, `:=`(prop_group_quartered = total_group_quarters/total_population, 
+tracts_2020_scaled[, `:=`(prop_group_quartered = total_group_quarters/total_population, 
                                prop_adult_correctional = adult_correctional_pop/total_population, 
                                prop_juvenile_detention = juvenile_detention_pop/total_population, 
                                prop_nursing = nursing_pop/total_population, 
                                prop_university = university_pop/total_population,
                                prop_military = military_pop/total_population,
                                prop_other_noninstitutional = other_noninstitutional_pop/total_population)]
-tracts_2020_vars_scaled <- tracts_2020_vars_scaled[, `:=`(white_only_pop = NULL, black_only_pop = NULL, american_indian_alaskan_native_only_pop = NULL,
+tracts_2020_scaled <- tracts_2020_scaled[, `:=`(white_only_pop = NULL, black_only_pop = NULL, american_indian_alaskan_native_only_pop = NULL,
                                                             asian_only_pop = NULL, native_hawaiian_pacific_islander_only_pop = NULL, multiracial_pop = NULL,
                                                             hispanic_latino_pop = NULL, foodstampssnap_acssnap_p = NULL, households_acspubai_p = NULL,
                                                             households_acshhbpov_p = NULL, vehiclesavailable_acsoveh0_p = NULL, sports_mp33018a_b_p = NULL,
@@ -132,17 +135,17 @@ tracts_2020_vars_scaled <- tracts_2020_vars_scaled[, `:=`(white_only_pop = NULL,
 exclude_treatment_vars1 <- c("max_total_miles", "min_total_miles") # keep: mean_total_miles, count_gun_dealers
 exclude_outcome_vars1 <- outcome_vars[!outcome_vars %in% c("binary_shooting_incident", "FIRST_weapontype", "Preplanned",
                                                              "Shots_Fired", "Targets", "shooter_school_affiliation")] # keep these outcome variables
-all_tracts_2020_subset_vars <- subset(tracts_2020_vars_scaled, select = names(tracts_2020_vars_scaled)[!names(tracts_2020_vars_scaled) %in% c(exclude_treatment_vars1, exclude_outcome_vars1)])
+all_tracts_2020_subset_vars <- subset(tracts_2020_scaled, select = names(tracts_2020_scaled)[!names(tracts_2020_scaled) %in% c(exclude_treatment_vars1, exclude_outcome_vars1)])
 fwrite(all_tracts_2020_subset_vars, paste0(dir, "Data/all_tracts_2020_subset_vars.csv"))
 
 ##### Make preliminary dataset (1 treatment, 1 outcome) for all Census tracts that had at least 1 school shooting #####
 
-shooting_tracts_2020_subset_vars <- tracts_2020_vars_scaled[binary_shooting_incident == 1, ] # filter to 829 tracts that had at least 1 shooting
+shooting_tracts_2020_subset_vars <- tracts_2020_scaled[binary_shooting_incident == 1, ] # filter to 829 tracts that had at least 1 shooting
 
 exclude_treatment_vars2 <- c("max_total_miles", "min_total_miles") # keep: mean_total_miles, count_gun_dealers
 exclude_outcome_vars2 <- outcome_vars[!outcome_vars %in% c("FIRST_weapontype", "Preplanned",
                                                            "Shots_Fired", "Targets", "shooter_school_affiliation")] # keep these outcome variables
-shooting_tracts_2020_subset_vars <- subset(shooting_tracts_2020_subset_vars, select = names(tracts_2020_vars_scaled)[!names(tracts_2020_vars_scaled) %in% c(exclude_treatment_vars2, exclude_outcome_vars2)])
+shooting_tracts_2020_subset_vars <- subset(shooting_tracts_2020_subset_vars, select = names(tracts_2020_scaled)[!names(tracts_2020_scaled) %in% c(exclude_treatment_vars2, exclude_outcome_vars2)])
 shooting_tracts_2020_subset_vars[, prop_military := NULL] # remove prop_military covariate because it equals 0 for all tracts in this dataset
 fwrite(shooting_tracts_2020_subset_vars, paste0(dir, "Data/shooting_tracts_2020_subset_vars.csv"))
 

@@ -86,7 +86,7 @@ setnames(tracts_2020_subset_vars, old = c("P0010003", "P0010004", "P0010005", "P
                                           "P0050001", "P0050003", "P0050004", "P0050005", "P0050008", "P0050009", "P0050010",
                                           "householdincome_medhinc_cy", "incomebyage_media15_cy",
                                           "P0010001", "daytimepopulation_dpop_cy", "H0010001", "crime_crmcytotc"),
-         new = c("white_only_pop", "black_only_pop", "american_indian_alaskan_native_only_pop", "asian_only_pop", "native_hawaiian_pacific_islander_only_pop", "biracial_pop", "hispanic_latino_pop",
+         new = c("white_only_pop", "black_only_pop", "american_indian_alaskan_native_only_pop", "asian_only_pop", "native_hawaiian_pacific_islander_only_pop", "multiracial_pop", "hispanic_latino_pop",
                  "total_group_quarters", "adult_correctional_pop", "juvenile_detention_pop", "nursing_pop", "university_pop", "military_pop", "other_noninstitutional_pop",
                  "median_household_inc_2021", "median_household_inc_15to24_2021",
                  "total_population", "daytime_pop_2021", "total_housing_units", "total_crime_2021"))
@@ -100,7 +100,7 @@ tracts_2020_vars_scaled[, `:=`(prop_white_only = white_only_pop/total_population
                                prop_american_indian_alaskan_native_only = american_indian_alaskan_native_only_pop/total_population,
                                prop_asian_only = asian_only_pop/total_population,
                                prop_native_hawaiian_pacific_islander_only = native_hawaiian_pacific_islander_only_pop/total_population,
-                               prop_biracial = biracial_pop/total_population,
+                               prop_multiracial = multiracial_pop/total_population,
                                prop_hispanic_latino = hispanic_latino_pop/total_population)]
 tracts_2020_vars_scaled[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/100,
                                prop_public_assist_income_2019 = households_acspubai_p/100,
@@ -119,7 +119,7 @@ tracts_2020_vars_scaled[, `:=`(prop_group_quartered = total_group_quarters/total
                                prop_military = military_pop/total_population,
                                prop_other_noninstitutional = other_noninstitutional_pop/total_population)]
 tracts_2020_vars_scaled <- tracts_2020_vars_scaled[, `:=`(white_only_pop = NULL, black_only_pop = NULL, american_indian_alaskan_native_only_pop = NULL,
-                                                            asian_only_pop = NULL, native_hawaiian_pacific_islander_only_pop = NULL, biracial_pop = NULL,
+                                                            asian_only_pop = NULL, native_hawaiian_pacific_islander_only_pop = NULL, multiracial_pop = NULL,
                                                             hispanic_latino_pop = NULL, foodstampssnap_acssnap_p = NULL, households_acspubai_p = NULL,
                                                             households_acshhbpov_p = NULL, vehiclesavailable_acsoveh0_p = NULL, sports_mp33018a_b_p = NULL,
                                                             educationalattainment_bachdeg_cy_p = NULL, educationalattainment_graddeg_cy_p = NULL,

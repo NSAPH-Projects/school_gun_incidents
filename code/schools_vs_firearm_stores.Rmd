@@ -100,18 +100,18 @@ Map of school to gun store proximity at state level.
 ![](/Users/falco/Desktop/figures/states_map_mean_miles.png)
 Map of school to gun store proximity at county level (trimming exposure larger than 99th percentile).
 
-![](/Users/falco/Desktop/figures/counties_map_mean_miles_winsorized99.png)
+![](/Users/falco/Desktop/figures/counties_map_mean_miles_trimmed99.png)
 
 Map of school to gun store proximity at state level (trimming exposure larger than 99th percentile).
 
-![](/Users/falco/Desktop/figures/states_map_mean_miles_winsorized99.png)
+![](/Users/falco/Desktop/figures/states_map_mean_miles_trimmed99.png)
 
 Map of school to gun store proximity at county level (trimming exposure larger than 95th percentile).
 
-![](/Users/falco/Desktop/figures/counties_map_mean_miles_winsorized95.png)
+![](/Users/falco/Desktop/figures/counties_map_mean_miles_trimmed95.png)
 Map of school to gun store proximity at state level (trimming exposure larger than 95th percentile).
 
-![](/Users/falco/Desktop/figures/states_map_mean_miles_winsorized95.png)
+![](/Users/falco/Desktop/figures/states_map_mean_miles_trimmed95.png)
 
 # Exploratory Data Analysis
 

@@ -1,5 +1,5 @@
 library(data.table)
-library(DescTools)
+# library(DescTools) # for Winsorize function; not used
 library(usmap)
 library(ggplot2)
 
@@ -22,21 +22,21 @@ counties_map <- plot_usmap(regions = "counties", data = df_counties, values = "m
 ggsave(paste0(dir, "figures/", "states_map_mean_miles.png"), states_map)
 ggsave(paste0(dir, "figures/", "counties_map_mean_miles.png"), counties_map)
 
-# winsorize at 95th and 99th percentiles
-df_states[, mean_miles_winsorized95 := Winsorize(mean_total_miles, probs = c(0, 0.95))][
-  , mean_miles_winsorized99 := Winsorize(mean_total_miles, probs = c(0, 0.99))]
-df_counties[, mean_miles_winsorized95 := Winsorize(mean_total_miles, probs = c(0, 0.95))][
-  , mean_miles_winsorized99 := Winsorize(mean_total_miles, probs = c(0, 0.99))]
+# trim at (ie exclude past) 5th/95th and 1st/99th percentiles
+df_states95 <- df_states[mean_total_miles < quantile(mean_total_miles, 0.95) & mean_total_miles > quantile(mean_total_miles, 0.05)]
+df_states99 <- df_states[mean_total_miles < quantile(mean_total_miles, 0.99) & mean_total_miles > quantile(mean_total_miles, 0.01)]
+df_counties95 <- df_counties[mean_total_miles < quantile(mean_total_miles, 0.95) & mean_total_miles > quantile(mean_total_miles, 0.05)]
+df_counties99 <- df_counties[mean_total_miles < quantile(mean_total_miles, 0.99) & mean_total_miles > quantile(mean_total_miles, 0.01)]
 
-# plot 95th- and 99th-percentile winsorized mean(mean_total_miles) for each state/county
-states_map_winsorized95 <- plot_usmap(regions = "states", data = df_states, values = "mean_miles_winsorized95")
-counties_map_winsorized95 <- plot_usmap(regions = "counties", data = df_counties, values = "mean_miles_winsorized95")
-states_map_winsorized99 <- plot_usmap(regions = "states", data = df_states, values = "mean_miles_winsorized99")
-counties_map_winsorized99 <- plot_usmap(regions = "counties", data = df_counties, values = "mean_miles_winsorized99")
-ggsave(paste0(dir, "figures/", "states_map_mean_miles_winsorized95.png"), states_map_winsorized95)
-ggsave(paste0(dir, "figures/", "counties_map_mean_miles_winsorized95.png"), counties_map_winsorized95)
-ggsave(paste0(dir, "figures/", "states_map_mean_miles_winsorized99.png"), states_map_winsorized99)
-ggsave(paste0(dir, "figures/", "counties_map_mean_miles_winsorized99.png"), counties_map_winsorized99)
+# plot 5th/95th- and 1st/99th-percentile trimmed mean(mean_total_miles) for each state/county
+states_map_trimmed95 <- plot_usmap(regions = "states", data = df_states95, values = "mean_total_miles")
+counties_map_trimmed95 <- plot_usmap(regions = "counties", data = df_counties95, values = "mean_total_miles")
+states_map_trimmed99 <- plot_usmap(regions = "states", data = df_states99, values = "mean_total_miles")
+counties_map_trimmed99 <- plot_usmap(regions = "counties", data = df_counties99, values = "mean_total_miles")
+ggsave(paste0(dir, "figures/", "states_map_mean_miles_trimmed95.png"), states_map_trimmed95)
+ggsave(paste0(dir, "figures/", "counties_map_mean_miles_trimmed95.png"), counties_map_trimmed95)
+ggsave(paste0(dir, "figures/", "states_map_mean_miles_trimmed99.png"), states_map_trimmed99)
+ggsave(paste0(dir, "figures/", "counties_map_mean_miles_trimmed99.png"), counties_map_trimmed99)
 
 
 

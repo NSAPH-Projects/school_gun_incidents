@@ -22,13 +22,13 @@ counties_map <- plot_usmap(regions = "counties", data = df_counties, values = "m
 ggsave(paste0(dir, "figures/", "states_map_mean_miles.png"), states_map)
 ggsave(paste0(dir, "figures/", "counties_map_mean_miles.png"), counties_map)
 
-# trim at (ie exclude past) 5th/95th and 1st/99th percentiles
-df_states95 <- df_states[mean_total_miles < quantile(mean_total_miles, 0.95) & mean_total_miles > quantile(mean_total_miles, 0.05)]
-df_states99 <- df_states[mean_total_miles < quantile(mean_total_miles, 0.99) & mean_total_miles > quantile(mean_total_miles, 0.01)]
-df_counties95 <- df_counties[mean_total_miles < quantile(mean_total_miles, 0.95) & mean_total_miles > quantile(mean_total_miles, 0.05)]
-df_counties99 <- df_counties[mean_total_miles < quantile(mean_total_miles, 0.99) & mean_total_miles > quantile(mean_total_miles, 0.01)]
+# trim at (ie exclude past) 95th and 99th percentiles
+df_states95 <- df_states[mean_total_miles < quantile(mean_total_miles, 0.95)]
+df_states99 <- df_states[mean_total_miles < quantile(mean_total_miles, 0.99)]
+df_counties95 <- df_counties[mean_total_miles < quantile(mean_total_miles, 0.95)]
+df_counties99 <- df_counties[mean_total_miles < quantile(mean_total_miles, 0.99)]
 
-# plot 5th/95th- and 1st/99th-percentile trimmed mean(mean_total_miles) for each state/county
+# plot 95th- and 99th-percentile trimmed mean(mean_total_miles) for each state/county
 states_map_trimmed95 <- plot_usmap(regions = "states", data = df_states95, values = "mean_total_miles")
 counties_map_trimmed95 <- plot_usmap(regions = "counties", data = df_counties95, values = "mean_total_miles")
 states_map_trimmed99 <- plot_usmap(regions = "states", data = df_states99, values = "mean_total_miles")

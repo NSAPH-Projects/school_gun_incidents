@@ -11,16 +11,24 @@ all_tracts_2020_subset_vars <- fread(paste0(dir, "data/all_tracts_2020_subset_va
 # all_tracts_2020_subset_vars[nchar(county_fips) == 4, county_fips := paste0("0", county_fips)]
 
 # get mean(mean_total_miles) for each state/county
-df_states <- all_tracts_2020_subset_vars[, .(mean_total_miles = mean(mean_total_miles, na.rm = T)), by = state_fips]
-df_counties <- all_tracts_2020_subset_vars[, .(mean_total_miles = mean(mean_total_miles, na.rm = T)), by = county_fips]
+df_states <- all_tracts_2020_subset_vars[, .(mean_total_miles = mean(mean_total_miles, na.rm = T),
+                                             mean_dealers_per_sq_meter = mean(dealers_per_sq_meter, na.rm = T)), by = state_fips]
+df_counties <- all_tracts_2020_subset_vars[, .(mean_total_miles = mean(mean_total_miles, na.rm = T),
+                                               mean_dealers_per_sq_meter = mean(dealers_per_sq_meter, na.rm = T)), by = county_fips]
 setnames(df_states, old = "state_fips", new = "fips")
 setnames(df_counties, old = "county_fips", new = "fips")
 
 # plot mean(mean_total_miles) for each state/county
-states_map <- plot_usmap(regions = "states", data = df_states, values = "mean_total_miles")
-counties_map <- plot_usmap(regions = "counties", data = df_counties, values = "mean_total_miles")
-ggsave(paste0(dir, "figures/", "states_map_mean_miles.png"), states_map)
-ggsave(paste0(dir, "figures/", "counties_map_mean_miles.png"), counties_map)
+states_map_miles <- plot_usmap(regions = "states", data = df_states, values = "mean_total_miles")
+counties_map_miles <- plot_usmap(regions = "counties", data = df_counties, values = "mean_total_miles")
+ggsave(paste0(dir, "figures/", "states_map_mean_miles.png"), states_map_miles)
+ggsave(paste0(dir, "figures/", "counties_map_mean_miles.png"), counties_map_miles)
+
+# plot mean(mean_dealers_per_sq_meter) for each state/county
+states_map_dealers <- plot_usmap(regions = "states", data = df_states, values = "mean_dealers_per_sq_meter")
+counties_map_dealers <- plot_usmap(regions = "counties", data = df_counties, values = "mean_dealers_per_sq_meter")
+ggsave(paste0(dir, "figures/", "states_map_mean_dealers.png"), states_map_dealers)
+ggsave(paste0(dir, "figures/", "counties_map_mean_dealers.png"), counties_map_dealers)
 
 # trim at (ie exclude past) 95th and 99th percentiles
 df_states95 <- df_states[mean_total_miles < quantile(mean_total_miles, 0.95)]
@@ -38,6 +46,21 @@ ggsave(paste0(dir, "figures/", "counties_map_mean_miles_trimmed95.png"), countie
 ggsave(paste0(dir, "figures/", "states_map_mean_miles_trimmed99.png"), states_map_trimmed99)
 ggsave(paste0(dir, "figures/", "counties_map_mean_miles_trimmed99.png"), counties_map_trimmed99)
 
+# plot mean_dealers_per_sq_meter above and below median(mean_dealers_per_sq_meter)
+df_states_above_median <- df_states[mean_dealers_per_sq_meter >= median(mean_dealers_per_sq_meter)]
+df_states_below_median <- df_states[mean_dealers_per_sq_meter < median(mean_dealers_per_sq_meter)]
+df_counties_above_median <- df_counties[mean_dealers_per_sq_meter >= median(mean_dealers_per_sq_meter)]
+df_counties_below_median <- df_counties[mean_dealers_per_sq_meter < median(mean_dealers_per_sq_meter)]
+
+# plot mean_dealers_per_sq_meter above and below median(mean_dealers_per_sq_meter)
+states_map_above_median <- plot_usmap(regions = "states", data = df_states_above_median, values = "mean_dealers_per_sq_meter")
+counties_map_above_median <- plot_usmap(regions = "counties", data = df_counties_above_median, values = "mean_dealers_per_sq_meter")
+states_map_below_median <- plot_usmap(regions = "states", data = df_states_below_median, values = "mean_dealers_per_sq_meter")
+counties_map_below_median <- plot_usmap(regions = "counties", data = df_counties_below_median, values = "mean_dealers_per_sq_meter")
+ggsave(paste0(dir, "figures/", "states_map_mean_dealers_above_median.png"), states_map_above_median)
+ggsave(paste0(dir, "figures/", "counties_map_mean_dealers_above_median.png"), counties_map_above_median)
+ggsave(paste0(dir, "figures/", "states_map_mean_dealers_below_median.png"), states_map_below_median)
+ggsave(paste0(dir, "figures/", "counties_map_mean_dealers_below_median.png"), counties_map_below_median)
 
 
 #### IGNORE EVERYTHING AFTER THIS; NOT UPDATED ####

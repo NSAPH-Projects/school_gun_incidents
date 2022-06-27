@@ -1,5 +1,6 @@
 # Import data
 library(readxl)
+library(data.table)
 
 dir <- "~/Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 
@@ -7,21 +8,54 @@ tracts_2020_all_data <- read_excel(paste0(dir, "data/tracts_2020_all_data.xlsx")
 all_tracts_2020_subset_vars <- fread(paste0(dir, "data/all_tracts_2020_subset_vars.csv"))
 shooting_tracts_2020_subset_vars <- fread(paste0(dir, "data/shooting_tracts_2020_subset_vars.csv"))
 
-# Check number of NA's in each variable (Answer: as written in data dictionary)
+# Check number of NA's in each variable
+# Answer: as written in data dictionary
 check_nulls <- function(i, df){
   return(sum(is.na(df[[i]])))
 }
 nulls <- sapply(1:ncol(tracts_2020_all_data), check_nulls, tracts_2020_all_data)
 names(nulls) <- names(tracts_2020_all_data)
 
-# Check that each Census tract in this dataset has at least 1 schools (Answer: yes)
+# Check that each Census tract in this dataset has at least 1 schools
+# Answer: yes
 schools <- tracts_2020_all_data[, "count_schools"]
 summary(schools)
 
-# Examine binary_shooting_incident, count_school_shootings, and num_shooters (Observe: binary_shooting_incident = (count_school_shootings >= 1))
+# Examine binary_shooting_incident, count_school_shootings, and num_shooters
+# Observe: binary_shooting_incident = (count_school_shootings >= 1)
 table(tracts_2020_all_data$binary_shooting_incident)
 table(tracts_2020_all_data$count_school_shootings)
 table(tracts_2020_all_data$num_shooters)
+
+# Explore variable: date of school shooting
+# Observe that Date and incident_date are equivalent variables
+Date <- as.Date(tracts_2020_all_data$Date[!is.na(tracts_2020_all_data$Date)])
+incident_date <- as.Date(tracts_2020_all_data$incident_date[!is.na(tracts_2020_all_data$incident_date)])
+sum(Date != incident_date)
+hist(year(Date))
+hist(month(Date))
+
+# Correct "Location" and "Location_Type" for 1 observation
+tracts_2020_all_data[binary_shooting_incident == 1 & is.na(Location), Narrative]
+tracts_2020_all_data[binary_shooting_incident == 1 & is.na(Location), `:=`(Location = "In or behind school fieldhouse", Location_Type = "Outside on School Property")]
+
+# Check accidental shootings
+tracts_2020_all_data[binary_shooting_incident == 1 & str_detect(Situation, "Accident"), .(count_school_shootings, Date, Preplanned, Narrative, Summary, Situation, Targets, Shots_Fired)]
+
+# Check shooter ages
+unique(tracts_2020_all_data[binary_shooting_incident == 1, shooter_age])
+temp <- tracts_2020_all_data[binary_shooting_incident == 1 & !shooter_age %in% c("Adult", "Child", "Minor", "Teen", "null") & !is.na(shooter_age),
+                             .(count_school_shootings, Date, shooter_age = as.integer(shooter_age), Narrative, Summary, Situation, Targets, Shots_Fired)]
+temp[shooter_age < 10]
+temp[shooter_age > 70]
+
+# Check location of events labeled as school shootings
+tracts_2020_all_data[binary_shooting_incident == 1 & Location_Type == "Off School Property",
+                             .(count_school_shootings, Date, Location, Location_Type, Narrative, Summary, Situation)]
+
+
+# Examine tracts with >1 count_school_shootings (outcome variables are for most recent school shooting)
+tracts_2020_all_data[binary_shooting_incident == 1 & count_school_shootings > 1, .(count_school_shootings, Date, Narrative, Summary, Situation, Targets, Shots_Fired)]
 
 # Check that PCT_{...} vars match {population of interest}/{total population}*100 (Answer: close but not always exact)
 pct_vars <- c("PCT_P0020007", "PCT_P0020008", "PCT_P0020006", "PCT_P0020002", "PCT_P0020009", "PCT_H0010002", "PCT_H0010003", "PCT_P0030001", "PCT_P0020011", "PCT_P0020010", "PCT_P0020005")
@@ -37,8 +71,11 @@ quarters$sum2 <- quarters$P0050003 + quarters$P0050004 + quarters$P0050005 + qua
 sum(quarters$sum2 != quarters$P0050001) # Observe: 003, 004, 005, 008, 009, and 010 should be disjoint and account for most of 001 (total)
 
 # Check collinearity between variables
-View(cor(all_tracts_2020_subset_vars, use = "pairwise.complete.obs"))
-View(cor(subset(shooting_tracts_2020_subset_vars, select =
-                  names(shooting_tracts_2020_subset_vars)[names(shooting_tracts_2020_subset_vars) != "shooter_school_affiliation"]),
-         use = "pairwise.complete.obs"))
+quant_vars <- unlist(lapply(all_tracts_2020_subset_vars, is.numeric))
+all_tracts_2020_quant_vars <- subset(all_tracts_2020_subset_vars, select = quant_vars)
+View(cor(all_tracts_2020_quant_vars, use = "pairwise.complete.obs"))
+
+# View(cor(subset(shooting_tracts_2020_subset_vars, select =
+#                   names(shooting_tracts_2020_subset_vars)[names(shooting_tracts_2020_subset_vars) != "shooter_school_affiliation"]),
+#          use = "pairwise.complete.obs"))
 

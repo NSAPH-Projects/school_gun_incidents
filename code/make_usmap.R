@@ -30,7 +30,7 @@ counties_map_dealers <- plot_usmap(regions = "counties", data = df_counties, val
 ggsave(paste0(dir, "figures/", "states_map_mean_dealers.png"), states_map_dealers)
 ggsave(paste0(dir, "figures/", "counties_map_mean_dealers.png"), counties_map_dealers)
 
-# trim at (ie exclude past) 95th and 99th percentiles
+# trim mean(mean_total_miles) at (ie exclude past) 95th and 99th percentiles
 df_states95 <- df_states[mean_total_miles < quantile(mean_total_miles, 0.95)]
 df_states99 <- df_states[mean_total_miles < quantile(mean_total_miles, 0.99)]
 df_counties95 <- df_counties[mean_total_miles < quantile(mean_total_miles, 0.95)]
@@ -46,13 +46,13 @@ ggsave(paste0(dir, "figures/", "counties_map_mean_miles_trimmed95.png"), countie
 ggsave(paste0(dir, "figures/", "states_map_mean_miles_trimmed99.png"), states_map_trimmed99)
 ggsave(paste0(dir, "figures/", "counties_map_mean_miles_trimmed99.png"), counties_map_trimmed99)
 
-# plot mean_dealers_per_sq_meter above and below median(mean_dealers_per_sq_meter)
-df_states_above_median <- df_states[mean_dealers_per_sq_meter >= median(mean_dealers_per_sq_meter)]
-df_states_below_median <- df_states[mean_dealers_per_sq_meter < median(mean_dealers_per_sq_meter)]
-df_counties_above_median <- df_counties[mean_dealers_per_sq_meter >= median(mean_dealers_per_sq_meter)]
-df_counties_below_median <- df_counties[mean_dealers_per_sq_meter < median(mean_dealers_per_sq_meter)]
+# plot mean_dealers_per_sq_meter > and <= median(mean_dealers_per_sq_meter)
+df_states_above_median <- df_states[mean_dealers_per_sq_meter > median(mean_dealers_per_sq_meter)]
+df_states_below_median <- df_states[mean_dealers_per_sq_meter <= median(mean_dealers_per_sq_meter)]
+df_counties_above_median <- df_counties[mean_dealers_per_sq_meter > median(mean_dealers_per_sq_meter)]
+df_counties_below_median <- df_counties[mean_dealers_per_sq_meter <= median(mean_dealers_per_sq_meter)]
 
-# plot mean_dealers_per_sq_meter above and below median(mean_dealers_per_sq_meter)
+# plot mean_dealers_per_sq_meter > and <= median(mean_dealers_per_sq_meter)
 states_map_above_median <- plot_usmap(regions = "states", data = df_states_above_median, values = "mean_dealers_per_sq_meter")
 counties_map_above_median <- plot_usmap(regions = "counties", data = df_counties_above_median, values = "mean_dealers_per_sq_meter")
 states_map_below_median <- plot_usmap(regions = "states", data = df_states_below_median, values = "mean_dealers_per_sq_meter")

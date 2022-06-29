@@ -13,7 +13,7 @@ codebook <- read_excel(paste0(dir, "data_dictionaries/codebook_all.xlsx"))
 
 ##### Remove rows #####
 
-tracts_2020_subset <- tracts_2020_all_data[!startsWith(GEOID, "72")] # remove Puerto Rico because...
+tracts_2020_subset <- tracts_2020_all_data[!startsWith(GEOID, "72")] # remove Puerto Rico because school shooting dataset (https://www.chds.us/ssdb) doesn't cover PR
 tracts_2020_subset <- tracts_2020_subset[!is.na(mean_total_miles)] # remove 13 NA's in treatment variable
 tracts_2020_subset <- tracts_2020_subset[P0010001 != 0] # remove 19 Census tracts with total population 0
 

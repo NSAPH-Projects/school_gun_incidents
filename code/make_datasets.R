@@ -69,7 +69,7 @@ tracts_2020_transformed[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/
 tracts_2020_transformed[, `:=`(housing_units_per_sq_meter = total_housing_units/Tract_Area_sq_meters,
                                prop_institutional_group = institutional_group_pop/total_population_2020, 
                                prop_noninstitutional_group = noninstitutional_group_pop/total_population_2020)]
-tracts_2020_transformed <- tracts_2020_transformed[, `:=`(GEOID = NULL, mean_total_miles = NULL, median_household_inc_2021 = NULL, log_median_hh_income_15to24 = NULL,
+tracts_2020_transformed <- tracts_2020_transformed[, `:=`(GEOID = NULL, mean_total_miles = NULL, median_household_inc_2021 = NULL, median_household_inc_15to24_2021 = NULL,
                                                           pct_18plus = NULL, white_only_pct = NULL, black_only_pct = NULL, american_indian_alaskan_native_only_pct = NULL,
                                                           asian_only_pct = NULL, native_hawaiian_pacific_islander_only_pct = NULL, multiracial_pct = NULL,
                                                           hispanic_latino_pct = NULL, foodstampssnap_acssnap_p = NULL, households_acspubai_p = NULL,

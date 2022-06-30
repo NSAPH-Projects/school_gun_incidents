@@ -30,7 +30,7 @@ library(data.table)
 
 ```{r setup, include=FALSE}
 # Set the Working Directory
-knitr::opts_chunk$set(echo = TRUE, collapse = TRUE)
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, message = FALSE) # collapse = TRUE allows output to be hidden along with code (by code_folding)
 # knitr::opts_knit$set(root.dir = '~/OneDrive - Harvard University/Research/Schools Vs Firearms')
 # knitr::opts_knit$set(root.dir = "/Users/s012852/Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/")
 ```
@@ -56,11 +56,12 @@ colnames(data)
 dim(data)
 ```
 
-Check the distribution of Census tract populations (click "See details" below). Observe that (i) There are 19 tracts with total population $<10$; none had shooting incidents; 16 of them have median household income $= 0$. (ii) There are 6 tracts (only 1 of them overlaps with the 19 tracts just mentioned) with daytime population $<10$; none had shooting incidents; 5 of them have median household income $= 0$. Later, we run a sensitivity analysis excluded these low-population tracts.
+Check the distribution of Census tract populations (click "See details" below). Observe that (i) There are 19 tracts with total population $<10$; none had shooting incidents; 16 of them have median household income $= 0$. (ii) There are 6 tracts (none of them overlaps with the 19 tracts just mentioned) with daytime population $<10$; none had shooting incidents; 5 of them have median household income $= 0$. Later, we run a sensitivity analysis excluded these low-population tracts.
 
 <details>
   <summary>See details</summary>
 ```{r}
+sum(data$total_population_2020 < 10 & data$daytime_pop_2021 < 10)
 hist(data$total_population_2020)
 data[data$total_population_2020 < 10, ]
 hist(data$daytime_pop_2021)
@@ -86,7 +87,7 @@ a <- data[,c("mean_total_km")]
 ceiling_a <- ceiling(a)
 
 ## Confounders
-confounder_names <- c("total_population_2020", "housing_units_per_sq_meter",
+all_confounder_names <- c("total_population_2020", "housing_units_per_sq_meter",
               "log_median_hh_income", "schools_per_sq_meter", "state_fips", "county_fips",
               "log_median_hh_income_15to24", "total_crime_2021", "dealers_per_sq_meter",
               "daytime_pop_2021", "prop_white_only", "prop_black_only", 
@@ -97,7 +98,7 @@ confounder_names <- c("total_population_2020", "housing_units_per_sq_meter",
               "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
               "prop_unemployed_16to24_2021", "prop_institutional_group",
               "prop_noninstitutional_group", "prop_18plus")
-x <- data[, confounder_names]
+x <- data[, all_confounder_names]
 x <- t(apply(x, 1, unlist))
 
 ## Generate Analysis Data
@@ -122,6 +123,7 @@ summary(data$prop_multiracial)
 
 
 Confounders we plan to have in subsequent analyses:
+
 - mental health data from Medicaid.
 
 
@@ -129,7 +131,7 @@ Check the distribution of the treatment (click "See details" below).
 
 <details>
   <summary>See details</summary>
-```{r, echo=FALSE, eval=TRUE}
+```{r}
 quantile(a)
 plot(density(a))
 plot(density(a[which(a < quantile(a, 0.99))]))
@@ -293,7 +295,7 @@ off_property[1:10, ]
 
 Run a logistic regression to explore the associations between the treatment and the outcome controlling for all the confounders.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE}
 # Logistic Regression (unrestricted a, 57793 observations)
 logistic_model <- glm(y ~ a + x, 
                       data = data_analysis, 
@@ -303,7 +305,7 @@ summary(logistic_model)
 
 Run a negative binomial regression to explore the associations between the treatment and the outcome controlling for all the confounders.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE}
 # Negative Binomial
 negative_binomial <- glm.nb(y ~ a + x, data = data_analysis)
 summary(negative_binomial)
@@ -327,8 +329,10 @@ dat
 
 First, we write a few functions, which we will use to perform all our GPS-matching causal analyses (i.e., both the main analysis and several sensitivity analyses where we exclude certain variables and/or observations).
 
-```{r, message=FALSE, warning=FALSE}
-get_matched_pseudo_pop <- function(outcome, exposure, confounders, trim = 0.05){
+In particular, for each analysis we run, we will output (i) the covariate balance plot, (ii) the results of a logistic regression model on the GPS-matched "pseudo-population", and (iii) the results of a nonparametric model on the GPS-matched data, which uses a local polynomial kernel regression.
+
+```{r, message=FALSE}
+get_matched_pseudo_pop <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.95)){
   return(generate_pseudo_pop(Y = outcome,
                              w = exposure,
                              c = as.data.frame(confounders),
@@ -343,7 +347,7 @@ get_matched_pseudo_pop <- function(outcome, exposure, confounders, trim = 0.05){
                              covar_bl_method = "absolute",
                              covar_bl_trs = 0.1,
                              covar_bl_trs_type = "mean",
-                             trim_quantiles = c(trim, 1 - trim), 
+                             trim_quantiles = trim_quantiles, 
                              optimized_compile = TRUE, 
                              max_attempt = 5,
                              matching_fun = "matching_l1",
@@ -351,9 +355,8 @@ get_matched_pseudo_pop <- function(outcome, exposure, confounders, trim = 0.05){
                              scale = 1.0))
 }
 
-make_matched_correlation_plot <- function(matched_pop){
+make_matched_correlation_plot <- function(matched_pop, exposure, confounders, confounder_names){
   # get correlations of matched and unmatched data
-  cor_val_unmatched <- absolute_corr_fun(setDT(data.frame(exposure)), setDT(data.frame(confounders)))
   cor_val_matched <- matched_pop$adjusted_corr_results
   cor_val_unmatched <- matched_pop$original_corr_results
   
@@ -397,750 +400,66 @@ get_matched_nonparametric_results <- function(matched_pop){
 
 For our main causal analysis, we use GPS matching to re-balance our data and guarantee a fair comparison between treated and control units. In particular, to guarantee the highest similarity between treated and control units, we implement a trimming procedure for the GPS at the 5th/95th percentiles and the exposure at the 95th percentile. Indeed, for units below/above the 5th/95th GPS percentiles and with exposure above the 95th percent, it would be very hard to find a "twin" observation for them to be compared to.
 
-```{r, message=FALSE, warning=FALSE}
-trim = 0.05
-attempts = 5
-match_pop_trim_wins <- generate_pseudo_pop(Y = data_analysis_trim$y,
-                                           w = data_analysis_trim$a,
-                                           c = as.data.frame(data_analysis_trim$x),
-                                           ci_appr = "matching",
-                                           pred_model = "sl",
-                                           gps_model = "parametric",
-                                           use_cov_transform = TRUE,
-                                           transformers = list("pow2", "pow3"),
-                                           sl_lib = c("m_xgboost"),
-                                           params = list(xgb_nrounds = c(50)),
-                                           nthread = 4,
-                                           covar_bl_method = "absolute",
-                                           covar_bl_trs = 0.1,
-                                           covar_bl_trs_type = "mean",
-                                           trim_quantiles = c(trim, 1 - trim), 
-                                           optimized_compile = TRUE, 
-                                           max_attempt = attempts,
-                                           matching_fun = "matching_l1",
-                                           delta_n = 0.2,
-                                           scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop_trim_wins$adjusted_corr_results
-cor_val_unmatched <- match_pop_trim_wins$original_corr_results
-
-abs_cor = data.frame(cov = confounder_names,
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
-```
-
 ```{r}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
+set.seed(2021)
 ```
 
-We run a logistic regression on the matched data.
+```{r, message=FALSE}
+data_analysis_trim_exposure <- data_analysis[which(a < quantile(a, 0.95)),]
 
-```{r, message=FALSE, warning=FALSE}
-pseudo_trim_wins <- match_pop_trim_wins$pseudo_pop
-outcome_m_trim_wins <- estimate_pmetric_erf(formula = Y ~ w,
-                                            family = binomial,
-                                            data = pseudo_trim_wins,
-                                            ci_appr = "matching")
-summary(outcome_m_trim_wins)
-```
-
-We run a nonparametric model on the matched data.
-
-```{r, message=FALSE, warning=FALSE}
-erf_obj_trim_wins <- estimate_npmetric_erf(as.double(pseudo_trim_wins$Y),
-                                           as.double(pseudo_trim_wins$w),
-                                           bw_seq=seq(0.2,2,0.2),
-                                           w_vals = seq(0,15,0.5),
-                                           nthread = 1)
-
-plot(erf_obj_trim_wins)
+matched_pop_trim <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names])
+make_matched_correlation_plot(matched_pop_trim, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_trim)
+get_matched_nonparametric_results(matched_pop_trim)
 ```
 
 
 # Robustness Checks
 
-## More Lenient Trimming and No Exposure Trimming
+## More Lenient Trimming, One-Sided Trimming, and No Exposure Trimming
 
-We start by trimming the tails at the 1st/99th percentiles of GPS.
+Our first robustness check is to trim the GPS tails at the 1st/99th percentiles of GPS (and maintain the trimming of the exposure at the 95th percentile).
 
-```{r}
-set.seed(2021)
+Observe that the results are quite different from the main analysis.
 
-# CausalGPS
-trim = 0.01
-attempts = 5
-match_pop <- generate_pseudo_pop(Y = y, w = a, c = as.data.frame(x),
-                                 ci_appr = "matching",
-                                 pred_model = "sl",
-                                 gps_model = "parametric",
-                                 use_cov_transform = TRUE,
-                                 transformers = list("pow2", "pow3"),
-                                 sl_lib = c("m_xgboost"),
-                                 params = list(xgb_nrounds = c(50)),
-                                 nthread = 4,
-                                 covar_bl_method = "absolute",
-                                 covar_bl_trs = 0.1,
-                                 covar_bl_trs_type = "mean",
-                                 trim_quantiles = c(trim, 1 - trim),
-                                 optimized_compile = TRUE,
-                                 max_attempt = attempts,
-                                 matching_fun = "matching_l1",
-                                 delta_n = 0.2,
-                                 scale = 1.0)
+```{r, message=FALSE}
+matched_pop_trim_gps99 <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], c(0.01, 0.99))
+make_matched_correlation_plot(matched_pop_trim_gps99, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_trim_gps99)
+get_matched_nonparametric_results(matched_pop_trim_gps99)
 ```
 
-Generate the absolute correlation.
+Our second robustness check is to trim the GPS only at the 95th percentile (and maintain the trimming of the exposure at the 95th percentile).
 
-```{r}
-# Absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop$adjusted_corr_results
-cor_val_unmatched <- match_pop$original_corr_results
-
-print(cor_val_unmatched)
-print(cor_val_matched)
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "total_crime_2021", "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
+```{r, message=FALSE}
+matched_pop_trim_gps95_onesided <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], trim = c(0, 0.95))
+make_matched_correlation_plot(matched_pop_trim_gps95_onesided, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_trim_gps95_onesided)
+get_matched_nonparametric_results(matched_pop_trim_gps95_onesided)
 ```
 
-Plot the covariates balance.
+Next, we trim the GPS at the 5th/95th percentiles (as in the main analysis) but do not trim the exposure.
 
-```{r}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
+```{r, message=FALSE}
+matched_pop_exposure_untrimmed <- get_matched_pseudo_pop(y, a, x)
+make_matched_correlation_plot(matched_pop_exposure_untrimmed, a, x, all_confounder_names)
+get_matched_logistic_results(matched_pop_exposure_untrimmed)
+get_matched_nonparametric_results(matched_pop_exposure_untrimmed)
 ```
 
-Run a logistic regression on the matched data.
+## Different Definition of the Treatment (Ceiling)
 
-```{r}
-# Merge individual level data
-pseudo <- match_pop$pseudo_pop
+Now, we define the treatment variable as the ceiling of a. In this way, the group all the treated units within a 1, 2, 3, 4, .. km average distance between school and gun stores.
 
-outcome_m <- estimate_pmetric_erf(formula = Y ~ w,
-                                  family = binomial,
-                                  data = pseudo,
-                                  ci_appr = "matching")
-summary(outcome_m)
-```
+Observe that the results are quite different from the main analysis -- nor is covariate balance achieved.
 
-Run a non-linear model on the matched data using a local polynomial kernel regression.
-
-```{r}
-erf_obj <- estimate_npmetric_erf(as.double(pseudo$Y),
-                                 as.double(pseudo$w),
-                                 bw_seq=seq(0.2,2,0.2),
-                                 w_vals = seq(0,15,0.5),
-                                 nthread = 1)
-
-#summary(erf_obj)
-plot(erf_obj)
-```
-
-We run the same analyses but, this time, trimming the GPS at the 5th/95th percentiles.
-
-```{r}
-trim = 0.05
-attempts = 5
-match_pop_trim <- generate_pseudo_pop(Y = y, w = a, c = as.data.frame(x),
-                                      ci_appr = "matching",
-                                      pred_model = "sl",
-                                      gps_model = "parametric",
-                                      use_cov_transform = TRUE,
-                                      transformers = list("pow2", "pow3"),
-                                      sl_lib = c("m_xgboost"),
-                                      params = list(xgb_nrounds = c(50)),
-                                      nthread = 4, # number of cores
-                                      covar_bl_method = "absolute",
-                                      covar_bl_trs = 0.1,
-                                      covar_bl_trs_type = "mean",
-                                      trim_quantiles = c(trim, 1 - trim),
-                                      optimized_compile = TRUE, #column counter for how many times matched,
-                                      max_attempt = attempts,
-                                      matching_fun = "matching_l1",
-                                      delta_n = 0.2,
-                                      scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop_trim$adjusted_corr_results
-cor_val_unmatched <- match_pop_trim$original_corr_results
-
-print(cor_val_unmatched)
-print(cor_val_matched)
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "total_crime_2021", "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
-```
-
-Check the balance.
-
-```{r}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-Run a logistic regression on the matched data.
-
-```{r}
-pseudo_trim <- match_pop_trim$pseudo_pop
-outcome_m_trim <- estimate_pmetric_erf(formula = Y ~ w,
-                                       family = binomial,
-                                       data = pseudo_trim,
-                                       ci_appr = "matching")
-summary(outcome_m_trim)
-```
-
-Run a non-parametric model on the matched data.
-
-```{r}
-erf_obj_trim <- estimate_npmetric_erf(as.double(pseudo_trim$Y),
-                                      as.double(pseudo_trim$w),
-                                      bw_seq=seq(0.2,2,0.2),
-                                      w_vals = seq(0,15,0.5),
-                                      nthread = 1)
-
-plot(erf_obj_trim)
-```
-
-## Different Definition of the Treatment
-
-Now, we run the exact same analyses but, this time, defining the treatment variable as the ceiling of a. In this way, the group all the treated units within a 1, 2, 3, 4, .. km average distance between school and gun stores.
-
-
-```{r,  message=FALSE, warning=FALSE, echo=F}
+```{r, message=FALSE}
 data_analysis_within_distance <- cbind(y, ceiling_a, as.data.frame(x))
-```
 
-```{r}
-## Trimming 0.05
-# CausalGPS
-trim = 0.05
-attempts = 5
-match_pop <- generate_pseudo_pop(Y = y, w = ceiling_a, c = as.data.frame(x),
-                                 ci_appr = "matching",
-                                 pred_model = "sl",
-                                 gps_model = "parametric",
-                                 use_cov_transform = TRUE,
-                                 transformers = list("pow2", "pow3"),
-                                 sl_lib = c("m_xgboost"),
-                                 params = list(xgb_nrounds = c(50)),
-                                 nthread = 4, # number of cores
-                                 covar_bl_method = "absolute",
-                                 covar_bl_trs = 0.1,
-                                 covar_bl_trs_type = "mean",
-                                 trim_quantiles = c(trim, 1 - trim),
-                                 optimized_compile = TRUE, 
-                                 max_attempt = attempts,
-                                 matching_fun = "matching_l1",
-                                 delta_n = 0.2,
-                                 scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(ceiling_a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop$adjusted_corr_results
-cor_val_unmatched <- match_pop$original_corr_results
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "total_crime_2021", "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
-```
-
-```{r}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-```{r}
-# merge individual level data
-pseudo <- match_pop$pseudo_pop
-outcome_m <- estimate_pmetric_erf(formula = Y ~ w,
-                                  family = binomial,
-                                  data = pseudo,
-                                  ci_appr = "matching")
-summary(outcome_m)
-```
-
-```{r}
-erf_obj_trim <- estimate_npmetric_erf(as.double(pseudo$Y),
-                                      as.double(pseudo$w),
-                                      bw_seq=seq(0.2,2,0.2),
-                                      w_vals = seq(0,15,0.5),
-                                      nthread = 1)
-
-plot(erf_obj_trim)
-```
-
-## One Sided Trimming
-
-We run the same analyses but, this time, trimming the GPS at the 95th percentile only and the exposure at the 95th percentile.
-
-```{r}
-trim = 0.05
-attempts = 5
-match_pop_trim_wins_1sided <- generate_pseudo_pop(Y = data_analysis_trim$y,
-                                           w = data_analysis_trim$a,
-                                           c = as.data.frame(data_analysis_trim$x),
-                                           ci_appr = "matching",
-                                           pred_model = "sl",
-                                           gps_model = "parametric",
-                                           use_cov_transform = TRUE,
-                                           transformers = list("pow2", "pow3"),
-                                           sl_lib = c("m_xgboost"),
-                                           params = list(xgb_nrounds = c(50)),
-                                           nthread = 4, # number of cores
-                                           covar_bl_method = "absolute",
-                                           covar_bl_trs = 0.1,
-                                           covar_bl_trs_type = "mean",
-                                           trim_quantiles = c(0, 1 - trim), 
-                                           optimized_compile = TRUE, 
-                                           max_attempt = attempts,
-                                           matching_fun = "matching_l1",
-                                           delta_n = 0.2,
-                                           scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop_trim_wins_1sided$adjusted_corr_results
-cor_val_unmatched <- match_pop_trim_wins_1sided$original_corr_results
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "total_crime_2021", "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
-```
-
-```{r}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-We run a logistic regression on the matched data.
-
-```{r}
-pseudo_trim_wins <- match_pop_trim_wins$pseudo_pop
-outcome_m_trim_wins <- estimate_pmetric_erf(formula = Y ~ w,
-                                            family = binomial,
-                                            data = pseudo_trim_wins,
-                                            ci_appr = "matching")
-summary(outcome_m_trim_wins)
-```
-
-We run a nonparametric model on the matched data.
-
-```{r}
-erf_obj_trim_wins <- estimate_npmetric_erf(as.double(pseudo_trim_wins$Y),
-                                           as.double(pseudo_trim_wins$w),
-                                           bw_seq=seq(0.2,2,0.2),
-                                           w_vals = seq(0,15,0.5),
-                                           nthread = 1)
-
-plot(erf_obj_trim_wins)
-```
-
-## Excluding Total Crime
-
-We run the same analyses (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding `total_crime_2021`.
-
-```{r, echo=F}
-data_analysis_trim_without_crime <- data_analysis[which(a < quantile(a, 0.95)),]
-data_analysis_trim_without_crime$x <- data_analysis_trim_without_crime[, c("total_population_2020", "housing_units_per_sq_meter",
-                                              "log_median_hh_income",
-                                              "schools_per_sq_meter",
-                                              "state_fips",
-                                              "county_fips",
-                                               "log_median_hh_income_15to24",
-                                               "dealers_per_sq_meter", "daytime_pop_2021",
-                                               "prop_white_only", "prop_black_only", 
-                                               "prop_asian_only", "prop_multiracial",
-                                               "prop_hispanic_latino", "prop_food_stamps_2019",
-                                               "prop_public_assist_income_2019",
-                                               "prop_below_poverty_2019",
-                                               "prop_without_vehicles_2019",
-                                               "prop_hunted_with_shotgun_2021",
-                                               "prop_bachelor_deg_25plus_2021", 
-                                               "prop_grad_deg_25plus_2021",
-                                               "prop_unemployed_2021",
-                                               "prop_unemployed_16to24_2021",
-                                               "prop_group_quartered",
-                                               "prop_adult_correctional",
-                                               "prop_juvenile_detention", 
-                                               "prop_nursing", "prop_university",
-                                               "prop_military",
-                                               "prop_other_noninstitutional",
-                                               "prop_18plus")]
-```
-
-```{r, echo=F}
-trim = 0.05
-attempts = 5
-match_pop_trim_without_crime <- generate_pseudo_pop(Y = data_analysis_trim_without_crime$y,
-                                           w = data_analysis_trim_without_crime$a,
-                                           c = as.data.frame(data_analysis_trim_without_crime$x),
-                                           ci_appr = "matching",
-                                           pred_model = "sl",
-                                           gps_model = "parametric",
-                                           use_cov_transform = TRUE,
-                                           transformers = list("pow2", "pow3"),
-                                           sl_lib = c("m_xgboost"),
-                                           params = list(xgb_nrounds = c(50)),
-                                           nthread = 4, # number of cores
-                                           covar_bl_method = "absolute",
-                                           covar_bl_trs = 0.1,
-                                           covar_bl_trs_type = "mean",
-                                           trim_quantiles = c(trim, 1 - trim), 
-                                           optimized_compile = TRUE, 
-                                           max_attempt = attempts,
-                                           matching_fun = "matching_l1",
-                                           delta_n = 0.2,
-                                           scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop_trim_without_crime$adjusted_corr_results
-cor_val_unmatched <- match_pop_trim_without_crime$original_corr_results
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
-```
-
-```{r, echo=F}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-We run a logistic regression on the matched data.
-
-```{r, echo=F}
-pseudo_trim_without_crime <- match_pop_trim_without_crime$pseudo_pop
-outcome_m_trim_without_crime <- estimate_pmetric_erf(formula = Y ~ w,
-                                            family = binomial,
-                                            data = pseudo_trim_without_crime,
-                                            ci_appr = "matching")
-summary(outcome_m_trim_without_crime)
-```
-
-We run a nonparametric model on the matched data.
-
-```{r, echo=F}
-erf_obj <- estimate_npmetric_erf(as.double(pseudo_trim_without_crime$Y),
-                                           as.double(pseudo_trim_without_crime$w),
-                                           bw_seq=seq(0.2,2,0.2),
-                                           w_vals = seq(0,15,0.5),
-                                           nthread = 1)
-
-plot(erf_obj)
-```
-
-## Excluding Firearm Stores Density
-
-We run the same analyses (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding `dealers_per_sq_meter`.
-
-```{r, echo=F}
-data_analysis_trim_without_dealers <- data_analysis[which(a < quantile(a, 0.95)),]
-data_analysis_trim_without_dealers$x <- data_analysis_trim_without_dealers[, c("total_population_2020", "housing_units_per_sq_meter",
-                                              "log_median_hh_income",
-                                              "schools_per_sq_meter",
-                                              "state_fips",
-                                              "county_fips",
-                                               "log_median_hh_income_15to24", "total_crime_2021",
-                                               "daytime_pop_2021",
-                                               "prop_white_only", "prop_black_only", 
-                                               "prop_asian_only", "prop_multiracial",
-                                               "prop_hispanic_latino", "prop_food_stamps_2019",
-                                               "prop_public_assist_income_2019",
-                                               "prop_below_poverty_2019",
-                                               "prop_without_vehicles_2019",
-                                               "prop_hunted_with_shotgun_2021",
-                                               "prop_bachelor_deg_25plus_2021", 
-                                               "prop_grad_deg_25plus_2021",
-                                               "prop_unemployed_2021",
-                                               "prop_unemployed_16to24_2021",
-                                               "prop_group_quartered",
-                                               "prop_adult_correctional",
-                                               "prop_juvenile_detention", 
-                                               "prop_nursing", "prop_university",
-                                               "prop_military",
-                                               "prop_other_noninstitutional",
-                                               "prop_18plus")]
-```
-
-```{r, echo=F}
-trim = 0.05
-attempts = 5
-match_pop_trim_without_dealers <- generate_pseudo_pop(Y = data_analysis_trim_without_dealers$y,
-                                           w = data_analysis_trim_without_dealers$a,
-                                           c = as.data.frame(data_analysis_trim_without_dealers$x),
-                                           ci_appr = "matching",
-                                           pred_model = "sl",
-                                           gps_model = "parametric",
-                                           use_cov_transform = TRUE,
-                                           transformers = list("pow2", "pow3"),
-                                           sl_lib = c("m_xgboost"),
-                                           params = list(xgb_nrounds = c(50)),
-                                           nthread = 4, # number of cores
-                                           covar_bl_method = "absolute",
-                                           covar_bl_trs = 0.1,
-                                           covar_bl_trs_type = "mean",
-                                           trim_quantiles = c(trim, 1 - trim), 
-                                           optimized_compile = TRUE, 
-                                           max_attempt = attempts,
-                                           matching_fun = "matching_l1",
-                                           delta_n = 0.2,
-                                           scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop_trim_without_dealers$adjusted_corr_results
-cor_val_unmatched <- match_pop_trim_without_dealers$original_corr_results
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24", "total_crime_2021",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
-```
-
-```{r, echo=F}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-We run a logistic regression on the matched data.
-
-```{r, echo=F}
-pseudo_trim_without_dealers <- match_pop_trim_without_dealers$pseudo_pop
-outcome_m_trim_without_dealers <- estimate_pmetric_erf(formula = Y ~ w,
-                                            family = binomial,
-                                            data = pseudo_trim_without_dealers,
-                                            ci_appr = "matching")
-summary(outcome_m_trim_without_crime)
-```
-
-We run a nonparametric model on the matched data.
-
-```{r, echo=F}
-erf_obj <- estimate_npmetric_erf(as.double(pseudo_trim_without_dealers$Y),
-                                           as.double(pseudo_trim_without_dealers$w),
-                                           bw_seq=seq(0.2,2,0.2),
-                                           w_vals = seq(0,15,0.5),
-                                           nthread = 1)
-
-plot(erf_obj)
-```
-
-## Excluding Small Census Tracts
-
-We run the same analyses (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding Census tracts with total population or daytime population less than 10.
-
-```{r, echo=F}
-data_exclude_low_pop <- data_analysis[data_analysis$total_population_2020 >= 10 & data_analysis$daytime_pop_2021 >= 10, ]
-
-data_exclude_low_pop <- data_exclude_low_pop[which(data_exclude_low_pop$a < quantile(data_exclude_low_pop$a, 0.95)),]
-data_exclude_low_pop$x <- data_exclude_low_pop[, c("total_population_2020", "housing_units_per_sq_meter",
-                                              "log_median_hh_income",
-                                              "schools_per_sq_meter",
-                                              "state_fips",
-                                              "county_fips",
-                                               "log_median_hh_income_15to24", "total_crime_2021",
-                                               "dealers_per_sq_meter", "daytime_pop_2021",
-                                               "prop_white_only", "prop_black_only", 
-                                               "prop_asian_only", "prop_multiracial",
-                                               "prop_hispanic_latino", "prop_food_stamps_2019",
-                                               "prop_public_assist_income_2019",
-                                               "prop_below_poverty_2019",
-                                               "prop_without_vehicles_2019",
-                                               "prop_hunted_with_shotgun_2021",
-                                               "prop_bachelor_deg_25plus_2021", 
-                                               "prop_grad_deg_25plus_2021",
-                                               "prop_unemployed_2021",
-                                               "prop_unemployed_16to24_2021",
-                                               "prop_group_quartered",
-                                               "prop_adult_correctional",
-                                               "prop_juvenile_detention", 
-                                               "prop_nursing", "prop_university",
-                                               "prop_military",
-                                               "prop_other_noninstitutional",
-                                               "prop_18plus")]
-```
-
-```{r, echo=F}
-trim = 0.05
-attempts = 5
-match_pop_exclude_low_pop <- generate_pseudo_pop(Y = data_exclude_low_pop$y,
-                                           w = data_exclude_low_pop$a,
-                                           c = as.data.frame(data_exclude_low_pop$x),
-                                           ci_appr = "matching",
-                                           pred_model = "sl",
-                                           gps_model = "parametric",
-                                           use_cov_transform = TRUE,
-                                           transformers = list("pow2", "pow3"),
-                                           sl_lib = c("m_xgboost"),
-                                           params = list(xgb_nrounds = c(50)),
-                                           nthread = 4, # number of cores
-                                           covar_bl_method = "absolute",
-                                           covar_bl_trs = 0.1,
-                                           covar_bl_trs_type = "mean",
-                                           trim_quantiles = c(trim, 1 - trim), 
-                                           optimized_compile = TRUE, 
-                                           max_attempt = attempts,
-                                           matching_fun = "matching_l1",
-                                           delta_n = 0.2,
-                                           scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop_exclude_low_pop$adjusted_corr_results
-cor_val_unmatched <- match_pop_exclude_low_pop$original_corr_results
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "total_crime_2021", "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
-```
-
-```{r, echo=F}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-We run a logistic regression on the matched data.
-
-```{r, echo=F}
-pseudo_trim_wins <- match_pop_trim_wins$pseudo_pop
-outcome_m_trim_wins <- estimate_pmetric_erf(formula = Y ~ w,
-                                            family = binomial,
-                                            data = pseudo_trim_wins,
-                                            ci_appr = "matching")
-summary(outcome_m_trim_wins)
-```
-
-We run a nonparametric model on the matched data.
-
-```{r, echo=F}
-erf_obj_trim_wins <- estimate_npmetric_erf(as.double(pseudo_trim_wins$Y),
-                                           as.double(pseudo_trim_wins$w),
-                                           bw_seq=seq(0.2,2,0.2),
-                                           w_vals = seq(0,15,0.5),
-                                           nthread = 1)
-
-plot(erf_obj_trim_wins)
+matched_pop_within_distance <- get_matched_pseudo_pop(y, ceiling_a, x)
+make_matched_correlation_plot(matched_pop_within_distance, ceiling_a, x, all_confounder_names)
+get_matched_logistic_results(matched_pop_within_distance)
+get_matched_nonparametric_results(matched_pop_within_distance)
 ```
 
 
@@ -1148,430 +467,122 @@ plot(erf_obj_trim_wins)
 
 We again trim the GPS at the 5th/95th percentiles but discretize treatment into $[0,2), [2, 4)$, and 4 or more km. Code treatment levels as 0, 1, 2.
 
-```{r, echo=F}
+```{r, message=FALSE}
 data_discretized <- data_analysis
-data_discretized$a <- ifelse(data_discretized$a < 2, 0, ifelse(data_discretized$a < 4, 1, 2))
-data_discretized$x <- data_discretized[, c("total_population_2020", "housing_units_per_sq_meter",
-                                              "log_median_hh_income",
-                                              "schools_per_sq_meter",
-                                              "state_fips",
-                                              "county_fips",
-                                               "log_median_hh_income_15to24", "total_crime_2021",
-                                               "dealers_per_sq_meter", "daytime_pop_2021",
-                                               "prop_white_only", "prop_black_only", 
-                                               "prop_asian_only", "prop_multiracial",
-                                               "prop_hispanic_latino", "prop_food_stamps_2019",
-                                               "prop_public_assist_income_2019",
-                                               "prop_below_poverty_2019",
-                                               "prop_without_vehicles_2019",
-                                               "prop_hunted_with_shotgun_2021",
-                                               "prop_bachelor_deg_25plus_2021", 
-                                               "prop_grad_deg_25plus_2021",
-                                               "prop_unemployed_2021",
-                                               "prop_unemployed_16to24_2021",
-                                               "prop_group_quartered",
-                                               "prop_adult_correctional",
-                                               "prop_juvenile_detention", 
-                                               "prop_nursing", "prop_university",
-                                               "prop_military",
-                                               "prop_other_noninstitutional",
-                                               "prop_18plus")]
+data_discretized$a <- ifelse(a < 2, 0, ifelse(a < 4, 1, 2))
+
+matched_pop_discretized_treatment <- get_matched_pseudo_pop(y, data_discretized$a, x)
+make_matched_correlation_plot(matched_pop_discretized_treatment, data_discretized$a, x, all_confounder_names)
+get_matched_logistic_results(matched_pop_discretized_treatment)
+get_matched_nonparametric_results(matched_pop_discretized_treatment)
 ```
 
-```{r, echo=F}
-trim = 0.05
-attempts = 5
-match_pop_discretized <- generate_pseudo_pop(Y = data_discretized$y,
-                                           w = data_discretized$a,
-                                           c = as.data.frame(data_discretized$x),
-                                           ci_appr = "matching",
-                                           pred_model = "sl",
-                                           gps_model = "parametric",
-                                           use_cov_transform = TRUE,
-                                           transformers = list("pow2", "pow3"),
-                                           sl_lib = c("m_xgboost"),
-                                           params = list(xgb_nrounds = c(50)),
-                                           nthread = 4, # number of cores
-                                           covar_bl_method = "absolute",
-                                           covar_bl_trs = 0.1,
-                                           covar_bl_trs_type = "mean",
-                                           trim_quantiles = c(trim, 1 - trim), 
-                                           optimized_compile = TRUE, 
-                                           max_attempt = attempts,
-                                           matching_fun = "matching_l1",
-                                           delta_n = 0.2,
-                                           scale = 1.0)
 
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
+## Excluding 2021 Total Crime Index
 
-cor_val_matched <- match_pop_discretized$adjusted_corr_results
-cor_val_unmatched <- match_pop_discretized$original_corr_results
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding `total_crime_2021` as a confounder.
 
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "total_crime_2021", "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
+```{r, message=FALSE}
+confounders_without_crime2021 <- all_confounder_names[all_confounder_names != "total_crime_2021"]
+
+matched_pop_without_crime2021 <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_crime2021])
+make_matched_correlation_plot(matched_pop_without_crime2021, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_crime2021], confounders_without_crime2021)
+get_matched_logistic_results(matched_pop_without_crime2021)
+get_matched_nonparametric_results(matched_pop_without_crime2021)
 ```
 
-```{r, echo=F}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
+
+## Excluding Firearm Stores Density
+
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding `dealers_per_sq_meter` as a confounder.
+
+Observe that the results are quite different from the main analysis.
+
+```{r, message=FALSE}
+confounders_without_dealers <- all_confounder_names[all_confounder_names != "dealers_per_sq_meter"]
+
+matched_pop_without_dealers <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_dealers])
+make_matched_correlation_plot(matched_pop_without_dealers, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_dealers], confounders_without_dealers)
+get_matched_logistic_results(matched_pop_without_dealers)
+get_matched_nonparametric_results(matched_pop_without_dealers)
 ```
 
-We run a logistic regression on the matched data.
 
-```{r, echo=F}
-pseudo <- match_pop_discretized$pseudo_pop
-outcome <- estimate_pmetric_erf(formula = Y ~ w,
-                                            family = binomial,
-                                            data = pseudo,
-                                            ci_appr = "matching")
-summary(outcome)
+## Excluding Race Confounders
+
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding all 5 race confounders, which are measured as Census-tract-level proportions.
+
+```{r, message=FALSE}
+race_confounders <- c("prop_white_only", "prop_black_only", "prop_asian_only", "prop_multiracial", "prop_hispanic_latino")
+confounders_without_race <- all_confounder_names[!all_confounder_names %in% race_confounders]
+
+matched_pop_without_race <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_race])
+make_matched_correlation_plot(matched_pop_without_race, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_race], confounders_without_race)
+get_matched_logistic_results(matched_pop_without_race)
+get_matched_nonparametric_results(matched_pop_without_race)
 ```
 
-We run a nonparametric model on the matched data.
 
-```{r, echo=F}
-erf_obj <- estimate_npmetric_erf(as.double(pseudo$Y),
-                                           as.double(pseudo$w),
-                                           bw_seq=seq(0.2,2,0.2),
-                                           w_vals = seq(0,15,0.5),
-                                           nthread = 1)
+## Excluding Small Census Tracts
 
-plot(erf_obj)
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding Census tracts with total population or daytime population less than 10.
+
+Observe that the results are quite different from the main analysis.
+
+```{r, message=FALSE}
+data_exclude_small_tracts <- data_analysis[data_analysis$total_population_2020 >= 10 & data_analysis$daytime_pop_2021 >= 10, ]
+data_exclude_small_tracts <- data_exclude_small_tracts[which(data_exclude_small_tracts$a < quantile(data_exclude_small_tracts$a, 0.95)),] # trim exposure at 95th percentile
+
+matched_exclude_small_tracts <- get_matched_pseudo_pop(data_exclude_small_tracts$y, data_exclude_small_tracts$a, data_exclude_small_tracts[, all_confounder_names])
+make_matched_correlation_plot(matched_exclude_small_tracts, data_exclude_small_tracts$a, data_exclude_small_tracts[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_exclude_small_tracts)
+get_matched_nonparametric_results(matched_exclude_small_tracts)
 ```
 
-## Changing the Seeds
 
-We run the same analyses (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but using a different seed (2022 instead of 2021).
+## Changing the Seed
 
-```{r, echo=F}
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but using a different seed (2022 instead of 2021).
+
+```{r}
 set.seed(2022)
-
-trim = 0.05
-attempts = 5
-match_pop_trim_wins <- generate_pseudo_pop(Y = data_analysis_trim$y,
-                                           w = data_analysis_trim$a,
-                                           c = as.data.frame(data_analysis_trim$x),
-                                           ci_appr = "matching",
-                                           pred_model = "sl",
-                                           gps_model = "parametric",
-                                           use_cov_transform = TRUE,
-                                           transformers = list("pow2", "pow3"),
-                                           sl_lib = c("m_xgboost"),
-                                           params = list(xgb_nrounds = c(50)),
-                                           nthread = 4, # number of cores
-                                           covar_bl_method = "absolute",
-                                           covar_bl_trs = 0.1,
-                                           covar_bl_trs_type = "mean",
-                                           trim_quantiles = c(trim, 1 - trim), 
-                                           optimized_compile = TRUE, 
-                                           max_attempt = attempts,
-                                           matching_fun = "matching_l1",
-                                           delta_n = 0.2,
-                                           scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop_trim_wins$adjusted_corr_results
-cor_val_unmatched <- match_pop_trim_wins$original_corr_results
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "total_crime_2021", "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
 ```
 
-```{r, echo=F}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-We run a logistic regression on the matched data.
-
-```{r, echo=F}
-pseudo_trim_wins <- match_pop_trim_wins$pseudo_pop
-outcome_m_trim_wins <- estimate_pmetric_erf(formula = Y ~ w,
-                                            family = binomial,
-                                            data = pseudo_trim_wins,
-                                            ci_appr = "matching")
-summary(outcome_m_trim_wins)
-```
-
-We run a nonparametric model on the matched data.
-
-```{r, echo=F}
-erf_obj_trim_wins <- estimate_npmetric_erf(as.double(pseudo_trim_wins$Y),
-                                           as.double(pseudo_trim_wins$w),
-                                           bw_seq=seq(0.2,2,0.2),
-                                           w_vals = seq(0,15,0.5),
-                                           nthread = 1)
-
-plot(erf_obj_trim_wins)
+```{r, message=FALSE}
+matched_pop_trim_seed2 <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names])
+make_matched_correlation_plot(matched_pop_trim_seed2, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_trim_seed2)
+get_matched_nonparametric_results(matched_pop_trim_seed2)
 ```
 
 
 # Stratified analysis
 
-We run the same analyses (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but only on Census tracts with gun dealer density less or equal to than the median gun dealer density, which is 0.
+We include only Census tracts with gun dealer density [less than or] equal to the median gun dealer density, which is 0. That is, we include only Census tracts that themselves \emph{do not} contain a gun dealer. This leaves 28,485 Census tracts to analyze. Then, we run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile).
 
-```{r, echo=F}
+```{r}
 data_dealers_below_median <- data_analysis[data_analysis$dealers_per_sq_meter <= 0, ]
-
-data_dealers_below_median <- data_dealers_below_median[which(data_dealers_below_median$a < quantile(data_dealers_below_median$a, 0.95)),]
-data_dealers_below_median$x <- data_dealers_below_median[, c("total_population_2020", "housing_units_per_sq_meter",
-                                              "log_median_hh_income",
-                                              "schools_per_sq_meter",
-                                              "state_fips",
-                                              "county_fips",
-                                               "log_median_hh_income_15to24", "total_crime_2021",
-                                               "dealers_per_sq_meter", "daytime_pop_2021",
-                                               "prop_white_only", "prop_black_only", 
-                                               "prop_asian_only", "prop_multiracial",
-                                               "prop_hispanic_latino", "prop_food_stamps_2019",
-                                               "prop_public_assist_income_2019",
-                                               "prop_below_poverty_2019",
-                                               "prop_without_vehicles_2019",
-                                               "prop_hunted_with_shotgun_2021",
-                                               "prop_bachelor_deg_25plus_2021", 
-                                               "prop_grad_deg_25plus_2021",
-                                               "prop_unemployed_2021",
-                                               "prop_unemployed_16to24_2021",
-                                               "prop_group_quartered",
-                                               "prop_adult_correctional",
-                                               "prop_juvenile_detention", 
-                                               "prop_nursing", "prop_university",
-                                               "prop_military",
-                                               "prop_other_noninstitutional",
-                                               "prop_18plus")]
-```
-
-```{r}
+data_dealers_below_median <- data_dealers_below_median[which(data_dealers_below_median$a < quantile(data_dealers_below_median$a, 0.95)),] # after subsetting to below-median-dealer-density, trim exposures at 95th percentile
 nrow(data_dealers_below_median)
-```
 
-```{r, echo=F}
-trim = 0.05
-attempts = 5
-match_pop_dealers_below_median <- generate_pseudo_pop(Y = data_dealers_below_median$y,
-                                           w = data_dealers_below_median$a,
-                                           c = as.data.frame(data_dealers_below_median$x),
-                                           ci_appr = "matching",
-                                           pred_model = "sl",
-                                           gps_model = "parametric",
-                                           use_cov_transform = TRUE,
-                                           transformers = list("pow2", "pow3"),
-                                           sl_lib = c("m_xgboost"),
-                                           params = list(xgb_nrounds = c(50)),
-                                           nthread = 4, # number of cores
-                                           covar_bl_method = "absolute",
-                                           covar_bl_trs = 0.1,
-                                           covar_bl_trs_type = "mean",
-                                           trim_quantiles = c(trim, 1 - trim), 
-                                           optimized_compile = TRUE, 
-                                           max_attempt = attempts,
-                                           matching_fun = "matching_l1",
-                                           delta_n = 0.2,
-                                           scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop_dealers_below_median$adjusted_corr_results
-cor_val_unmatched <- match_pop_dealers_below_median$original_corr_results
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "total_crime_2021", "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
-```
-
-```{r, echo=F}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-We run a logistic regression on the matched data.
-
-```{r, echo=F}
-pseudo <- match_pop_dealers_below_median$pseudo_pop
-outcome <- estimate_pmetric_erf(formula = Y ~ w,
-                                            family = binomial,
-                                            data = pseudo,
-                                            ci_appr = "matching")
-summary(outcome)
-```
-
-We run a nonparametric model on the matched data.
-
-```{r, echo=F}
-erf_obj <- estimate_npmetric_erf(as.double(pseudo$Y),
-                                           as.double(pseudo$w),
-                                           bw_seq=seq(0.2,2,0.2),
-                                           w_vals = seq(0,15,0.5),
-                                           nthread = 1)
-
-plot(erf_obj)
+matched_pop_dealers_below_median <- get_matched_pseudo_pop(data_dealers_below_median$y, data_dealers_below_median$a, data_dealers_below_median[, all_confounder_names])
+make_matched_correlation_plot(matched_pop_dealers_below_median, data_dealers_below_median$a, data_dealers_below_median[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_dealers_below_median)
+get_matched_nonparametric_results(matched_pop_dealers_below_median)
 ```
 
 
-We run the same analyses (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but only on Census tracts with gun dealer density greater than the median gun dealer density, which is 0.
-
-```{r, echo=F}
-data_dealers_above_median <- data_analysis[data_analysis$dealers_per_sq_meter > 0, ]
-
-data_dealers_above_median <- data_dealers_above_median[which(data_dealers_above_median$a < quantile(data_dealers_above_median$a, 0.95)),]
-data_dealers_above_median$x <- data_dealers_above_median[, c("total_population_2020", "housing_units_per_sq_meter",
-                                              "log_median_hh_income",
-                                              "schools_per_sq_meter",
-                                              "state_fips",
-                                              "county_fips",
-                                               "log_median_hh_income_15to24", "total_crime_2021",
-                                               "dealers_per_sq_meter", "daytime_pop_2021",
-                                               "prop_white_only", "prop_black_only", 
-                                               "prop_asian_only", "prop_multiracial",
-                                               "prop_hispanic_latino", "prop_food_stamps_2019",
-                                               "prop_public_assist_income_2019",
-                                               "prop_below_poverty_2019",
-                                               "prop_without_vehicles_2019",
-                                               "prop_hunted_with_shotgun_2021",
-                                               "prop_bachelor_deg_25plus_2021", 
-                                               "prop_grad_deg_25plus_2021",
-                                               "prop_unemployed_2021",
-                                               "prop_unemployed_16to24_2021",
-                                               "prop_group_quartered",
-                                               "prop_adult_correctional",
-                                               "prop_juvenile_detention", 
-                                               "prop_nursing", "prop_university",
-                                               "prop_military",
-                                               "prop_other_noninstitutional",
-                                               "prop_18plus")]
-```
+Next, we include only Census tracts with gun dealer density greater than the median gun dealer density, which is 0. That is, we include only Census tracts that themselves \emph{do} contain a gun dealer. This leaves 25,903 Census tracts to analyze. Then, we run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile).
 
 ```{r}
+data_dealers_above_median <- data_analysis[data_analysis$dealers_per_sq_meter > 0, ]
+data_dealers_above_median <- data_dealers_above_median[which(data_dealers_above_median$a < quantile(data_dealers_above_median$a, 0.95)),]
 nrow(data_dealers_above_median)
-```
 
-```{r, echo=F}
-trim = 0.05
-attempts = 5
-match_pop_dealers_above_median <- generate_pseudo_pop(Y = data_dealers_above_median$y,
-                                           w = data_dealers_above_median$a,
-                                           c = as.data.frame(data_dealers_above_median$x),
-                                           ci_appr = "matching",
-                                           pred_model = "sl",
-                                           gps_model = "parametric",
-                                           use_cov_transform = TRUE,
-                                           transformers = list("pow2", "pow3"),
-                                           sl_lib = c("m_xgboost"),
-                                           params = list(xgb_nrounds = c(50)),
-                                           nthread = 4, # number of cores
-                                           covar_bl_method = "absolute",
-                                           covar_bl_trs = 0.1,
-                                           covar_bl_trs_type = "mean",
-                                           trim_quantiles = c(trim, 1 - trim), 
-                                           optimized_compile = TRUE, 
-                                           max_attempt = attempts,
-                                           matching_fun = "matching_l1",
-                                           delta_n = 0.2,
-                                           scale = 1.0)
-
-# absolute correlation unmatched
-cor_val_unmatched <- absolute_corr_fun(data.table::setDT(data.frame(a)) ,data.table::setDT(data.frame(x)))
-
-cor_val_matched <- match_pop_dealers_above_median$adjusted_corr_results
-cor_val_unmatched <- match_pop_dealers_above_median$original_corr_results
-
-abs_cor = data.frame(cov = c("total_population_2020", "housing_units_per_sq_meter",
-                             "log_median_hh_income", "schools_per_sq_meter", "state_fips",
-                             "county_fips", "log_median_hh_income_15to24",
-                             "total_crime_2021", "dealers_per_sq_meter",
-                             "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                             "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                             "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                             "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                             "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                             "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                             "prop_unemployed_16to24_2021", "prop_group_quartered",
-                             "prop_adult_correctional", "prop_juvenile_detention", 
-                             "prop_nursing", "prop_university", "prop_military",
-                             "prop_other_noninstitutional", "prop_18plus"),
-                     unmatched = cor_val_unmatched$absolute_corr, matched = cor_val_matched$absolute_corr) %>%
-  gather(c(unmatched, matched), key = 'dataset', value = 'absolute correlation')
-```
-
-```{r, echo=F}
-ggplot(abs_cor, aes(x = cov, y = `absolute correlation`, color = dataset, group = dataset)) +
-  geom_point() +
-  geom_line() +
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-We run a logistic regression on the matched data.
-
-```{r, echo=F}
-pseudo <- match_pop_dealers_above_median$pseudo_pop
-outcome <- estimate_pmetric_erf(formula = Y ~ w,
-                                            family = binomial,
-                                            data = pseudo,
-                                            ci_appr = "matching")
-summary(outcome)
-```
-
-We run a nonparametric model on the matched data.
-
-```{r, echo=F}
-erf_obj <- estimate_npmetric_erf(as.double(pseudo$Y),
-                                           as.double(pseudo$w),
-                                           bw_seq=seq(0.2,2,0.2),
-                                           w_vals = seq(0,15,0.5),
-                                           nthread = 1)
-
-plot(erf_obj)
+matched_pop_dealers_above_median <- get_matched_pseudo_pop(data_dealers_above_median$y, data_dealers_above_median$a, data_dealers_above_median[, all_confounder_names])
+make_matched_correlation_plot(matched_pop_dealers_above_median, data_dealers_above_median$a, data_dealers_above_median[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_dealers_above_median)
+get_matched_nonparametric_results(matched_pop_dealers_above_median)
 ```
 
 

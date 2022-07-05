@@ -2,11 +2,15 @@
 library(readxl)
 library(data.table)
 
-dir <- "~/Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
+dir <- "/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 
 tracts_2020_all_data <- read_excel(paste0(dir, "data/tracts_2020_all_data.xlsx"))
+tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
+all_tracts_2020_new_distances <- read_excel(paste0(dir, "data/all_tracts_2020_new_distances.xls"))
+all_tracts_2020_new_distances <- as.data.table(all_tracts_2020_new_distances)
+
 all_tracts_2020_subset_vars <- fread(paste0(dir, "data/all_tracts_2020_subset_vars.csv"))
-shooting_tracts_2020_subset_vars <- fread(paste0(dir, "data/shooting_tracts_2020_subset_vars.csv"))
+# shooting_tracts_2020_subset_vars <- fread(paste0(dir, "data/shooting_tracts_2020_subset_vars.csv"))
 
 # Check number of NA's in each variable
 # Answer: as written in data dictionary
@@ -79,3 +83,10 @@ View(cor(all_tracts_2020_quant_vars, use = "pairwise.complete.obs"))
 #                   names(shooting_tracts_2020_subset_vars)[names(shooting_tracts_2020_subset_vars) != "shooter_school_affiliation"]),
 #          use = "pairwise.complete.obs"))
 
+# Check that mean_total_miles is same in tracts_2020_all_data.xlsx and all_tracts_2020_new_distances.xlsx
+temp <- merge(tracts_2020_all_data[!is.na(mean_total_miles), .(GEOID, mean_total_miles)], all_tracts_2020_new_distances[!is.na(mean_total_miles), .(GEOID, mean_total_miles)], by = "GEOID")
+nrow(temp[round(mean_total_miles.x, digits = 10) != round(mean_total_miles.y, digits = 10)]) # 0
+nrow(temp[round(mean_total_miles.x, digits = 11) != round(mean_total_miles.y, digits = 11)]) # 1
+nrow(temp[round(mean_total_miles.x, digits = 12) != round(mean_total_miles.y, digits = 12)]) # 17
+nrow(temp[round(mean_total_miles.x, digits = 13) != round(mean_total_miles.y, digits = 13)]) # 178
+nrow(temp[mean_total_miles.x != mean_total_miles.y]) # 25887

@@ -3,12 +3,20 @@ library(data.table)
 
 ##### Import raw data #####
 
-dir <- "~/Harvard University/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
+dir <- "/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 
 tracts_2020_all_data <- read_excel(paste0(dir, "data/tracts_2020_all_data.xlsx"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
+all_tracts_2020_new_distances <- read_excel(paste0(dir, "data/all_tracts_2020_new_distances.xls"))
+all_tracts_2020_new_distances <- as.data.table(all_tracts_2020_new_distances)
 
 codebook <- read_excel(paste0(dir, "data_dictionaries/codebook_all.xlsx"))
+
+
+##### Merge two datasets #####
+
+all_tracts_2020_new_distances[, mean_total_miles := NULL] # mean_total_miles is the same in both datasets up to 10 decimal digits
+tracts_2020_all_data <- merge(tracts_2020_all_data, all_tracts_2020_new_distances, by = "GEOID")
 
 
 ##### Remove rows #####
@@ -44,7 +52,11 @@ setnames(tracts_2020_subset, old = c("Shape_Area",
 tracts_2020_transformed <- copy(tracts_2020_subset)
 tracts_2020_transformed[, state_fips := substr(GEOID, 1, 2)]
 tracts_2020_transformed[, county_fips := substr(GEOID, 1, 5)]
+tracts_2020_transformed[, state_fips := as.double(state_fips)]
+tracts_2020_transformed[, county_fips := as.double(county_fips)]
 tracts_2020_transformed[, mean_total_km := mean_total_miles * 1.609344]
+tracts_2020_transformed[, mean_grocery_km := mean_distance_grocery_miles * 1.609344]
+tracts_2020_transformed[, mean_pharmacy_km := mean_distance_pharmacy_miles * 1.609344]
 tracts_2020_transformed[, log_median_hh_income := log(median_household_inc_2021 + 0.01)]
 tracts_2020_transformed[, log_median_hh_income_15to24 := log(median_household_inc_15to24_2021 + 0.01)]
 tracts_2020_transformed[, `:=`(dealers_per_sq_meter = count_gun_dealers/Tract_Area_sq_meters,
@@ -69,7 +81,8 @@ tracts_2020_transformed[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/
 tracts_2020_transformed[, `:=`(housing_units_per_sq_meter = total_housing_units/Tract_Area_sq_meters,
                                prop_institutional_group = institutional_group_pop/total_population_2020, 
                                prop_noninstitutional_group = noninstitutional_group_pop/total_population_2020)]
-tracts_2020_transformed <- tracts_2020_transformed[, `:=`(GEOID = NULL, mean_total_miles = NULL, median_household_inc_2021 = NULL, median_household_inc_15to24_2021 = NULL,
+tracts_2020_transformed <- tracts_2020_transformed[, `:=`(GEOID = NULL, mean_total_miles = NULL, mean_distance_grocery_miles = NULL, mean_distance_pharmacy_miles = NULL,
+                                                          median_household_inc_2021 = NULL, median_household_inc_15to24_2021 = NULL,
                                                           pct_18plus = NULL, white_only_pct = NULL, black_only_pct = NULL, american_indian_alaskan_native_only_pct = NULL,
                                                           asian_only_pct = NULL, native_hawaiian_pacific_islander_only_pct = NULL, multiracial_pct = NULL,
                                                           hispanic_latino_pct = NULL, foodstampssnap_acssnap_p = NULL, households_acspubai_p = NULL,

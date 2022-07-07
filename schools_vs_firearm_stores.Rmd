@@ -1,0 +1,996 @@
+---
+title: "Causal Analysis: Firearm Stores Proximity and School Shooting Incidents"
+author: "Falco and Michelle"
+date: "7/7/2022"
+output:
+  html_document:
+    code_folding: show
+    toc: true
+---
+
+# Introduction and Load Data
+
+In the following document we depict the code used to perform the exploratory data analyses and causal analyses for our project on firearm stores proximity and school shooting incidents. This code is stored in a GitHub repository at <https://github.com/NSAPH/firearm_store_proximity_school_shootings>. In the same repository, we stored code to:
+
+1. Perform the data cleaning and data wrangling: `make_datasets.R`,
+
+2. Write several functions for our analysis (so that this Rmd file can contain mainly results): `helper_functions.R`.
+
+3. Generate the plots depicted below: `make_maps_plots.R`.
+
+Feel free to reach out for any question regarding the following code at: <fbargaglistoffi@hsph.harvard.edu> or <michelleqin@college.harvard.edu>.
+
+```{r setup, include=FALSE}
+# Set the Working Directory
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, message = FALSE, cache = TRUE) # collapse = TRUE allows output to be hidden along with code (by code_folding)
+# knitr::opts_knit$set(root.dir = '~/OneDrive - Harvard University/Research/Schools Vs Firearms')
+knitr::opts_knit$set(root.dir = "/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/")
+```
+
+Load the functions used for analysis. Load the data.
+
+```{r load-functions}
+source("code/helper_functions.R")
+load_packages(clear_env = T)
+```
+
+```{r load-data}
+#data <- read.csv("~/OneDrive - Harvard University/Research/Schools Vs Firearms/data/all_tracts_2020_subset_vars.csv", header = TRUE, stringsAsFactors = FALSE)
+data <- read.csv("data/all_tracts_2020_subset_vars.csv", header = TRUE, stringsAsFactors = FALSE)
+colnames(data)
+dim(data)
+
+all_confounder_names
+
+data_analysis <- get_analysis_df(data, treatment = "mean_total_km", all_confounder_names)
+y <- data_analysis$y # to do: consider removing this line and not using a variable called y in the document (ambiguous)
+a <- data_analysis$a # to do: consider removing this line and not using a variable called a in the document (ambiguous)
+x <- data[, all_confounder_names]
+x <- t(apply(x, 1, unlist)) # to do: consider removing this line and not using a variable called x in the document (ambiguous)
+ceiling_a <- ceiling(a)
+```
+
+## Notes from Data Cleaning/Wrangling (make_datasets.R)
+
+We exclude 13 Census tracts from our analysis because they have NA's in the treatment variable (`mean_total_miles`), as well as `min_total_miles`, `max_total_miles`, `mean_distance_grocery_miles`, and `mean_distance_pharmacy_miles.`
+
+We exclude 19 Census tracts with total (residential) population of 0 in 2020.
+
+We exclude 541 Census tracts in Puerto Rico because [The K-12 School Shooting Database](https://www.chds.us/ssdb/) does not cover Puerto Rico.
+<!-- also because (i) all of these Census tracts are recorded as having a daytime population of 0 (which is probably wrong?) and (ii) we didn't have a 2013 NCHS urban-rural classification for them, which admittedly we're not currently using in our analysis -->
+
+
+# Exploratory Data Analysis and Variable Descriptions
+
+The unit of analysis is any Census track with at least one school. The outcome variable is whether there was a shooting (defined as when a gun is brandished, is fired, or a bullet hits school property for any reason, regardless of the number of victims, time of day, or day of week; see justification [here](https://www.chds.us/ssdb/methods/)) between January 2014 and the end of May 2022 in that Census tract. The treatment variable is the average \emph{minimum} walking distance, within a Census tract, between each school and the nearest gun \emph{dealer} in kilometers.
+
+Additional outcome variables -- such as weapon type, preplanned, targets (i.e., random vs targeted vs both vs neither), school level (i.e., elementary, middle, high, etc.), shooter age, source reliability -- are available for Census tracts that have had a school shooting since 2014. For the 43 tracts with 2 school shootings and 1 tract with 3 school shootings, these outcome variables are measured for the \emph{most recent} school shooting.
+
+We have a number of potential confounders that we included in our analyses:
+
+1.`total_population_2020`: the total population in the Census tract recorded in 2020 from [add source];
+
+2.`housing_units_per_sq_meter`: the housing units in the Census tracts per squared meter in [add year] from [add source];
+
+3.`log_median_hh_income`: the log transformation of the median household income in the Census tract in [add year] from [add source];
+
+4.`schools_per_sq_meter`: the number of school per squared meter in the Census tract in [add year] from [add source];
+
+5.`state_fips`: the state fips code from [add source];
+
+6.`county_fips`: the county fips code from [add source];
+
+7.`log_median_hh_income_15to24`: the log transformation of the median household income for individuals aged 15 to 24 in the Census tract in [add year] from [add source];
+
+8.`total_crime_2021`: the total crime rate in the Census tract in 2021 from [add source];
+
+9.`dealers_per_sq_meter`: the number of gun dealers per squared meter from the Federal Firearm License (FFL) file (we restricted the analysis to Type 1, \emph{dealer in firearms other than destructive devices}, and Type 2, \emph{pawnbroker in firearms other than destructive devices}, licenses);
+
+10.`daytime_pop_2021`: the daytime population in the Census tract in 2021 from [add source];
+
+11.`prop_white_only`: the proportion of white population in the Census tract in [add year] from [add source];
+
+12.`prop_black_only`: the proportion of black population in the Census tract in [add year] from [add source];
+
+13.`prop_asian_only`: the proportion of asian population in the Census tract in [add year] from [add source];
+
+14.`prop_multiracial`: the proportion of multiracial (individuals in that Census tract who identify as 2+ races) population in the Census tract in [add year] from [add source];
+
+15.`prop_hispanic_latino`: the proportion of hispanic population in the Census tract in [add year] from [add source];
+
+16.`prop_food_stamps_2019`: the proportion of people in the Census tract that benefited from food stamps in 2019 from [add source];
+
+17.`prop_public_assist_income_2019`: the proportion of people in the Census tract that benefited from public assisted income in 2019 from [add source];
+
+18.`prop_below_poverty_2019`: the proportion of people below the poverty level in the Census tract in 2019 from [add source];
+
+19.`prop_without_vehicles_2019`: the proportion of people without a vehicle in the Census tract in 2019 from [add source];
+
+20.`prop_hunted_with_shotgun_2021`: the proportion of people that hunted with a shotgun in the past 12 months in the Census tract in 2021 from [add source];
+
+21.`prop_bachelor_deg_25plus_2021`: the proportion of people older than 25 that obtained a bachelor degree  in the Census tract (recorded in 2021) from [add source];
+
+22.`prop_grad_deg_25plus_2021`: the proportion of people older than 25 that obtained a graduate or professional degree in the Census tract (recorded in 2021) from [add source];
+
+23.`prop_unemployed_2021`: the proportion of people unemployed in the Census tract in 2021 from [add source];
+
+24.`prop_unemployed_16to24_2021`: the proportion of people unemployed in the age range 16 to 24 in the Census tract in 2021 from [add source];
+
+25.`prop_institutional_group`: the proportion of institutional population in the Census tract in [add year] from [add source];
+
+26.`prop_noninstitutional_group`: the proportion of noninstitutional population in the Census tract in [add year] from [add source];
+
+27.`prop_18plus`: the proportion of population older than 18 in the Census tract in [add year] from [add source];
+`total_crime_2021` is computed as [add details on how this variable is generated].
+
+Most confounders are included as a proportion (for instance, of 25+ individuals who have a bachelor's degree) over that Census tract's 2020 population or area in square meters. When possible, however, we use the Census Bureau's calculated proportions, which should be better quality than dividing by 2020 population.
+
+<!-- Several potential confounders (for instance, population of 18+ individuals) are not included in this analysis because they have correlation $>0.83$ with a confounder that is included. The only exception is `pop_below18`, which has a correlation coefficient of 0.871 with `total_population_2020`. -->
+
+Notes about specific confounders:
+
+- (i) There are 9 tracts with total population $<5$; none had shooting incidents; 8 of them have median household income $= 0$. (ii) There are 4 tracts (none overlapping with the 9 tracts just mentioned) with daytime population $<5$; none had shooting incidents; all have median household income $= 0$. Later, we run a sensitivity analysis excluding these low-population tracts, as well as tracts with population $<10$. (*Question: Is it weird that we have Census tracts with such small populations? Aren't Census tracts supposed to have between 1,200 and 8,000 people?)
+
+<details>
+  <summary>Census tract populations</summary>
+```{r explore-population}
+sum(data$total_population_2020 < 5)
+sum(data$daytime_pop_2021 < 5)
+hist(data$total_population_2020)
+hist(data$daytime_pop_2021)
+data$binary_shooting_incident[data$total_population_2020 < 5]
+data$binary_shooting_incident[data$daytime_pop_2021 < 5]
+data$log_median_hh_income[data$total_population_2020 < 5]
+data$log_median_hh_income[data$daytime_pop_2021 < 5]
+
+sum(data$total_population_2020 < 1200)
+sum(data$total_population_2020 > 8000)
+```
+</details> 
+
+- To gauge each Census tract's position on the urban/rural continuum, we use population density and housing unit density (over area in square meters).
+- `prop_food_stamps_2019`, `prop_public_assist_income_2019`, `prop_below_poverty_2019`, and `prop_without_vehicles_2019` are the American Community Survey (ACS)'s 5-year averages over 2016-2020.
+<!-- - In this analysis, we use a variable called "employmentunemployment_unage16cy_p" and call it `prop_unemployed_16to24_2021`. -->
+- We are still unsure about the helpfulness of the variable "sports_mp33018a_b_p" (which we call `prop_hunted_with_shotgun_2021` in this analysis).
+- `prop_multiracial` is the proportion of individuals in that Census tract who identify as 2+ races; these multiracial individuals' specific races are not included in this analysis. (Would it be illogical or strange to try to add a fraction of a person to each of their constituent races?)
+
+<details>
+  <summary>Distribution of Multiracial Populations of Census Tracts</summary>
+```{r explore-multiracial, eval=TRUE}
+hist(data$prop_multiracial)
+summary(data$prop_multiracial)
+```
+</details>
+
+Confounders we plan to have in subsequent analyses:
+
+- mental health data from Medicaid.
+
+
+- We also have `mean_grocery_km` (containing 326 NA's), and `mean_pharmacy_km` (containing 340 NA's) in our dataset.
+
+<details>
+  <summary>Distribution of Mean Minimum Distances to Gun Dealers, Grocery Stores, and Pharmacies</summary>
+```{r explore-distances}
+sum(is.na(data$mean_grocery_km))
+sum(is.na(data$mean_pharmacy_km))
+quantile(data$mean_total_km)
+quantile(data$mean_grocery_km, na.rm = TRUE)
+quantile(data$mean_pharmacy_km, na.rm = TRUE)
+```
+</details> 
+
+<details>
+  <summary>Distribution of Treatment</summary>
+```{r explore-treatment}
+quantile(a)
+plot(density(a))
+plot(density(a[which(a < quantile(a, 0.99))]))
+plot(density(a[which(a < quantile(a, 0.95))]))
+plot(density(a[which(a < quantile(a, 0.90))]))
+```
+</details>
+
+
+
+<details>
+  <summary>Map of school to gun store proximity (in miles) at county level.</summary>
+    <!-- ![](/Users/falco/Desktop/figures/counties_map_mean_km.png) -->
+    ![](/Users/s012852/Documents/figures/counties_map_mean_km.png)
+</details>
+
+
+<details>
+  <summary>Map of school to gun store proximity (in miles) at state level.</summary>
+    <!-- ![](/Users/falco/Desktop/figures/states_map_mean_km.png) -->
+    ![](/Users/s012852/Documents/figures/states_map_mean_km.png)
+</details>
+
+
+<details>
+  <summary>Map of school to gun store proximity (in miles) at county level (trimming exposures larger than 99th percentile).</summary>
+    <!-- ![](/Users/falco/Desktop/figures/counties_map_mean_km_trimmed99.png) -->
+    ![](/Users/s012852/Documents/figures/counties_map_mean_km_trimmed99.png)
+</details>
+
+
+<details>
+  <summary>Map of school to gun store proximity (in miles) at state level (trimming exposures larger than 99th percentile).</summary>
+    <!-- ![](/Users/falco/Desktop/figures/states_map_mean_km_trimmed99.png) -->
+    ![](/Users/s012852/Documents/figures/states_map_mean_km_trimmed99.png)
+</details>
+
+
+<details>
+  <summary>Map of school to gun store proximity (in miles) at county level (trimming exposures larger than 95th percentile).</summary>
+    <!-- ![](/Users/falco/Desktop/figures/counties_map_mean_km_trimmed95.png) -->
+    ![](/Users/s012852/Documents/figures/counties_map_mean_km_trimmed95.png)
+</details>
+
+
+<details>
+  <summary>Map of school to gun store proximity (in miles) at state level (trimming exposures larger than 95th percentile).</summary>
+    <!-- ![](/Users/falco/Desktop/figures/states_map_mean_km_trimmed95.png) -->
+    ![](/Users/s012852/Documents/figures/states_map_mean_km_trimmed95.png)
+</details>
+
+
+<details>
+  <summary>Map of gun dealers per square meter at county level.</summary>
+    ![](/Users/s012852/Documents/figures/counties_map_mean_dealers.png)
+</details>
+
+
+<details>
+  <summary>Map of gun dealers per square meter at state level.</summary>
+    ![](/Users/s012852/Documents/figures/states_map_mean_dealers.png)
+</details>
+
+
+<details>
+  <summary>Map of gun dealers per square meter at county level (above median).</summary>
+    ![](/Users/s012852/Documents/figures/counties_map_mean_dealers_above_median.png)
+</details>
+
+
+<details>
+  <summary>Map of gun dealers per square meter at state level (above median).</summary>
+    ![](/Users/s012852/Documents/figures/states_map_mean_dealers_above_median.png)
+</details>
+
+
+<details>
+  <summary>Map of gun dealers per square meter at county level (below median).</summary>
+    ![](/Users/s012852/Documents/figures/counties_map_mean_dealers_below_median.png)
+</details>
+
+
+<details>
+  <summary>Map of gun dealers per square meter at state level (below median).</summary>
+    ![](/Users/s012852/Documents/figures/states_map_mean_dealers_below_median.png)
+</details>
+
+```{r explore-events}
+dat <- table(ceiling_a, data_analysis$y)
+events <- dat[,2]
+denominator <- dat[,1]
+dat <- cbind(events, denominator, events/(events + denominator))
+dat
+```
+
+## Some interesting cases
+
+```{r, echo=F, message=F}
+dt <- as.data.table(data)
+```
+
+<details>
+  <summary>Year/Month of school shootings</summary>
+```{r}
+Date <- as.Date(dt[binary_shooting_incident == 1, Date])
+hist(year(Date))
+hist(month(Date), breaks = 12)
+sum(is.na(Date))
+```
+</details>
+
+<details>
+  <summary>Time of school shootings</summary>
+```{r}
+time <- dt[!Time_Period %in% c("", "null"), Time_Period]
+length(time)
+table(time)
+```
+</details>
+
+<details>
+  <summary>Shooter Ages</summary>
+```{r}
+# incidents where exact shooter age is known
+shooter_age_integer <- dt[binary_shooting_incident == 1 & !shooter_age %in% c("Adult", "Child", "Minor", "Teen", "null"), .(count_school_shootings, Date, shooter_age = as.integer(shooter_age), Narrative, Summary, Situation, Targets)]
+shooter_age_integer <- shooter_age_integer[!is.na(shooter_age)]
+nrow(shooter_age_integer)
+summary(shooter_age_integer$shooter_age)
+hist(shooter_age_integer$shooter_age)
+
+# incidents where shooter age is categorized (exact age unknown)
+shooter_age_categorical <- dt[binary_shooting_incident == 1 & shooter_age %in% c("Adult", "Child", "Minor", "Teen"), shooter_age]
+table(shooter_age_categorical)
+```
+</details>
+
+```{r}
+# extreme ages
+shooter_age_integer[shooter_age < 10]
+shooter_age_integer[shooter_age > 70]
+```
+
+<details>
+  <summary>School level of school shootings</summary>
+```{r}
+school_level <- dt[!School_Level %in% c("", "null", "Unknown"), School_Level]
+length(school_level)
+table(school_level)
+```
+</details>
+
+
+Accidental school shootings:
+```{r}
+accidents <- dt[binary_shooting_incident == 1 & str_detect(Situation, "Accident"),
+                       .(count_school_shootings, Date, Preplanned, Narrative, Situation, Targets)]
+nrow(accidents)
+accidents[1:10,]
+```
+
+Shootings off school property:
+```{r}
+off_property <- as.data.table(data)[binary_shooting_incident == 1 & Location_Type == "Off School Property",
+                             .(count_school_shootings, Date, Location, Location_Type, Narrative, Summary, Situation)]
+nrow(off_property)
+off_property[1:10, ]
+```
+
+
+# Naive/Preliminary Data Analysis
+
+Run a logistic regression to explore the associations between the treatment and the outcome controlling for all the confounders.
+
+```{r naive-logistic, message=FALSE}
+# Logistic Regression (unrestricted a, 57793 observations)
+logistic_model <- glm(y ~ a + x, 
+                      data = data_analysis, 
+                      family = "binomial")
+summary(logistic_model)
+```
+
+Run a negative binomial regression to explore the associations between the treatment and the outcome controlling for all the confounders.
+
+```{r naive-neg-bin, message=FALSE}
+# Negative Binomial
+negative_binomial <- glm.nb(y ~ a + x, data = data_analysis)
+summary(negative_binomial)
+
+# Zero Inflated Negative Binomial
+zinb <- zeroinfl(y ~ a | a ,
+                 dist = "negbin", data = data_analysis)
+summary(zinb)
+```
+
+
+# Causal Analysis with Generalized Propensity Score (GPS) matching
+
+For each analysis we run, we will output (i) the covariate balance plot, (ii) the results of a logistic regression model on the GPS-matched "pseudo-population", and (iii) the results of a nonparametric model on the GPS-matched data, which uses a local polynomial kernel regression.
+
+
+## Main Analysis 
+
+For our main causal analysis, we use GPS matching to re-balance our data and guarantee a fair comparison between treated and control units. In particular, to guarantee the highest similarity between treated and control units, we implement a trimming procedure for the GPS at the 5th/95th percentiles and the exposure at the 95th percentile. Indeed, for units below/above the 5th/95th GPS percentiles and with exposure above the 95th percent, it would be very hard to find a "twin" observation for them to be compared to.
+
+```{r set-seed}
+set.seed(2021)
+```
+
+```{r trim-exposure, message=FALSE}
+data_analysis_trim_exposure <- data_analysis[which(a < quantile(a, 0.95)),]
+```
+
+Naive/basic logistic regression on the 95th-percentile-trimmed exposure.
+
+```{r naive-trim-exposure, message=FALSE}
+data_analysis_trim_exposure$x <- data_analysis_trim_exposure[, all_confounder_names]
+data_analysis_trim_exposure$x <- t(apply(data_analysis_trim_exposure$x, 1, unlist))
+logistic_model <- glm(y ~ a + x, 
+                      data = data_analysis_trim_exposure, 
+                      family = "binomial")
+summary(logistic_model)
+```
+
+Matching on the generalized propensity score analysis.
+
+```{r match-main-analysis, message=FALSE}
+matched_pop_trim <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names])
+make_matched_correlation_plot(matched_pop_trim, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_trim)
+get_matched_semiparametric_results(matched_pop_trim)
+get_matched_nonparametric_results(matched_pop_trim)
+```
+
+Weighting on the generalized propensity score analysis.
+
+```{r weight-main-analysis, message=FALSE}
+gps_pop_trim <- get_gps(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names])
+get_matched_weighting_results(gps_pop_trim)
+```
+
+# Robustness Checks
+
+## More Lenient Trimming and No Exposure Trimming, Matching and Weighting
+<!-- Previous Title: More Lenient Trimming, One-Sided Trimming, and No Exposure Trimming -->
+
+Our first robustness check is to trim the GPS tails at the 1st/99th percentiles of GPS (and maintain the trimming of the exposure at the 95th percentile).
+
+```{r match-trim-99, message=FALSE}
+matched_pop_trim_gps99 <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], c(0.01, 0.99))
+make_matched_correlation_plot(matched_pop_trim_gps99, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_trim_gps99)
+get_matched_nonparametric_results(matched_pop_trim_gps99)
+```
+
+Weighting on the generalized propensity score analysis.
+
+```{r weight-trim-99, message=FALSE}
+gps_pop_trim_gps99 <- get_gps(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], c(0.01, 0.99))
+get_matched_weighting_results(gps_pop_trim_gps99)
+```
+
+Next, we trim the GPS at the 5th/95th percentiles (as in the main analysis) but do not trim the exposure.
+
+```{r match-exposure-untrimmed, message=FALSE}
+matched_pop_exposure_untrimmed <- get_matched_pseudo_pop(y, a, x)
+make_matched_correlation_plot(matched_pop_exposure_untrimmed, a, x, all_confounder_names)
+get_matched_logistic_results(matched_pop_exposure_untrimmed)
+get_matched_nonparametric_results(matched_pop_exposure_untrimmed)
+```
+
+Weighting on the generalized propensity score analysis.
+
+```{r weight-exposure-untrimmed, message=FALSE}
+gps_pop_untrimmed <- get_gps(y,a, x)
+get_matched_weighting_results(gps_pop_trim)
+```
+
+## Different Definition of the Treatment (Ceiling)
+
+Now, we define the treatment variable as the ceiling of a. In this way, the group all the treated units within a 1, 2, 3, 4, .. km average distance between school and gun stores.
+
+Observe that the results are quite different from the main analysis -- nor is covariate balance achieved.
+
+```{r ceiling-untrimmed, message=FALSE}
+data_analysis_within_distance <- cbind(y, ceiling_a, as.data.frame(x))
+
+matched_pop_within_distance <- get_matched_pseudo_pop(y, ceiling_a, x)
+make_matched_correlation_plot(matched_pop_within_distance, ceiling_a, x, all_confounder_names)
+get_matched_logistic_results(matched_pop_within_distance)
+get_matched_nonparametric_results(matched_pop_within_distance)
+```
+
+With 95th-percentile exposure trimming:
+
+```{r ceiling-trimmed, message=FALSE}
+data_analysis_within_distance_trim_exposure <- data_analysis_within_distance[which(a < quantile(a, 0.95)),]
+
+matched_pop_within_distance <- get_matched_pseudo_pop(y, ceiling_a, x)
+make_matched_correlation_plot(matched_pop_within_distance, ceiling_a, x, all_confounder_names)
+get_matched_logistic_results(matched_pop_within_distance)
+get_matched_nonparametric_results(matched_pop_within_distance)
+```
+
+## Discretizing the Treatment Variable
+
+We again trim the GPS at the 5th/95th percentiles but discretize treatment into its quartiles. Code treatment levels as 1, 2, 3, 4.
+
+```{r discretize-treatment-untrimmed, message=FALSE}
+data_discretized <- data_analysis
+data_discretized$a <- ntile(data_discretized$a, 4)  
+
+matched_pop_discretized_treatment <- get_matched_pseudo_pop(y, data_discretized$a, x)
+make_matched_correlation_plot(matched_pop_discretized_treatment, data_discretized$a, x, all_confounder_names)
+get_matched_logistic_results(matched_pop_discretized_treatment)
+```
+
+We repeat the same analysis on the trimmed exposure data.
+
+```{rdiscretize-treatment-trimmed, message=FALSE}
+data_discretized_trim <- data_analysis_trim_exposure
+data_discretized_trim$a <- ntile(data_discretized_trim$a, 4)  
+
+matched_pop_discretized_treatment <- get_matched_pseudo_pop(data_discretized_trim$y, data_discretized_trim$a, data_discretized_trim[, all_confounder_names])
+make_matched_correlation_plot(matched_pop_discretized_treatment, data_discretized_trim$a, x, all_confounder_names)
+get_matched_logistic_results(matched_pop_discretized_treatment)
+```
+
+## Excluding 2021 Total Crime Index
+
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding `total_crime_2021` as a confounder.
+
+```{r exclude-crime, message=FALSE}
+confounders_without_crime2021 <- all_confounder_names[all_confounder_names != "total_crime_2021"]
+
+matched_pop_without_crime2021 <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_crime2021])
+make_matched_correlation_plot(matched_pop_without_crime2021, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_crime2021], confounders_without_crime2021)
+get_matched_logistic_results(matched_pop_without_crime2021)
+get_matched_nonparametric_results(matched_pop_without_crime2021)
+```
+
+## Excluding Firearm Stores Density
+
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding `dealers_per_sq_meter` as a confounder.
+
+Observe that the results are quite different from the main analysis.
+
+```{r exclude-dealer-density, message=FALSE}
+confounders_without_dealers <- all_confounder_names[all_confounder_names != "dealers_per_sq_meter"]
+
+matched_pop_without_dealers <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_dealers])
+make_matched_correlation_plot(matched_pop_without_dealers, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_dealers], confounders_without_dealers)
+get_matched_logistic_results(matched_pop_without_dealers)
+get_matched_nonparametric_results(matched_pop_without_dealers)
+```
+
+## Excluding Race Confounders
+
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding all 5 race confounders, which are measured as Census-tract-level proportions.
+
+```{r exclude-race, message=FALSE}
+race_confounders <- c("prop_white_only", "prop_black_only", "prop_asian_only", "prop_multiracial", "prop_hispanic_latino")
+confounders_without_race <- all_confounder_names[!all_confounder_names %in% race_confounders]
+
+matched_pop_without_race <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_race])
+make_matched_correlation_plot(matched_pop_without_race, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, confounders_without_race], confounders_without_race)
+get_matched_logistic_results(matched_pop_without_race)
+get_matched_nonparametric_results(matched_pop_without_race)
+```
+
+
+## Excluding Small Census Tracts
+
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding Census tracts with total population or daytime population less than 5 (13 tracts).
+
+Observe that the results are quite different from the main analysis.
+
+```{r exclude-below-5, message=FALSE}
+data_exclude_small_tracts <- data_analysis[data_analysis$total_population_2020 >= 5 & data_analysis$daytime_pop_2021 >= 5, ]
+data_exclude_small_tracts <- data_exclude_small_tracts[which(data_exclude_small_tracts$a < quantile(data_exclude_small_tracts$a, 0.95)),] # trim exposure at 95th percentile
+
+matched_exclude_small_tracts <- get_matched_pseudo_pop(data_exclude_small_tracts$y, data_exclude_small_tracts$a, data_exclude_small_tracts[, all_confounder_names])
+make_matched_correlation_plot(matched_exclude_small_tracts, data_exclude_small_tracts$a, data_exclude_small_tracts[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_exclude_small_tracts)
+# get_matched_nonparametric_results(matched_exclude_small_tracts)
+```
+
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but excluding Census tracts with total population or daytime population less than 10 (25 tracts).
+
+Observe that the results are quite different from the main analysis.
+
+```{r exclude-below-10, message=FALSE}
+data_exclude_small_tracts <- data_analysis[data_analysis$total_population_2020 >= 10 & data_analysis$daytime_pop_2021 >= 10, ]
+data_exclude_small_tracts <- data_exclude_small_tracts[which(data_exclude_small_tracts$a < quantile(data_exclude_small_tracts$a, 0.95)),] # trim exposure at 95th percentile
+
+matched_exclude_small_tracts <- get_matched_pseudo_pop(data_exclude_small_tracts$y, data_exclude_small_tracts$a, data_exclude_small_tracts[, all_confounder_names])
+make_matched_correlation_plot(matched_exclude_small_tracts, data_exclude_small_tracts$a, data_exclude_small_tracts[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_exclude_small_tracts)
+# get_matched_nonparametric_results(matched_exclude_small_tracts)
+```
+
+## Including `mean_grocery_km` and `mean_pharmacy_km` as confounders AND winsorizing `counter`
+
+<details>
+  <summary>Nearest gun dealer vs nearest grocery store (with correlation coefficient).</summary>
+    ![](/Users/s012852/Documents/figures/total_km_vs_grocery_km.png)
+</details>
+
+<details>
+  <summary>Nearest gun dealer vs nearest pharmacy (with correlation coefficient).</summary>
+    ![](/Users/s012852/Documents/figures/total_km_vs_pharmacy_km.png)
+</details>
+
+<details>
+  <summary>Nearest grocery store vs nearest pharmacy (with correlation coefficient).</summary>
+    ![](/Users/s012852/Documents/figures/grocery_km_vs_pharmacy_km.png)
+</details>
+
+We'll also run a sensitivity analysis winsorizing how many times any observation is matched, at the 99th and 95th percentiles.
+
+```{r all-distances-winsorized, message=FALSE}
+# Add mean_grocery_km and mean_pharmacy_km to data set
+confounders_include_grocery_pharmacy <- c(all_confounder_names, "mean_grocery_km", "mean_pharmacy_km")
+x_include_grocery_pharmacy <- data[, confounders_include_grocery_pharmacy]
+x_include_grocery_pharmacy <- t(apply(x_include_grocery_pharmacy, 1, unlist))
+data_include_grocery_pharmacy <- cbind(y, a, as.data.frame(x_include_grocery_pharmacy))
+
+# Trim exposure at 95th percentile
+data_include_grocery_pharmacy_trimmed <- data_include_grocery_pharmacy[which(a < quantile(a, 0.95)),]
+
+# Exclude NA's
+data_include_grocery_pharmacy_trimmed <- na.omit(data_include_grocery_pharmacy_trimmed)
+
+# GPS-matching causal inference
+matched_include_grocery_pharmacy_trimmed <- get_matched_pseudo_pop(data_include_grocery_pharmacy_trimmed$y, data_include_grocery_pharmacy_trimmed$a, data_include_grocery_pharmacy_trimmed[, confounders_include_grocery_pharmacy])
+
+# copy pseudopopulation and make versions that are winsorized at 99th and 95th percentiles
+matched_include_grocery_pharmacy_trimmed_wins99 <- matched_include_grocery_pharmacy_trimmed
+matched_include_grocery_pharmacy_trimmed_wins99$pseudo_pop$counter <- winsorize_counter_onesided(matched_include_grocery_pharmacy_trimmed_wins99$pseudo_pop$counter, 0.99)
+matched_include_grocery_pharmacy_trimmed_wins95 <- matched_include_grocery_pharmacy_trimmed
+matched_include_grocery_pharmacy_trimmed_wins95$pseudo_pop$counter <- winsorize_counter_onesided(matched_include_grocery_pharmacy_trimmed_wins95$pseudo_pop$counter, 0.95)
+
+# Continue with causal analysis
+make_matched_correlation_plot(matched_include_grocery_pharmacy_trimmed, data_include_grocery_pharmacy_trimmed$a, data_include_grocery_pharmacy_trimmed[, confounders_include_grocery_pharmacy], confounders_include_grocery_pharmacy)
+get_matched_logistic_results(matched_include_grocery_pharmacy_trimmed)
+get_matched_nonparametric_results(matched_include_grocery_pharmacy_trimmed)
+
+# now, for 99th-percentile winsorized matches
+make_matched_correlation_plot(matched_include_grocery_pharmacy_trimmed_wins99, data_include_grocery_pharmacy_trimmed$a, data_include_grocery_pharmacy_trimmed[, confounders_include_grocery_pharmacy], confounders_include_grocery_pharmacy)
+get_matched_logistic_results(matched_include_grocery_pharmacy_trimmed_wins99)
+get_matched_nonparametric_results(matched_include_grocery_pharmacy_trimmed_wins99)
+
+# now, for 95th-percentile winsorized matches
+make_matched_correlation_plot(matched_include_grocery_pharmacy_trimmed_wins95, data_include_grocery_pharmacy_trimmed$a, data_include_grocery_pharmacy_trimmed[, confounders_include_grocery_pharmacy], confounders_include_grocery_pharmacy)
+get_matched_logistic_results(matched_include_grocery_pharmacy_trimmed_wins95)
+get_matched_nonparametric_results(matched_include_grocery_pharmacy_trimmed_wins95)
+```
+
+Now, the same three analyses without trimming exposure at the 95th percentile.
+
+```{r all-distances-no-trimming}
+# Exclude NA's
+data_include_grocery_pharmacy <- na.omit(data_include_grocery_pharmacy)
+
+# GPS-matching causal inference
+matched_include_grocery_pharmacy <- get_matched_pseudo_pop(data_include_grocery_pharmacy$y, data_include_grocery_pharmacy$a, data_include_grocery_pharmacy[, confounders_include_grocery_pharmacy])
+
+# copy pseudopopulation and make versions that are winsorized at 99th and 95th percentiles
+matched_include_grocery_pharmacy_wins99 <- matched_include_grocery_pharmacy
+matched_include_grocery_pharmacy_wins99$pseudo_pop$counter <- winsorize_counter_onesided(matched_include_grocery_pharmacy_wins99$pseudo_pop$counter, 0.99)
+matched_include_grocery_pharmacy_wins95 <- matched_include_grocery_pharmacy
+matched_include_grocery_pharmacy_wins95$pseudo_pop$counter <- winsorize_counter_onesided(matched_include_grocery_pharmacy_wins95$pseudo_pop$counter, 0.95)
+
+# Continue with causal analysis
+make_matched_correlation_plot(matched_include_grocery_pharmacy, data_include_grocery_pharmacy_trimmed$a, data_include_grocery_pharmacy_trimmed[, confounders_include_grocery_pharmacy], confounders_include_grocery_pharmacy)
+get_matched_logistic_results(matched_include_grocery_pharmacy)
+get_matched_nonparametric_results(matched_include_grocery_pharmacy)
+
+# now, for 99th-percentile winsorized matches
+make_matched_correlation_plot(matched_include_grocery_pharmacy_wins99, data_include_grocery_pharmacy_trimmed$a, data_include_grocery_pharmacy_trimmed[, confounders_include_grocery_pharmacy], confounders_include_grocery_pharmacy)
+get_matched_logistic_results(matched_include_grocery_pharmacy_wins99)
+get_matched_nonparametric_results(matched_include_grocery_pharmacy_wins99)
+
+# now, for 95th-percentile winsorized matches
+make_matched_correlation_plot(matched_include_grocery_pharmacy_wins95, data_include_grocery_pharmacy_trimmed$a, data_include_grocery_pharmacy_trimmed[, confounders_include_grocery_pharmacy], confounders_include_grocery_pharmacy)
+get_matched_logistic_results(matched_include_grocery_pharmacy_wins95)
+get_matched_nonparametric_results(matched_include_grocery_pharmacy_wins95)
+```
+
+To Do: repeat the previous six analyses using GPS weighting instead of GPS matching...
+
+## Using `mean_grocery_km` as the treatment variable
+
+```{r grocery-treatment}
+## Generate Analysis Data
+data_analysis_grocery <- cbind(y, a = data$mean_grocery_km, as.data.frame(x), mean_total_km = data$mean_total_km, mean_pharmacy_km = data$mean_pharmacy_km)
+data_analysis_grocery <- na.omit(data_analysis_grocery)
+
+logistic_model <- glm(y ~ ., 
+                      data = data_analysis_grocery, 
+                      family = "binomial")
+summary(logistic_model)
+
+
+data_analysis_trim_grocery <- data_analysis_grocery[which(data_analysis_grocery$a < quantile(data_analysis_grocery$a, 0.95)),]
+
+
+data_analysis_trim_grocery$x <- data_analysis_trim_grocery[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")]
+data_analysis_trim_grocery$x <- t(apply(data_analysis_trim_grocery$x, 1, unlist))
+logistic_model <- glm(y ~ a + x, 
+                      data = data_analysis_trim_grocery, 
+                      family = "binomial")
+summary(logistic_model)
+
+matched_pop_grocery_trimmed <- get_matched_pseudo_pop(data_analysis_grocery$y, data_analysis_grocery$a, data_analysis_grocery[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")])
+make_matched_correlation_plot(matched_pop_grocery_trimmed, data_analysis_grocery$a, data_analysis_grocery[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")], c(all_confounder_names, "mean_total_km", "mean_pharmacy_km"))
+get_matched_logistic_results(matched_pop_grocery_trimmed)
+get_matched_semiparametric_results(matched_pop_grocery_trimmed)
+get_matched_nonparametric_results(matched_pop_grocery_trimmed)
+```
+
+We'll also run a sensitivity analysis winsorizing how many times any observation is matched, at the 99th and 95th percentiles.
+
+```{r grocery-treatment-winsorized}
+# copy pseudopopulation and make versions that are winsorized at 99th and 95th percentiles
+matched_pop_grocery_trimmed_wins99 <- matched_pop_grocery_trimmed
+matched_pop_grocery_trimmed_wins99$pseudo_pop$counter <- winsorize_counter_onesided(matched_pop_grocery_trimmed_wins99$pseudo_pop$counter, 0.99)
+matched_pop_grocery_trimmed_wins95 <- matched_pop_grocery_trimmed
+matched_pop_grocery_trimmed_wins95$pseudo_pop$counter <- winsorize_counter_onesided(matched_pop_grocery_trimmed_wins95$pseudo_pop$counter, 0.95)
+
+# causal analysis for 99th-percentile winsorized matches
+make_matched_correlation_plot(matched_pop_grocery_trimmed_wins99, data_analysis_trim_grocery$a, data_analysis_trim_grocery[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")], c(all_confounder_names, "mean_total_km", "mean_pharmacy_km"))
+get_matched_logistic_results(matched_pop_grocery_trimmed_wins99)
+get_matched_nonparametric_results(matched_pop_grocery_trimmed_wins99)
+
+# causal analysis for 95th-percentile winsorized matches
+make_matched_correlation_plot(matched_pop_grocery_trimmed_wins95, data_analysis_trim_grocery$a, data_analysis_trim_grocery[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")], c(all_confounder_names, "mean_total_km", "mean_pharmacy_km"))
+get_matched_logistic_results(matched_pop_grocery_trimmed_wins95)
+get_matched_nonparametric_results(matched_pop_grocery_trimmed_wins95)
+```
+
+## Using `mean_pharmacy_km` as the treatment variable
+
+```{r pharmacy-treatment}
+## Generate Analysis Data
+data_analysis_pharmacy <- cbind(y, a = data$mean_pharmacy_km, as.data.frame(x), mean_total_km = data$mean_total_km, mean_grocery_km = data$mean_grocery_km)
+data_analysis_pharmacy = na.omit(data_analysis_pharmacy)
+
+logistic_model <- glm(y ~ ., 
+                      data = data_analysis_pharmacy, 
+                      family = "binomial")
+summary(logistic_model)
+
+
+data_analysis_trim_pharmacy <- data_analysis_pharmacy[which(data_analysis_pharmacy$a < quantile(data_analysis_pharmacy$a, 0.95)),]
+
+
+data_analysis_trim_pharmacy$x <- data_analysis_trim_pharmacy[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")]
+data_analysis_trim_pharmacy$x <- t(apply(data_analysis_trim_pharmacy$x, 1, unlist))
+logistic_model <- glm(y ~ a + x, 
+                      data = data_analysis_trim_pharmacy, 
+                      family = "binomial")
+summary(logistic_model)
+
+matched_pop_trim_pharmacy <- get_matched_pseudo_pop(data_analysis_trim_pharmacy$y, data_analysis_trim_pharmacy$a, data_analysis_trim_pharmacy[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")])
+make_matched_correlation_plot(matched_pop_trim_pharmacy, data_analysis_trim_pharmacy$a, data_analysis_trim_pharmacy[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")], c(all_confounder_names, "mean_total_km", "mean_grocery_km"))
+get_matched_logistic_results(matched_pop_trim_pharmacy)
+get_matched_semiparametric_results(matched_pop_trim_pharmacy)
+get_matched_nonparametric_results(matched_pop_trim_pharmacy)
+```
+
+We'll also run a sensitivity analysis winsorizing how many times any observation is matched, at the 99th and 95th percentiles.
+
+```{r pharmacy-treatment-winsorized}
+# copy pseudopopulation and make versions that are winsorized at 99th and 95th percentiles
+matched_pop_pharmacy_trimmed_wins99 <- matched_pop_trim_pharmacy
+matched_pop_pharmacy_trimmed_wins99$pseudo_pop$counter <- winsorize_counter_onesided(matched_pop_pharmacy_trimmed_wins99$pseudo_pop$counter, 0.99)
+matched_pop_pharmacy_trimmed_wins95 <- matched_pop_trim_pharmacy
+matched_pop_pharmacy_trimmed_wins95$pseudo_pop$counter <- winsorize_counter_onesided(matched_pop_pharmacy_trimmed_wins95$pseudo_pop$counter, 0.95)
+
+# causal analysis for 99th-percentile winsorized matches
+make_matched_correlation_plot(matched_pop_pharmacy_trimmed_wins99, data_analysis_trim_grocery$a, data_analysis_trim_grocery[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")], c(all_confounder_names, "mean_total_km", "mean_grocery_km"))
+get_matched_logistic_results(matched_pop_pharmacy_trimmed_wins99)
+get_matched_nonparametric_results(matched_pop_pharmacy_trimmed_wins99)
+
+# causal analysis for 95th-percentile winsorized matches
+make_matched_correlation_plot(matched_pop_pharmacy_trimmed_wins95, data_analysis_trim_grocery$a, data_analysis_trim_grocery[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")], c(all_confounder_names, "mean_total_km", "mean_grocery_km"))
+get_matched_logistic_results(matched_pop_pharmacy_trimmed_wins95)
+get_matched_nonparametric_results(matched_pop_pharmacy_trimmed_wins95)
+```
+
+## Using DISCRETIZED `mean_grocery_km` as the treatment variable
+
+```{r grocery-treatment}
+## Generate Analysis Data
+grocery_quartiled <- quartile_var(data$mean_grocery_km)
+
+data_analysis_grocery_quartiled <- cbind(y, a = grocery_quartiled, as.data.frame(x), mean_total_km = data$mean_total_km, mean_pharmacy_km = data$mean_pharmacy_km)
+data_analysis_grocery_quartiled <- na.omit(data_analysis_grocery_quartiled)
+
+logistic_model <- glm(y ~ ., 
+                      data = data_analysis_grocery_quartiled, 
+                      family = "binomial")
+summary(logistic_model)
+
+
+data_analysis_trim_grocery_quartiled <- data_analysis_grocery_quartiled[which(data_analysis_grocery_quartiled$a < quantile(data_analysis_grocery_quartiled$a, 0.95)),]
+
+
+data_analysis_trim_grocery_quartiled$x <- data_analysis_trim_grocery_quartiled[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")]
+data_analysis_trim_grocery_quartiled$x <- t(apply(data_analysis_trim_grocery_quartiled$x, 1, unlist))
+logistic_model <- glm(y ~ a + x, 
+                      data = data_analysis_trim_grocery_quartiled, 
+                      family = "binomial")
+summary(logistic_model)
+
+matched_pop_grocery_quartiled_trimmed <- get_matched_pseudo_pop(data_analysis_grocery_quartiled$y, data_analysis_grocery_quartiled$a, data_analysis_grocery_quartiled[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")])
+make_matched_correlation_plot(matched_pop_grocery_quartiled_trimmed, data_analysis_grocery_quartiled$a, data_analysis_grocery_quartiled[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")], c(all_confounder_names, "mean_total_km", "mean_pharmacy_km"))
+get_matched_logistic_results(matched_pop_grocery_quartiled_trimmed)
+get_matched_semiparametric_results(matched_pop_grocery_quartiled_trimmed)
+get_matched_nonparametric_results(matched_pop_grocery_quartiled_trimmed)
+```
+
+We'll also run a sensitivity analysis winsorizing how many times any observation is matched, at the 99th and 95th percentiles.
+
+```{r grocery-treatment-winsorized}
+# copy pseudopopulation and make versions that are winsorized at 99th and 95th percentiles
+matched_pop_grocery_quartiled_trimmed_wins99 <- matched_pop_grocery_quartiled_trimmed
+matched_pop_grocery_quartiled_trimmed_wins99$pseudo_pop$counter <- winsorize_counter_onesided(matched_pop_grocery_quartiled_trimmed_wins99$pseudo_pop$counter, 0.99)
+matched_pop_grocery_quartiled_trimmed_wins95 <- matched_pop_grocery_quartiled_trimmed
+matched_pop_grocery_quartiled_trimmed_wins95$pseudo_pop$counter <- winsorize_counter_onesided(matched_pop_grocery_quartiled_trimmed_wins95$pseudo_pop$counter, 0.95)
+
+# causal analysis for 99th-percentile winsorized matches
+make_matched_correlation_plot(matched_pop_grocery_quartiled_trimmed_wins99, data_analysis_trim_grocery_quartiled$a, data_analysis_trim_grocery_quartiled[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")], c(all_confounder_names, "mean_total_km", "mean_pharmacy_km"))
+get_matched_logistic_results(matched_pop_grocery_quartiled_trimmed_wins99)
+get_matched_nonparametric_results(matched_pop_grocery_quartiled_trimmed_wins99)
+
+# causal analysis for 95th-percentile winsorized matches
+make_matched_correlation_plot(matched_pop_grocery_quartiled_trimmed_wins95, data_analysis_trim_grocery_quartiled$a, data_analysis_trim_grocery_quartiled[, c(all_confounder_names, "mean_total_km", "mean_pharmacy_km")], c(all_confounder_names, "mean_total_km", "mean_pharmacy_km"))
+get_matched_logistic_results(matched_pop_grocery_quartiled_trimmed_wins95)
+get_matched_nonparametric_results(matched_pop_grocery_quartiled_trimmed_wins95)
+```
+
+## Using DISCRETIZED `mean_pharmacy_km` as the treatment variable
+
+```{r pharmacy-treatment}
+## Generate Analysis Data
+pharmacy_quartiled <- quartile_var(data$mean_pharmacy_km)
+
+data_analysis_pharmacy_quartiled <- cbind(y, a = pharmacy_quartiled, as.data.frame(x), mean_total_km = data$mean_total_km, mean_grocery_km = data$mean_grocery_km)
+data_analysis_pharmacy_quartiled = na.omit(data_analysis_pharmacy_quartiled)
+
+logistic_model <- glm(y ~ ., 
+                      data = data_analysis_pharmacy_quartiled, 
+                      family = "binomial")
+summary(logistic_model)
+
+
+data_analysis_trim_pharmacy_quartiled <- data_analysis_pharmacy_quartiled[which(data_analysis_pharmacy_quartiled$a < quantile(data_analysis_pharmacy_quartiled$a, 0.95)),]
+
+
+data_analysis_trim_pharmacy_quartiled$x <- data_analysis_trim_pharmacy_quartiled[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")]
+data_analysis_trim_pharmacy_quartiled$x <- t(apply(data_analysis_trim_pharmacy_quartiled$x, 1, unlist))
+logistic_model <- glm(y ~ a + x, 
+                      data = data_analysis_trim_pharmacy_quartiled, 
+                      family = "binomial")
+summary(logistic_model)
+
+matched_pop_trim_pharmacy_quartiled <- get_matched_pseudo_pop(data_analysis_trim_pharmacy_quartiled$y, data_analysis_trim_pharmacy_quartiled$a, data_analysis_trim_pharmacy_quartiled[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")])
+make_matched_correlation_plot(matched_pop_trim_pharmacy_quartiled, data_analysis_trim_pharmacy_quartiled$a, data_analysis_trim_pharmacy_quartiled[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")], c(all_confounder_names, "mean_total_km", "mean_grocery_km"))
+get_matched_logistic_results(matched_pop_trim_pharmacy_quartiled)
+get_matched_semiparametric_results(matched_pop_trim_pharmacy_quartiled)
+get_matched_nonparametric_results(matched_pop_trim_pharmacy_quartiled)
+```
+
+We'll also run a sensitivity analysis winsorizing how many times any observation is matched, at the 99th and 95th percentiles.
+
+```{r pharmacy-treatment-winsorized}
+# copy pseudopopulation and make versions that are winsorized at 99th and 95th percentiles
+matched_pop_pharmacy_quartiled_trimmed_wins99 <- matched_pop_trim_pharmacy_quartiled
+matched_pop_pharmacy_quartiled_trimmed_wins99$pseudo_pop$counter <- winsorize_counter_onesided(matched_pop_pharmacy_quartiled_trimmed_wins99$pseudo_pop$counter, 0.99)
+matched_pop_pharmacy_quartiled_trimmed_wins95 <- matched_pop_trim_pharmacy_quartiled
+matched_pop_pharmacy_quartiled_trimmed_wins95$pseudo_pop$counter <- winsorize_counter_onesided(matched_pop_pharmacy_quartiled_trimmed_wins95$pseudo_pop$counter, 0.95)
+
+# causal analysis for 99th-percentile winsorized matches
+make_matched_correlation_plot(matched_pop_pharmacy_quartiled_trimmed_wins99, data_analysis_trim_grocery_quartiled$a, data_analysis_trim_grocery_quartiled[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")], c(all_confounder_names, "mean_total_km", "mean_grocery_km"))
+get_matched_logistic_results(matched_pop_pharmacy_quartiled_trimmed_wins99)
+get_matched_nonparametric_results(matched_pop_pharmacy_quartiled_trimmed_wins99)
+
+# causal analysis for 95th-percentile winsorized matches
+make_matched_correlation_plot(matched_pop_pharmacy_quartiled_trimmed_wins95, data_analysis_trim_grocery_quartiled$a, data_analysis_trim_grocery_quartiled[, c(all_confounder_names, "mean_total_km", "mean_grocery_km")], c(all_confounder_names, "mean_total_km", "mean_grocery_km"))
+get_matched_logistic_results(matched_pop_pharmacy_quartiled_trimmed_wins95)
+get_matched_nonparametric_results(matched_pop_pharmacy_quartiled_trimmed_wins95)
+```
+## Examining Census tracts that are matched more often by GPS-matching algorithm
+
+```{r explore-matches}
+n_matched_tracts <- length(matched_pop_trim$pseudo_pop$counter)
+cat("Number of distinct Census tracts in pseudo-population in main analysis:", n_matched_tracts)
+total_matches <- sum(matched_pop_trim$pseudo_pop$counter)
+cat("Total number of matches:", total_matches)
+top_ten_matches <- tail(sort(matched_pop_trim$pseudo_pop$counter), 10)
+cat("10 highest numbers of times one Census tract is matched:", top_ten_matches)
+cat("10 highest percentages of times one Census tract is matched:", top_ten_matches/total_matches)
+boxplot(matched_pop_trim$pseudo_pop$counter)
+summary(matched_pop_trim$pseudo_pop$counter)
+```
+
+```{r, eval=F, include=F}
+### THE FOLLOWING IS OLD CODE; IGNORE IT (DELETE IN NEXT VERSION OF THIS RMD)
+
+top_ten_matched_indices <- which(matched_pop_trim$pseudo_pop$counter %in% top_ten)
+top_ten_original_indices <- matched_pop_trim$pseudo_pop$row_index[top_ten_matched_indices]
+data_analysis_trim_without_top_ten_matches <- data_analysis_trim_exposure[-top_ten_original_indices, ]
+
+matched_without_top_ten_matches <- get_matched_pseudo_pop(data_analysis_trim_without_top_ten_matches$y, data_analysis_trim_without_top_ten_matches$a, data_analysis_trim_without_top_ten_matches[, all_confounder_names])
+make_matched_correlation_plot(matched_without_top_ten_matches, data_analysis_trim_without_top_ten_matches$a, data_analysis_trim_without_top_ten_matches[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_without_top_ten_matches)
+get_matched_semiparametric_results(matched_without_top_ten_matches)
+get_matched_nonparametric_results(matched_without_top_ten_matches)
+```
+
+
+## Changing the Seed
+
+We run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile) but using a different seed (2022 instead of 2021).
+
+```{r alternate-seed}
+set.seed(2022)
+```
+
+```{r match-alternate-seed, message=FALSE}
+matched_pop_trim_seed2 <- get_matched_pseudo_pop(data_analysis_trim_exposure$y, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names])
+make_matched_correlation_plot(matched_pop_trim_seed2, data_analysis_trim_exposure$a, data_analysis_trim_exposure[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_trim_seed2)
+get_matched_nonparametric_results(matched_pop_trim_seed2)
+```
+
+# Stratified analysis
+
+We include only Census tracts with gun dealer density [less than or] equal to the median gun dealer density, which is 0. That is, we include only Census tracts that themselves \emph{do not} contain a gun dealer. This leaves 28,485 Census tracts to analyze. Then, we run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile).
+
+```{r below-median}
+data_dealers_below_median <- data_analysis[data_analysis$dealers_per_sq_meter <= 0, ]
+data_dealers_below_median <- data_dealers_below_median[which(data_dealers_below_median$a < quantile(data_dealers_below_median$a, 0.95)),] # after subsetting to below-median-dealer-density, trim exposures at 95th percentile
+nrow(data_dealers_below_median)
+
+matched_pop_dealers_below_median <- get_matched_pseudo_pop(data_dealers_below_median$y, data_dealers_below_median$a, data_dealers_below_median[, all_confounder_names])
+make_matched_correlation_plot(matched_pop_dealers_below_median, data_dealers_below_median$a, data_dealers_below_median[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_dealers_below_median)
+get_matched_nonparametric_results(matched_pop_dealers_below_median)
+```
+
+
+Next, we include only Census tracts with gun dealer density greater than the median gun dealer density, which is 0. That is, we include only Census tracts that themselves \emph{do} contain a gun dealer. This leaves 25,903 Census tracts to analyze. Then, we run the same analysis (trimming the GPS at the 5th/95th percentiles and the exposure at the 95th percentile).
+
+```{r above-median}
+data_dealers_above_median <- data_analysis[data_analysis$dealers_per_sq_meter > 0, ]
+data_dealers_above_median <- data_dealers_above_median[which(data_dealers_above_median$a < quantile(data_dealers_above_median$a, 0.95)),]
+nrow(data_dealers_above_median)
+
+matched_pop_dealers_above_median <- get_matched_pseudo_pop(data_dealers_above_median$y, data_dealers_above_median$a, data_dealers_above_median[, all_confounder_names])
+make_matched_correlation_plot(matched_pop_dealers_above_median, data_dealers_above_median$a, data_dealers_above_median[, all_confounder_names], all_confounder_names)
+get_matched_logistic_results(matched_pop_dealers_above_median)
+get_matched_nonparametric_results(matched_pop_dealers_above_median)
+```
+
+
+# State-level analysis
+
+We conduct the main analysis (trimming GPS at 5th/95th percentiles and trimming exposures at the 95th percentile) for one state at a time. For now, we show the results for California, New York, and Texas.
+
+```{r match-states}
+# Note: In data_analysis data.frame, state_fips are saved as doubles, not characters, so may be one digit instead of two digits with leading zero
+
+# California
+CA_matched_pop <- generate_state_pseudo_pop(6)
+make_state_correlation_plot(6, CA_matched_pop)
+get_matched_logistic_results(CA_matched_pop)
+# get_matched_semiparametric_results(CA_matched_pop)
+get_matched_nonparametric_results(CA_matched_pop)
+
+# New York
+NY_matched_pop <- generate_state_pseudo_pop(36)
+make_state_correlation_plot(36, NY_matched_pop)
+get_matched_logistic_results(NY_matched_pop)
+# get_matched_semiparametric_results(NY_matched_pop)
+get_matched_nonparametric_results(NY_matched_pop)
+
+# Texas
+TX_matched_pop <- generate_state_pseudo_pop(48)
+make_state_correlation_plot(48, TX_matched_pop)
+get_matched_logistic_results(TX_matched_pop)
+# get_matched_semiparametric_results(TX_matched_pop)
+get_matched_nonparametric_results(TX_matched_pop)
+
+
+
+# To Do: for all states; maybe make map; print state name on plots
+
+# all_state_fips <- unique(data_analysis$state_fips)
+# match_pop <- lapply(all_states, generate_state_pseudo_pop) # to do: check if all_states must be a list
+```
+
+# Next Steps
+
+- Finalize which variables to use.
+- More sensitivity analyses.
+- Run the analysis using weighting.
+- Explore other outcomes: weapon type, preplanned, targets (i.e., random vs targeted vs both vs neither), school level (i.e., elementary, middle, high, etc.), number of shots fired, shooter age.
+- Double-check code.
+

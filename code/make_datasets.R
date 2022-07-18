@@ -5,18 +5,35 @@ library(data.table)
 
 dir <- "/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 
-tracts_2020_all_data <- read_excel(paste0(dir, "data/tracts_2020_all_data.xlsx"))
+tracts_2020_all_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/tracts_2020_all_data.xlsx"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
-all_tracts_2020_new_distances <- read_excel(paste0(dir, "data/all_tracts_2020_new_distances.xls"))
+all_tracts_2020_new_distances <- read_excel(paste0(dir, "data/raw_data_to_be_joined/all_tracts_2020_new_distances.xls"))
 all_tracts_2020_new_distances <- as.data.table(all_tracts_2020_new_distances)
+census_divisions_data <- fread(paste0(dir, "data/raw_data_to_be_joined/census_regions_divisions.csv"))
+mental_health_data <- fread(paste0(dir, "data/raw_data_to_be_joined/reworkedMentalHealth.csv"))
 
 codebook <- read_excel(paste0(dir, "data_dictionaries/codebook_all.xlsx"))
 
 
-##### Merge two datasets #####
+##### Merge datasets #####
 
 all_tracts_2020_new_distances[, mean_total_miles := NULL] # mean_total_miles is the same in both datasets up to 10 decimal digits
 tracts_2020_all_data <- merge(tracts_2020_all_data, all_tracts_2020_new_distances, by = "GEOID")
+
+census_divisions_data <- subset(census_divisions_data, select = c("state_fips", "census_division_number"))
+census_divisions_data[, state_fips := ifelse(nchar(state_fips) == 1, paste0("0", state_fips), state_fips)] # add leading 0 if necessary, convert state_fips to character
+tracts_2020_all_data[, state_fips := substr(GEOID, 1, 2)]
+tracts_2020_all_data[, county_fips := substr(GEOID, 1, 5)]
+tracts_2020_all_data <- merge(tracts_2020_all_data, census_divisions_data, by = "state_fips", all.x = T, all.y = F)
+
+mental_health_data <- subset(mental_health_data, select = c("State Code (FIPS)", "County Code (FIPS)", "mental_health_index"))
+setnames(mental_health_data, c("State Code (FIPS)", "County Code (FIPS)", "mental_health_index"), c("state_fips", "county_fips", "mental_health_index"))
+mental_health_data[, state_fips := ifelse(nchar(state_fips) == 1, paste0("0", state_fips), state_fips)] # add leading 0 if necessary, convert state_fips to character
+mental_health_data[, county_fips := ifelse(nchar(county_fips) == 1, paste0("00", county_fips),
+                                           ifelse(nchar(county_fips) == 2, paste0("0", county_fips), county_fips))] # add leading 0s if necessary, convert county_fips to character
+mental_health_data[, county_fips := paste0(state_fips, county_fips)]
+mental_health_data[, state_fips := NULL]
+tracts_2020_all_data <- merge(tracts_2020_all_data, mental_health_data, by = "county_fips", all.x = T, all.y = F)
 
 
 ##### Remove rows #####
@@ -52,8 +69,6 @@ setnames(tracts_2020_subset, old = c("Shape_Area",
 tracts_2020_transformed <- copy(tracts_2020_subset)
 tracts_2020_transformed[, state_fips := substr(GEOID, 1, 2)]
 tracts_2020_transformed[, county_fips := substr(GEOID, 1, 5)]
-tracts_2020_transformed[, state_fips := as.double(state_fips)]
-tracts_2020_transformed[, county_fips := as.double(county_fips)]
 tracts_2020_transformed[, mean_total_km := mean_total_miles * 1.609344]
 tracts_2020_transformed[, mean_grocery_km := mean_distance_grocery_miles * 1.609344]
 tracts_2020_transformed[, mean_pharmacy_km := mean_distance_pharmacy_miles * 1.609344]
@@ -81,7 +96,7 @@ tracts_2020_transformed[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/
 tracts_2020_transformed[, `:=`(housing_units_per_sq_meter = total_housing_units/Tract_Area_sq_meters,
                                prop_institutional_group = institutional_group_pop/total_population_2020, 
                                prop_noninstitutional_group = noninstitutional_group_pop/total_population_2020)]
-tracts_2020_transformed <- tracts_2020_transformed[, `:=`(GEOID = NULL, mean_total_miles = NULL, mean_distance_grocery_miles = NULL, mean_distance_pharmacy_miles = NULL,
+tracts_2020_transformed <- tracts_2020_transformed[, `:=`(mean_total_miles = NULL, mean_distance_grocery_miles = NULL, mean_distance_pharmacy_miles = NULL,
                                                           median_household_inc_2021 = NULL, median_household_inc_15to24_2021 = NULL,
                                                           pct_18plus = NULL, white_only_pct = NULL, black_only_pct = NULL, american_indian_alaskan_native_only_pct = NULL,
                                                           asian_only_pct = NULL, native_hawaiian_pacific_islander_only_pct = NULL, multiracial_pct = NULL,
@@ -93,4 +108,4 @@ tracts_2020_transformed <- tracts_2020_transformed[, `:=`(GEOID = NULL, mean_tot
 
 ##### Save dataset for all Census tracts containing a school #####
 
-fwrite(tracts_2020_transformed, paste0(dir, "Data/all_tracts_2020_subset_vars.csv"))
+fwrite(tracts_2020_transformed, paste0(dir, "data/all_tracts_2020_subset_vars.csv"))

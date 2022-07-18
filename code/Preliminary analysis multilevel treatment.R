@@ -1,74 +1,79 @@
 rm(list=ls())
-setwd("/Users/falco//OneDrive - Harvard University/Research/Schools Vs Firearms")
-source("code/helper_functions.R")
-library(cobalt)
-library(WeightIt)
-library(jtools)
-library(MatchIt)
-library(cobalt)
-
-
 set.seed(2022)
-load_packages(clear_env = T)
 
-#cleaned_data <- read.csv("data/all_tracts_2020_subset_vars.csv", header = TRUE, stringsAsFactors = FALSE)
-#colnames(cleaned_data)
-#dim(cleaned_data)
+setwd("/Users/falco//OneDrive - Harvard University/Research/Schools Vs Firearms")
+# setwd("/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/")
+source("code/make_discretized_datasets.R")
 
-mental_health_data <-  read.csv("data/all_tracts_2020_subset_vars_inc_mental.csv", header = TRUE, stringsAsFactors = FALSE)
+# Get datasets (continuous and discrete versions)
+data_analysis <- get_undiscretized_dataset()
 
-all_confounder_names <- c(all_confounder_names, "mental_health_index")
-data_analysis <- get_analysis_df(mental_health_data, "mean_total_km", all_confounder_names)
+#census_regions <- rep(NA, nrow(data_analysis))
+#census_regions[which(data_analysis$census_division_number == 1 | data_analysis$census_division_number == 2)] <- 1
+#census_regions[which(data_analysis$census_division_number == 3 | data_analysis$census_division_number == 4)] <- 2
+#census_regions[which(data_analysis$census_division_number == 5 | data_analysis$census_division_number == 6 | data_analysis$census_division_number == 7)] <- 3
+#census_regions[which(data_analysis$census_division_number == 8 | data_analysis$census_division_number == 9)] <- 4
+#table(census_regions)
+#data_analysis$census_region <- census_regions
 
-data_analysis <- na.omit(data_analysis) # omit census tracts with no mental health index
+data_discretized_treatment <- discretize_treatment(data_analysis)
+data_discretized <- decilize_quantitative_confounders(data_discretized_treatment)
 
-# Discretize exposure into quartiles
+# Explore continuous exposure distribution
 summary(data_analysis$a)
 quantile(data_analysis$a)
 quantile(data_analysis$a[which(data_analysis$a < quantile(data_analysis$a, 0.95))])
-data_discretized <- copy(data_analysis)
-data_discretized$a <- ntile(data_discretized$a, 4)
 
-data_discretized$census_division <- as.numeric(as.factor(data_discretized$census_division))
-data_discretized$x =  data_discretized[, all_confounder_names]
-data_discretized$x <- t(apply(data_discretized$x, 1, unlist)) 
+# Get discretized confounder matrix
+data_discretized_treatment$x <- data_discretized_treatment[, all_confounder_names]
+data_discretized_treatment$x <- t(apply(data_discretized_treatment$x, 1, unlist)) 
+
+# Initialize data frame tracking weights for every observation
+all_analyses_weights <- data.frame(discretized_treatment = rep(NA, nrow(data_analysis)))
 
 ################################################################################
-## Matching 
+## Matching to Find the Average Treatment Effect on the Control (ATC)
 
-treatments <- levels(as.factor(data_discretized$a)) #Levels of treatment variable
+treatments <- levels(as.factor(data_discretized_treatment$a)) #Levels of treatment variable
 control <- "1" #Name of control level
-data_discretized$match.weights <- 1 #Initialize matching weights
+data_discretized_treatment$match.weights <- 1 #Initialize matching weights
 
 ################################################################################
-## Nearest neighbor matching with replacement
+## Nearest neighbor matching with replacement - continuous confounders
+cov_bal_plots <- list()
+
 set.seed(42)
 for (i in treatments[treatments != control]) {
-  d <- data_discretized[data_discretized$a %in% c(i, control),] #Subset just the control and 1 treatment
+  d <- data_discretized_treatment[data_discretized_treatment$a %in% c(i, control),] #Subset just the control and 1 treatment
   d$treat_i <- as.numeric(d$a != i) #Create new binary treatment variable
   d$x =  d[, all_confounder_names]
   d$x <- t(apply(d$x, 1, unlist)) 
   # m <- matchit(treat_i ~ .  -y -a -match.weights, data = d)
-  m <- matchit(treat_i ~ x, data = d, method = "nearest", exact = c("census_division"), 
-               distance = "logit", replace = TRUE) # , ratio = 10
-  data_discretized[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
+  m <- matchit(treat_i ~ x, data = d, method = "nearest", exact = c("census_division_number"), replace = TRUE) # , ratio = 10
+  data_discretized_treatment[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
+  
+  cov_bal_plots[[i]] <- love.plot(m,
+                          drop.distance = TRUE, 
+                          var.order = "unadjusted",
+                          abs = TRUE,
+                          line = TRUE, 
+                          thresholds = c(m = .1))  +
+    ggtitle(paste("Covariate Balance - Group", i, "vs Group 1"))
 }
-summary(data_discretized$match.weights)
+summary(data_discretized_treatment$match.weights)
+all_analyses_weights$discretized_treatment <- data_discretized_treatment$match.weights # save weights in all_analyses data frame
 
-love.plot(m,
-          drop.distance = TRUE, 
-          var.order = "unadjusted",
-          abs = TRUE,
-          line = TRUE, 
-          thresholds = c(m = .1))
+cov_bal_plots[["2"]]
+cov_bal_plots[["3"]]
+cov_bal_plots[["4"]]
 
 #Check balance using cobalt
-bal.matched <- bal.tab(a ~ x, data = data_discretized, 
+bal.matched <- bal.tab(a ~ x, data = data_discretized_treatment, 
                        weights = "match.weights", method = "matching", 
                        focal = control, which.treat = .all)
 
-bal.unmatched <- bal.tab(a ~ x, data = data_discretized, 
-                         weights = rep(1, nrow(data_discretized)), method = "matching", 
+bal.unmatched <- bal.tab(a ~ x, data = data_discretized_treatment, 
+                         weights = rep(1, nrow(data_discretized_treatment)), method = "matching", 
                          focal = control, which.treat = .all)
 
 cor_val_matched <- abs(bal.matched$Balance$Corr.Adj)
@@ -92,31 +97,13 @@ p
 
 #Estimate treatment effects
 summary(glm(y ~ relevel(as.factor(a), control),
-            data = data_discretized[data_discretized$match.weights > 0,], 
+            data = data_discretized_treatment[data_discretized_treatment$match.weights > 0,], 
             weights = match.weights),
         family = binomial(link = "logit"), robust = "HC1", digits = 5)
 
 ################################################################################
-decilized_vars_list = c("total_population_2020", "housing_units_per_sq_meter",   
-                        "log_median_hh_income", "schools_per_sq_meter",        
-                        "log_median_hh_income_15to24", "total_crime_2021",
-                        "dealers_per_sq_meter", "daytime_pop_2021",
-                        "prop_white_only", "prop_black_only", "prop_asian_only",
-                        "prop_multiracial", "prop_hispanic_latino", 
-                        "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                        "prop_below_poverty_2019", "prop_without_vehicles_2019",    
-                        "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021",
-                        "prop_grad_deg_25plus_2021", "prop_unemployed_2021",          
-                        "prop_unemployed_16to24_2021", "prop_institutional_group",      
-                        "prop_noninstitutional_group", "prop_18plus",
-                        "mental_health_index") 
-
-data_discretized <- data_discretized %>% 
-  mutate_at(list(decile = ~ntile(., 10)), .vars = vars( decilized_vars_list ) )
-
-decilized_confounder_names <- paste(all_confounder_names,"_decile", sep = "")
-decilized_confounder_names <- gsub('census_division_decile', 'census_division', decilized_confounder_names)
-
+## Nearest neighbor matching with replacement - DISCRETE confounders
+cov_bal_plots <- list()
 data_discretized$x =  data_discretized[, decilized_confounder_names]
 data_discretized$x <- t(apply(data_discretized$x, 1, unlist)) 
 
@@ -127,17 +114,24 @@ for (i in treatments[treatments != control]) {
   d$x =  d[, decilized_confounder_names]
   d$x <- t(apply(d$x, 1, unlist)) 
   # m <- matchit(treat_i ~ .  -y -a -match.weights, data = d)
-  m <- matchit(treat_i ~ x, data = d, method = "nearest", exact = c("census_division", "dealers_per_sq_meter_decile"), caliper = 0.1, replace = TRUE) # method = "full"
+  m <- matchit(treat_i ~ x, data = d, method = "nearest", exact = c("census_division_number", "dealers_per_sq_meter_decile",
+                                                                    "log_median_hh_income_decile"),  replace = TRUE) 
   data_discretized[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
+  
+  cov_bal_plots[[i]] <- love.plot(m,
+                                  drop.distance = TRUE, 
+                                  var.order = "unadjusted",
+                                  abs = TRUE,
+                                  line = TRUE, 
+                                  thresholds = c(m = .1))  +
+    ggtitle(paste("Covariate Balance - Group", i, "vs Group 1"))
 }
 summary(data_discretized$match.weights)
+all_analyses_weights$discrete_confounders <- data_discretized$match.weights # save weights in all_analyses data frame
 
-love.plot(m,
-          drop.distance = TRUE, 
-          var.order = "unadjusted",
-          abs = TRUE,
-          line = TRUE, 
-          thresholds = c(m = .1))
+cov_bal_plots[["2"]]
+cov_bal_plots[["3"]]
+cov_bal_plots[["4"]]
 
 #Check balance using cobalt
 bal.matched <- bal.tab(a ~ x, data = data_discretized, 
@@ -173,82 +167,6 @@ summary(glm(y ~ relevel(as.factor(a), control),
             weights = match.weights),
         family = binomial(link = "logit"), robust = "HC1", digits = 5)
 
-################################################################################
-## Caliper matching 0.01, replacement
-set.seed(42)
-for (i in treatments[treatments != control]) {
-  d <- data_discretized[data_discretized$a %in% c(i, control),] #Subset just the control and 1 treatment
-  d$treat_i <- as.numeric(d$a != i) #Create new binary treatment variable
-  d$x =  d[, all_confounder_names]
-  d$x <- t(apply(d$x, 1, unlist)) 
-  # m <- matchit(treat_i ~ .  -y -a -match.weights, data = d)
-  m <- matchit(treat_i ~ x, data = d, link = "logit", caliper = .01,replace = TRUE) # method = "full"
-  data_discretized[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
-}
-summary(data_discretized$match.weights)
-
-#Check balance using cobalt
-bal.tab(a ~ x, data = data_discretized, 
-        weights = "match.weights", method = "matching", 
-        focal = control, which.treat = .all)
-
-#Estimate treatment effects
-summary(glm(y ~ relevel(as.factor(a), control),
-            data = data_discretized[data_discretized$match.weights > 0,], 
-            weights = match.weights),
-        family = binomial(link = "logit"), robust = "HC1", digits = 5)
-
-################################################################################
-## Caliper matching 0.01, 2 replacement
-set.seed(42)
-for (i in treatments[treatments != control]) {
-  d <- data_discretized[data_discretized$a %in% c(i, control),] #Subset just the control and 1 treatment
-  d$treat_i <- as.numeric(d$a != i) #Create new binary treatment variable
-  d$x =  d[, all_confounder_names]
-  d$x <- t(apply(d$x, 1, unlist)) 
-  # m <- matchit(treat_i ~ .  -y -a -match.weights, data = d)
-  m <- matchit(treat_i ~ x, data = d, link = "logit", caliper = .01,replace = TRUE, ratio = 2) # method = "full"
-  data_discretized[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
-}
-summary(data_discretized$match.weights)
-
-#Check balance using cobalt
-bal.tab(a ~ x, data = data_discretized, 
-        weights = "match.weights", method = "matching", 
-        focal = control, which.treat = .all)
-
-#Estimate treatment effects
-summary(glm(y ~ relevel(as.factor(a), control),
-            data = data_discretized[data_discretized$match.weights > 0,], 
-            weights = match.weights),
-        family = binomial(link = "logit"), robust = "HC1", digits = 5)
-
-
-################################################################################
-## Caliper matching 0.1, 10 replacements
-set.seed(42)
-for (i in treatments[treatments != control]) {
-  d <- data_discretized[data_discretized$a %in% c(i, control),] #Subset just the control and 1 treatment
-  d$treat_i <- as.numeric(d$a != i) #Create new binary treatment variable
-  d$x =  d[, all_confounder_names]
-  d$x <- t(apply(d$x, 1, unlist)) 
-  # m <- matchit(treat_i ~ .  -y -a -match.weights, data = d)
-  m <- matchit(treat_i ~ x, data = d, link = "logit", caliper = .01,
-               ratio = 10, replace = TRUE) # method = "full"
-  data_discretized[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
-}
-summary(data_discretized$match.weights)
-
-#Check balance using cobalt
-bal.tab(a ~ x, data = data_discretized, 
-        weights = "match.weights", method = "matching", 
-        focal = control, which.treat = .all)
-
-#Estimate treatment effects
-summary(glm(y ~ relevel(as.factor(a), control),
-            data = data_discretized[data_discretized$match.weights > 0,], 
-            weights = match.weights),
-        family = binomial(link = "logit"), robust = "HC1", digits = 5)
 
 ################################################################################
 ###### Pharmacy
@@ -266,6 +184,7 @@ data_pharmacy$match.weights <- 1 #Initialize matching weights
 ################################################################################
 ## Nearest neighbor matching with replacement
 set.seed(42)
+cov_bal_plots <- list()
 for (i in treatments[treatments != control]) {
   d <- data_pharmacy[data_pharmacy$a %in% c(i, control),] #Subset just the control and 1 treatment
   d$treat_i <- as.numeric(d$a != i) #Create new binary treatment variable
@@ -275,6 +194,14 @@ for (i in treatments[treatments != control]) {
   m <- matchit(treat_i ~ x, data = d, method = "nearest", 
                distance = "logit", replace = TRUE) # method = "full"
   data_pharmacy[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
+  
+  cov_bal_plots[[i]] <- love.plot(m,
+                                  drop.distance = TRUE, 
+                                  var.order = "unadjusted",
+                                  abs = TRUE,
+                                  line = TRUE, 
+                                  thresholds = c(m = .1))  +
+    ggtitle(paste("Covariate Balance - Group", i, "vs Group 1"))
 }
 summary(data_pharmacy$match.weights)
 
@@ -305,6 +232,7 @@ data_grocery$match.weights <- 1 #Initialize matching weights
 ################################################################################
 ## Nearest neighbor matching with replacement
 set.seed(42)
+cov_bal_plots <- list()
 for (i in treatments[treatments != control]) {
   d <- data_grocery[data_grocery$a %in% c(i, control),] #Subset just the control and 1 treatment
   d$treat_i <- as.numeric(d$a != i) #Create new binary treatment variable
@@ -314,6 +242,14 @@ for (i in treatments[treatments != control]) {
   m <- matchit(treat_i ~ x, data = d, method = "nearest", 
                distance = "logit", replace = TRUE) # method = "full"
   data_grocery[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
+  
+  cov_bal_plots[[i]] <- love.plot(m,
+                                  drop.distance = TRUE, 
+                                  var.order = "unadjusted",
+                                  abs = TRUE,
+                                  line = TRUE, 
+                                  thresholds = c(m = .1))  +
+    ggtitle(paste("Covariate Balance - Group", i, "vs Group 1"))
 }
 summary(data_grocery$match.weights)
 

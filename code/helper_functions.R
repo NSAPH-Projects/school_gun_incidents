@@ -1,9 +1,21 @@
-# This file contains functions used in our causal analysis
+# This file contains functions (and a couple constants) used in our causal analysis
 
-load_packages <- function(clear_env = F){
-  if (clear_env){
-    rm(list=ls())
-  }
+all_confounder_names <- c("total_population_2020", "housing_units_per_sq_meter", "Tract_Area_sq_meters",
+                          "log_median_hh_income", "schools_per_sq_meter", "census_division_number",
+                          "log_median_hh_income_15to24", "total_crime_2021", 
+                          "dealers_per_sq_meter", "mental_health_index",
+                          "daytime_pop_2021", "prop_white_only", "prop_black_only", 
+                          "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
+                          "prop_food_stamps_2019", "prop_public_assist_income_2019",
+                          "prop_below_poverty_2019", "prop_without_vehicles_2019",
+                          "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
+                          "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
+                          "prop_unemployed_16to24_2021", "prop_institutional_group",
+                          "prop_noninstitutional_group", "prop_18plus")
+quantitative_confounders <- all_confounder_names[!all_confounder_names %in% c("census_division_number")]
+
+
+load_packages <- function(){
   library(CausalGPS)
   library(MASS)
   library(ggplot2)
@@ -14,48 +26,59 @@ load_packages <- function(clear_env = F){
   library(data.table)
   library(lubridate)
   library(stringr)
+  library(WeightIt)
+  library(cobalt)
+  library(jtools)
+  library(MatchIt)
 }
 
-read_all_data_as_df <- function(dir){
-  return(read.csv(paste0(dir, "data/all_tracts_2020_subset_vars.csv"), header = TRUE, stringsAsFactors = FALSE))
+load_packages()
+
+read_cleaned_data_as_df <- function(dir = ""){
+  return(read.csv(paste0(dir, "data/all_tracts_2020_subset_vars_inc_mental.csv"), header = TRUE, stringsAsFactors = FALSE))
 }
 
-get_all_confounder_names <- function(){
-  return(c("total_population_2020", "housing_units_per_sq_meter",
-           "log_median_hh_income", "schools_per_sq_meter", "state_fips", 
-           "county_fips",
-           "log_median_hh_income_15to24", "total_crime_2021", 
-           "dealers_per_sq_meter",
-           "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-           "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-           "prop_food_stamps_2019", "prop_public_assist_income_2019",
-           "prop_below_poverty_2019", "prop_without_vehicles_2019",
-           "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-           "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-           "prop_unemployed_16to24_2021", "prop_institutional_group",
-           "prop_noninstitutional_group", "prop_18plus"))
+# to do: figure out if/why this function returns a character matrix
+factorize_cat_vars <- function(data){
+  if ("census_division" %in% colnames(data)){
+    data$census_division <- as.factor(data$census_division)
+  }
+  if ("state_fips" %in% colnames(data)){
+    data$state_fips <- ifelse(nchar(data$state_fips) == 1, paste0("0", data$state_fips), data$state_fips)
+  }
+  if ("county_fips" %in% colnames(data)){
+    data$county_fips <- ifelse(nchar(data$county_fips) == 1, paste0("0", data$county_fips), data$county_fips)
+  }
+  return(data)
 }
 
-get_analysis_df <- function(data, treatment = "mean_total_km", confounders){
+# to do: figure out if/why this function returns a character matrix
+get_confounders_matrix <- function(data, confounder_names){
+  # x <- factorize_cat_vars(data[, confounder_names])
+  x <- data[, confounder_names]
+  x <- t(apply(x, 1, unlist)) # turn data frame into matrix, for CausalGPS functions
+  return(x)
+}
+
+get_analysis_df <- function(data, treatment = "mean_total_km", confounder_names){
   data <- as.data.frame(data)
-  
-  ## Outcome Variable 
   y <- data[, "binary_shooting_incident"]
-  
-  ## Treatment Variable
   a <- data[, treatment]
-  # ceiling_a <- ceiling(a)
-  
-  ## Confounders
-  x <- data[, confounders]
-  x <- t(apply(x, 1, unlist))
-  
-  ## Generate Analysis Data
-  data_analysis <- cbind(y, a, as.data.frame(x))
-  return(data_analysis)
+  # x <- factorize_cat_vars(data[, confounder_names])
+  x <- data[, confounder_names]
+  return(cbind(y, a, x))
+}
+
+# exposure_vec: enter exposure as a vector of values, not as name of exposure variable
+trim_exposure <- function(df, exposure_vec, trim_quantile = 0.95){
+  return(df[exposure_vec <= quantile(exposure_vec, trim_quantile), ])
 }
 
 get_matched_pseudo_pop <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.95)){
+  # if ("census_division" %in% colnames(confounders)){
+  #   confounders$census_division <- NULL # to do: figure out if this function can use categorical variables
+  # }
+  
   return(generate_pseudo_pop(Y = outcome,
                              w = exposure,
                              c = as.data.frame(confounders),
@@ -97,6 +120,8 @@ get_gps <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.9
 }
 
 make_matched_correlation_plot <- function(matched_pop, exposure, confounders, confounder_names){
+  # confounder_names <- confounder_names[confounder_names != "census_division"] # to do: figure out if this function can use categorical variables
+  
   # get correlations of matched and unmatched data
   cor_val_matched <- matched_pop$adjusted_corr_results
   cor_val_unmatched <- matched_pop$original_corr_results
@@ -161,6 +186,7 @@ winsorize_counter_onesided <- function(counter, quantile){
   return(ifelse(counter > cutoff, cutoff, counter))
 }
 
+# NOTE - the following function will not be used; use ntile(x, 4) instead
 # function to map 1 variable to {1,2,3,4} by quartile
 quartile_var <- function(var){
   quartiles <- quantile(var, c(0.25, 0.5, 0.75), na.rm=T)
@@ -168,4 +194,74 @@ quartile_var <- function(var){
                           ifelse(var <= quartiles[2], 2,
                                  ifelse(var <= quartiles[3], 3, 4)))
   return(var_quartiled)
+}
+
+subset_state_data <- function(fips, trim_exposure = T){
+  data_state <- data_analysis[data_analysis$state_fips == fips, ]
+  if (trim_exposure){
+    data_state <- trim_exposure(data_state, data_state$a) # trim exposure at 95th percentile at state level
+  }
+  data_state$state_fips <- NULL
+  if ("census_division_number" %in% colnames(data_analysis)){
+    data_state$census_division_number <- NULL
+  }
+  return(data_state)
+}
+
+naive_state_logistic <- function(fips, trim_exposure){
+  state_data <- subset_state_data(fips, trim_exposure)
+  logistic_model <- glm(y ~ ., 
+                        data = state_data, 
+                        family = "binomial")
+  return(summary(logistic_model))
+}
+
+generate_state_pseudo_pop <- function(fips){
+  data_state <- subset_state_data(fips)
+  matched_pop <- get_matched_pseudo_pop(data_state$y, data_state$a, subset(data_state, select = confounders_without_division))
+  return(matched_pop)
+}
+
+make_state_correlation_plot <- function(fips, matched_pop){
+  data_state <- subset_state_data(fips)
+  return(make_matched_correlation_plot(matched_pop, data_state$a, subset(data_state, select = confounders_without_division), confounders_without_division))
+}
+
+match_discretized <- function(data){
+  treatments <- levels(as.factor(data$a)) #Levels of treatment variable
+  control <- "1" #Name of control level
+  data$match.weights <- 1 #Initialize matching weights
+  
+  for (i in treatments[treatments != control]) {
+    d <- data[data$a %in% c(i, control),] #Subset just the control and treatment i
+    d$treat_i <- as.numeric(d$a != i) #Create new binary treatment variable # why not d$a == i?
+    m <- matchit(treat_i ~ . -y -a -match.weights, data = d)
+    data[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
+  }
+  
+  #Check balance using cobalt
+  print(bal.tab(a ~ . -y -a -match.weights, data = data, 
+          weights = "match.weights", method = "matching", 
+          focal = control, which.treat = .all))
+  
+  #Estimate treatment effects
+  print(summary(glm(y ~ relevel(as.factor(a), control),
+              data = data[data$match.weights > 0, ], 
+              weights = match.weights)))
+  
+  return(0)
+}
+
+weight_discretized <- function(df){
+  w.out <- weightit(as.factor(a) ~ . -y -a -match.weights, data = df, focal = "1", estimand = "ATE")
+  
+  #Check balance
+  print(bal.tab(w.out, which.treat = .all))
+  
+  #Estimate treatment effects (using jtools to get robust SEs)
+  #(Can also use survey package)
+  print(summ(glm(y ~ relevel(as.factor(a), "1"), data = df, weights = w.out$weights), robust = "HC1", digits = 5))
+  print(summ(glm(y ~ a, data = df,
+           weights = w.out$weights), robust = "HC1"))
+  return(0)
 }

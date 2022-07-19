@@ -35,13 +35,16 @@ load_packages <- function(){
 load_packages()
 
 read_cleaned_data_as_df <- function(dir = ""){
-  return(read.csv(paste0(dir, "data/all_tracts_2020_subset_vars_inc_mental.csv"), header = TRUE, stringsAsFactors = FALSE))
+  return(read.csv(paste0(dir, "data/all_tracts_2020_subset_vars.csv"), header = TRUE, stringsAsFactors = FALSE))
 }
 
 # to do: figure out if/why this function returns a character matrix
 factorize_cat_vars <- function(data){
   if ("census_division" %in% colnames(data)){
     data$census_division <- as.factor(data$census_division)
+  }
+  if ("census_region" %in% colnames(data)){
+    data$census_region <- as.factor(data$census_region)
   }
   if ("state_fips" %in% colnames(data)){
     data$state_fips <- ifelse(nchar(data$state_fips) == 1, paste0("0", data$state_fips), data$state_fips)
@@ -69,12 +72,104 @@ get_analysis_df <- function(data, treatment = "mean_total_km", confounder_names)
   return(cbind(y, a, x))
 }
 
+match_discretized <- function(data, control_name = "1", confounder_names,
+                              exact_matches = c("census_division_number", "dealers_per_sq_meter_decile", "log_median_hh_income_decile"),
+                              caliper = NULL, seed = 42){
+  set.seed(seed)
+  
+  treatments <- levels(as.factor(data$a)) # Levels of treatment variable
+  data$x =  data[, confounder_names]
+  data$x <- t(apply(data$x, 1, unlist)) # Get confounders as matrix
+  data$match.weights <- 1 # Initialize matching weights
+  cov_bal_plots <- list() # Initalize pairwise covariate balance plots
+  
+  for (i in treatments[treatments != control_name]) {
+    d <- data[data$a %in% c(i, control_name),] # Subset just the control and treatment i
+    d$treat_i <- as.numeric(d$a != i) # Create new binary treatment variable # why not d$a == i?
+    m <- matchit(treat_i ~ x, data = d, method = "nearest", exact = exact_matches,  replace = TRUE, caliper = caliper)
+    data[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] # Assign matching weights
+    
+    cov_bal_plots[[i]] <- love.plot(m,
+                                    drop.distance = TRUE, 
+                                    var.order = "unadjusted",
+                                    abs = TRUE,
+                                    line = TRUE, 
+                                    thresholds = c(m = .1))  +
+      ggtitle(paste("Covariate Balance - Group", i, "vs Group", control_name))
+  }
+  
+  match.weights <- data$match.weights
+  
+  #Estimate treatment effects
+  model_summary <- summary(glm(y ~ relevel(as.factor(a), control_name),
+                               data = data[data$match.weights > 0,],
+                               weights = match.weights),
+                           family = binomial(link = "logit"), robust = "HC1", digits = 5)
+  
+  return(list("match.weights" = match.weights, "cov_bal_plots" = cov_bal_plots, "model_summary" = model_summary))
+}
+
+# Function to winsorize counter (i.e., # of times each included observation is GPS-matched) at high quantile
+# Parameter quantile should be between 0.5 and 1
+winsorize_counter_onesided <- function(counter, quantile){
+  cutoff <- quantile(counter, quantile)
+  return(ifelse(counter > cutoff, cutoff, counter))
+}
+
+subset_state_data <- function(fips, trim_exposure = T){
+  data_state <- data_analysis[data_analysis$state_fips == fips, ]
+  if (trim_exposure){
+    data_state <- trim_exposure(data_state, data_state$a) # trim exposure at 95th percentile at state level
+  }
+  data_state$state_fips <- NULL
+  if ("census_division_number" %in% colnames(data_analysis)){
+    data_state$census_division_number <- NULL
+  }
+  return(data_state)
+}
+
+naive_state_logistic <- function(fips, trim_exposure){
+  state_data <- subset_state_data(fips, trim_exposure)
+  logistic_model <- glm(y ~ ., 
+                        data = state_data, 
+                        family = "binomial")
+  return(summary(logistic_model))
+}
+
+generate_state_pseudo_pop <- function(fips){
+  data_state <- subset_state_data(fips)
+  matched_pop <- get_matched_pseudo_pop(data_state$y, data_state$a, subset(data_state, select = confounders_without_division))
+  return(matched_pop)
+}
+
+make_state_correlation_plot <- function(fips, matched_pop){
+  data_state <- subset_state_data(fips)
+  return(make_matched_correlation_plot(matched_pop, data_state$a, subset(data_state, select = confounders_without_division), confounders_without_division))
+}
+
+weight_discretized <- function(df){
+  w.out <- weightit(as.factor(a) ~ . -y -a -match.weights, data = df, focal = "1", estimand = "ATE")
+  
+  #Check balance
+  print(bal.tab(w.out, which.treat = .all))
+  
+  #Estimate treatment effects (using jtools to get robust SEs)
+  #(Can also use survey package)
+  print(summ(glm(y ~ relevel(as.factor(a), "1"), data = df, weights = w.out$weights), robust = "HC1", digits = 5))
+  print(summ(glm(y ~ a, data = df,
+           weights = w.out$weights), robust = "HC1"))
+  return(0)
+}
+
+
+##### THE FOLLOWING FUNCTIONS ARE OUTDATED (CONTINUOUS EXPOSURE) #####
+
 # exposure_vec: enter exposure as a vector of values, not as name of exposure variable
 trim_exposure <- function(df, exposure_vec, trim_quantile = 0.95){
   return(df[exposure_vec <= quantile(exposure_vec, trim_quantile), ])
 }
 
-get_matched_pseudo_pop <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.95)){
+get_gps_matched_pseudo_pop <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.95)){
   # if ("census_division" %in% colnames(confounders)){
   #   confounders$census_division <- NULL # to do: figure out if this function can use categorical variables
   # }
@@ -119,7 +214,7 @@ get_gps <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.9
                              max_attempt = 5))
 }
 
-make_matched_correlation_plot <- function(matched_pop, exposure, confounders, confounder_names){
+make_matched_correlation_plot <- function(matched_pop, confounder_names){
   # confounder_names <- confounder_names[confounder_names != "census_division"] # to do: figure out if this function can use categorical variables
   
   # get correlations of matched and unmatched data
@@ -141,7 +236,7 @@ make_matched_correlation_plot <- function(matched_pop, exposure, confounders, co
   return(p)
 }
 
-get_matched_logistic_results <- function(matched_pop){
+get_gps_matched_logistic_results <- function(matched_pop){
   pseudo <- matched_pop$pseudo_pop
   outcome <- estimate_pmetric_erf(formula = Y ~ w,
                                   family = binomial,
@@ -150,7 +245,7 @@ get_matched_logistic_results <- function(matched_pop){
   return(summary(outcome))
 }
 
-get_matched_semiparametric_results <- function(matched_pop){
+get_gps_matched_semiparametric_results <- function(matched_pop){
   pseudo <- matched_pop$pseudo_pop
   semi_outcome <- estimate_semipmetric_erf(formula = Y ~ w,
                                            family = binomial,
@@ -159,7 +254,7 @@ get_matched_semiparametric_results <- function(matched_pop){
   return(summary(semi_outcome))
 }
 
-get_matched_weighting_results <- function(gps_pop){
+get_gps_weighting_results <- function(gps_pop){
   pseudo <- gps_pop$pseudo_pop
   weighting_outcome <- estimate_pmetric_erf(formula = Y ~ w,
                                             family = binomial,
@@ -168,7 +263,7 @@ get_matched_weighting_results <- function(gps_pop){
   return(summary(weighting_outcome))
 }
 
-get_matched_nonparametric_results <- function(matched_pop){
+get_gps_matched_nonparametric_results <- function(matched_pop){
   pseudo <- matched_pop$pseudo_pop
   erf_obj <- estimate_npmetric_erf(as.double(pseudo$Y),
                                    as.double(pseudo$w),
@@ -177,91 +272,4 @@ get_matched_nonparametric_results <- function(matched_pop){
                                    nthread = 1)
   
   return(plot(erf_obj))
-}
-
-# Function to winsorize counter (i.e., # of times each included observation is GPS-matched) at high quantile
-# Parameter quantile should be between 0.5 and 1
-winsorize_counter_onesided <- function(counter, quantile){
-  cutoff <- quantile(counter, quantile)
-  return(ifelse(counter > cutoff, cutoff, counter))
-}
-
-# NOTE - the following function will not be used; use ntile(x, 4) instead
-# function to map 1 variable to {1,2,3,4} by quartile
-quartile_var <- function(var){
-  quartiles <- quantile(var, c(0.25, 0.5, 0.75), na.rm=T)
-  var_quartiled <- ifelse(var <= quartiles[1], 1,
-                          ifelse(var <= quartiles[2], 2,
-                                 ifelse(var <= quartiles[3], 3, 4)))
-  return(var_quartiled)
-}
-
-subset_state_data <- function(fips, trim_exposure = T){
-  data_state <- data_analysis[data_analysis$state_fips == fips, ]
-  if (trim_exposure){
-    data_state <- trim_exposure(data_state, data_state$a) # trim exposure at 95th percentile at state level
-  }
-  data_state$state_fips <- NULL
-  if ("census_division_number" %in% colnames(data_analysis)){
-    data_state$census_division_number <- NULL
-  }
-  return(data_state)
-}
-
-naive_state_logistic <- function(fips, trim_exposure){
-  state_data <- subset_state_data(fips, trim_exposure)
-  logistic_model <- glm(y ~ ., 
-                        data = state_data, 
-                        family = "binomial")
-  return(summary(logistic_model))
-}
-
-generate_state_pseudo_pop <- function(fips){
-  data_state <- subset_state_data(fips)
-  matched_pop <- get_matched_pseudo_pop(data_state$y, data_state$a, subset(data_state, select = confounders_without_division))
-  return(matched_pop)
-}
-
-make_state_correlation_plot <- function(fips, matched_pop){
-  data_state <- subset_state_data(fips)
-  return(make_matched_correlation_plot(matched_pop, data_state$a, subset(data_state, select = confounders_without_division), confounders_without_division))
-}
-
-match_discretized <- function(data){
-  treatments <- levels(as.factor(data$a)) #Levels of treatment variable
-  control <- "1" #Name of control level
-  data$match.weights <- 1 #Initialize matching weights
-  
-  for (i in treatments[treatments != control]) {
-    d <- data[data$a %in% c(i, control),] #Subset just the control and treatment i
-    d$treat_i <- as.numeric(d$a != i) #Create new binary treatment variable # why not d$a == i?
-    m <- matchit(treat_i ~ . -y -a -match.weights, data = d)
-    data[names(m$weights), "match.weights"] <- m$weights[names(m$weights)] #Assign matching weights
-  }
-  
-  #Check balance using cobalt
-  print(bal.tab(a ~ . -y -a -match.weights, data = data, 
-          weights = "match.weights", method = "matching", 
-          focal = control, which.treat = .all))
-  
-  #Estimate treatment effects
-  print(summary(glm(y ~ relevel(as.factor(a), control),
-              data = data[data$match.weights > 0, ], 
-              weights = match.weights)))
-  
-  return(0)
-}
-
-weight_discretized <- function(df){
-  w.out <- weightit(as.factor(a) ~ . -y -a -match.weights, data = df, focal = "1", estimand = "ATE")
-  
-  #Check balance
-  print(bal.tab(w.out, which.treat = .all))
-  
-  #Estimate treatment effects (using jtools to get robust SEs)
-  #(Can also use survey package)
-  print(summ(glm(y ~ relevel(as.factor(a), "1"), data = df, weights = w.out$weights), robust = "HC1", digits = 5))
-  print(summ(glm(y ~ a, data = df,
-           weights = w.out$weights), robust = "HC1"))
-  return(0)
 }

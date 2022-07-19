@@ -83,10 +83,28 @@ View(cor(all_tracts_2020_quant_vars, use = "pairwise.complete.obs"))
 #                   names(shooting_tracts_2020_subset_vars)[names(shooting_tracts_2020_subset_vars) != "shooter_school_affiliation"]),
 #          use = "pairwise.complete.obs"))
 
-# Check that mean_total_miles is same in tracts_2020_all_data.xlsx and all_tracts_2020_new_distances.xlsx
+# Check if mean_total_miles is same in tracts_2020_all_data.xlsx and all_tracts_2020_new_distances.xlsx
+# Answer: Depends on rounding. Same up to 10 decimal digits
 temp <- merge(tracts_2020_all_data[!is.na(mean_total_miles), .(GEOID, mean_total_miles)], all_tracts_2020_new_distances[!is.na(mean_total_miles), .(GEOID, mean_total_miles)], by = "GEOID")
 nrow(temp[round(mean_total_miles.x, digits = 10) != round(mean_total_miles.y, digits = 10)]) # 0
 nrow(temp[round(mean_total_miles.x, digits = 11) != round(mean_total_miles.y, digits = 11)]) # 1
 nrow(temp[round(mean_total_miles.x, digits = 12) != round(mean_total_miles.y, digits = 12)]) # 17
 nrow(temp[round(mean_total_miles.x, digits = 13) != round(mean_total_miles.y, digits = 13)]) # 178
 nrow(temp[mean_total_miles.x != mean_total_miles.y]) # 25887
+
+# Examine mean_total_km vs mean_grocery_km, mean_pharmacy_km
+diff <- all_tracts_2020_subset_vars[mean_grocery_km > 0 & mean_pharmacy_km > 0,
+                                    .(diff_grocery = mean_total_km - mean_grocery_km,
+                                        diff_pharmacy = mean_total_km - mean_pharmacy_km,
+                                        diff_ratio_grocery = (mean_total_km - mean_grocery_km)/mean_grocery_km,
+                                        diff_ratio_pharmacy = (mean_total_km - mean_pharmacy_km)/mean_pharmacy_km,
+                                        mean_total_km, mean_grocery_km, mean_pharmacy_km)]
+summary(diff$mean_total_km)
+summary(diff$mean_grocery_km)
+summary(diff$mean_pharmacy_km)
+summary(diff$diff_ratio_grocery)
+summary(diff$diff_ratio_pharmacy)
+summary(diff$diff_grocery)
+summary(diff$diff_pharmacy)
+
+

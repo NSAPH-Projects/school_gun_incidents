@@ -34,7 +34,7 @@ knitr::opts_knit$set(root.dir = "/Users/s012852/Library/CloudStorage/OneDrive-Sh
 Load the functions used for analysis. Load the data.
 
 ```{r load-functions}
-source("code/helper_functions.R")
+source("code/make_discretized_datasets.R")
 load_packages()
 ```
 
@@ -50,6 +50,8 @@ all_confounder_names
 data_analysis <- get_analysis_df(cleaned_data, treatment = "mean_total_km", all_confounder_names)
 y <- data_analysis$y # to do: consider removing this line and not using a variable called y in the document (ambiguous)
 a <- data_analysis$a # to do: consider removing this line and not using a variable called a in the document (ambiguous)
+x <- data_analysis[, all_confounder_names]
+x <- t(apply(x, 1, unlist)) # to do: consider removing this line and not using a variable called x in the document (ambiguous)
 ceiling_a <- ceiling(a)
 ```
 
@@ -79,61 +81,61 @@ Additional outcome variables -- such as weapon type, preplanned, targets (i.e., 
 
 We have a number of potential confounders that we included in our analyses:
 
-1.`total_population_2020`: the total population in the Census tract recorded in 2020 from [add source];
+1. `total_population_2020`: the total population in the Census tract recorded in 2020 from [add source];
 
-2.`housing_units_per_sq_meter`: the housing units in the Census tracts per squared meter in [add year] from [add source];
+2. `housing_units_per_sq_meter`: the housing units in the Census tracts per squared meter in [add year] from [add source];
 
-3.`log_median_hh_income`: the log transformation of the median household income in the Census tract in [add year] from [add source];
+3. `log_median_hh_income`: the log transformation of the median household income in the Census tract in [add year] from [add source];
 
-4.`schools_per_sq_meter`: the number of school per squared meter in the Census tract in [add year] from [add source];
+4. `schools_per_sq_meter`: the number of school per squared meter in the Census tract in [add year] from [add source];
 
-<!-- 5.`state_fips`: the state fips code from [add source]; -->
+<!-- 5. `state_fips`: the state fips code from [add source]; -->
 
-<!-- 6.`county_fips`: the county fips code from [add source]; -->
+<!-- 6. `county_fips`: the county fips code from [add source]; -->
 
 5. `census_division`: name of U.S. division to which the Census tract belongs [(source)](https://www2.census.gov/geo/docs/maps-data/maps/reg_div.txt)
 
-6.`log_median_hh_income_15to24`: the log transformation of the median household income for individuals aged 15 to 24 in the Census tract in [add year] from [add source];
+6. `log_median_hh_income_15to24`: the log transformation of the median household income for individuals aged 15 to 24 in the Census tract in [add year] from [add source];
 
-7.`total_crime_2021`: the total crime rate in the Census tract in 2021 from [add source];
+7. `total_crime_2021`: the total crime rate in the Census tract in 2021 from [add source];
 
-8.`dealers_per_sq_meter`: the number of gun dealers per squared meter from the Federal Firearm License (FFL) file (we restricted the analysis to Type 1, \emph{dealer in firearms other than destructive devices}, and Type 2, \emph{pawnbroker in firearms other than destructive devices}, licenses);
+8. `dealers_per_sq_meter`: the number of gun dealers per squared meter from the Federal Firearm License (FFL) file (we restricted the analysis to Type 1, \emph{dealer in firearms other than destructive devices}, and Type 2, \emph{pawnbroker in firearms other than destructive devices}, licenses);
 
-9.`daytime_pop_2021`: the daytime population in the Census tract in 2021 from [add source];
+9. `daytime_pop_2021`: the daytime population in the Census tract in 2021 from [add source];
 
-10.`prop_white_only`: the proportion of white population in the Census tract in [add year] from [add source];
+10. `prop_white_only`: the proportion of white population in the Census tract in [add year] from [add source];
 
-11.`prop_black_only`: the proportion of black population in the Census tract in [add year] from [add source];
+11. `prop_black_only`: the proportion of black population in the Census tract in [add year] from [add source];
 
-12.`prop_asian_only`: the proportion of asian population in the Census tract in [add year] from [add source];
+12. `prop_asian_only`: the proportion of asian population in the Census tract in [add year] from [add source];
 
-13.`prop_multiracial`: the proportion of multiracial (individuals in that Census tract who identify as 2+ races) population in the Census tract in [add year] from [add source];
+13. `prop_multiracial`: the proportion of multiracial (individuals in that Census tract who identify as 2+ races) population in the Census tract in [add year] from [add source];
 
-14.`prop_hispanic_latino`: the proportion of hispanic population in the Census tract in [add year] from [add source];
+14. `prop_hispanic_latino`: the proportion of hispanic population in the Census tract in [add year] from [add source];
 
-15.`prop_food_stamps_2019`: the proportion of people in the Census tract that benefited from food stamps in 2019 from [add source];
+15. `prop_food_stamps_2019`: the proportion of people in the Census tract that benefited from food stamps in 2019 from [add source];
 
-16.`prop_public_assist_income_2019`: the proportion of people in the Census tract that benefited from public assisted income in 2019 from [add source];
+16. `prop_public_assist_income_2019`: the proportion of people in the Census tract that benefited from public assisted income in 2019 from [add source];
 
-17.`prop_below_poverty_2019`: the proportion of people below the poverty level in the Census tract in 2019 from [add source];
+17. `prop_below_poverty_2019`: the proportion of people below the poverty level in the Census tract in 2019 from [add source];
 
-18.`prop_without_vehicles_2019`: the proportion of people without a vehicle in the Census tract in 2019 from [add source];
+18. `prop_without_vehicles_2019`: the proportion of people without a vehicle in the Census tract in 2019 from [add source];
 
-19.`prop_hunted_with_shotgun_2021`: the proportion of people that hunted with a shotgun in the past 12 months in the Census tract in 2021 from [add source];
+19. `prop_hunted_with_shotgun_2021`: the proportion of people that hunted with a shotgun in the past 12 months in the Census tract in 2021 from [add source];
 
-20.`prop_bachelor_deg_25plus_2021`: the proportion of people older than 25 that obtained a bachelor degree  in the Census tract (recorded in 2021) from [add source];
+20. `prop_bachelor_deg_25plus_2021`: the proportion of people older than 25 that obtained a bachelor degree  in the Census tract (recorded in 2021) from [add source];
 
-21.`prop_grad_deg_25plus_2021`: the proportion of people older than 25 that obtained a graduate or professional degree in the Census tract (recorded in 2021) from [add source];
+21. `prop_grad_deg_25plus_2021`: the proportion of people older than 25 that obtained a graduate or professional degree in the Census tract (recorded in 2021) from [add source];
 
-22.`prop_unemployed_2021`: the proportion of people unemployed in the Census tract in 2021 from [add source];
+22. `prop_unemployed_2021`: the proportion of people unemployed in the Census tract in 2021 from [add source];
 
-23.`prop_unemployed_16to24_2021`: the proportion of people unemployed in the age range 16 to 24 in the Census tract in 2021 from [add source];
+23. `prop_unemployed_16to24_2021`: the proportion of people unemployed in the age range 16 to 24 in the Census tract in 2021 from [add source];
 
-24.`prop_institutional_group`: the proportion of institutional population in the Census tract in [add year] from [add source];
+24. `prop_institutional_group`: the proportion of institutional population in the Census tract in [add year] from [add source];
 
-25.`prop_noninstitutional_group`: the proportion of noninstitutional population in the Census tract in [add year] from [add source];
+25. `prop_noninstitutional_group`: the proportion of noninstitutional population in the Census tract in [add year] from [add source];
 
-26.`prop_18plus`: the proportion of population older than 18 in the Census tract in [add year] from [add source];
+26. `prop_18plus`: the proportion of population older than 18 in the Census tract in [add year] from [add source];
 `total_crime_2021` is computed as [add details on how this variable is generated].
 
 27. `mental_health_index`: total number of positive severe depression, possible psychosis, PTSD, and positive suicide in the county between JAN2020 and APR2022, divided by the population of the county [source]
@@ -195,10 +197,10 @@ round(quantile(cleaned_data$mean_pharmacy_km, na.rm = TRUE), 2)
   <summary>Distribution of Treatment (Mean Minimum Distance from School to Gun Dealer)</summary>
 ```{r explore-treatment}
 quantile(a)
-plot(density(a))
-plot(density(a[which(a < quantile(a, 0.99))]))
-plot(density(a[which(a < quantile(a, 0.95))]))
-plot(density(a[which(a < quantile(a, 0.90))]))
+plot(density(a), main = "Distribution of Exposure (Mean Min Distance to Gun Dealer)")
+plot(density(a[which(a < quantile(a, 0.99))]), main = "Distribution of Exposure (Mean Min Distance to Gun Dealer), 99th Percentile Trimmed")
+plot(density(a[which(a < quantile(a, 0.95))]), main = "Distribution of Exposure (Mean Min Distance to Gun Dealer), 95th Percentile Trimmed")
+plot(density(a[which(a < quantile(a, 0.90))]), main = "Distribution of Exposure (Mean Min Distance to Gun Dealer), 90th Percentile Trimmed")
 ```
 </details>
 
@@ -374,4 +376,58 @@ off_property <- as.data.table(cleaned_data)[binary_shooting_incident == 1 & Loca
                              .(count_school_shootings, Date, Location, Location_Type, Narrative, Summary, Situation)]
 nrow(off_property)
 off_property[1:10, ]
+```
+
+
+# Naive/Preliminary Data Analysis
+
+Run a logistic regression to explore the associations between the treatment and the outcome controlling for all the confounders.
+
+```{r naive-logistic, message=FALSE}
+data_discretized_treatment <- discretize_treatment(data_analysis)
+
+# Logistic Regression (unrestricted a, 56,470 observations)
+logistic_model <- glm(y ~ ., 
+                      data = data_analysis[, c("y", "a", all_confounder_names)], 
+                      family = "binomial")
+summary(logistic_model)
+dim(data_analysis)
+
+# Splined ERF w/ & w/o covariates 
+```
+
+Do the same thing but with exposure trimmed at the 95th percentile.
+
+```{r naive-logistic-trimmed}
+# Logistic Regression (a trimmed at 95th percentile, 53,646 observations)
+data_trim_exposure <- data_analysis[which(data_analysis$a < quantile(data_analysis$a, 0.95)), ]
+logistic_model_trimmed_exposure <- glm(y ~ ., 
+                      data = data_trim_exposure[, c("y", "a", all_confounder_names)], 
+                      family = "binomial")
+summary(logistic_model_trimmed_exposure)
+dim(data_trim_exposure)
+```
+
+Do the same thing but on discretized exposure.
+
+```{r naive-logistic-discretized}
+# Logistic Regression (a has four levels, ? observations)
+logistic_model_discrete_exposure <- glm(y ~ ., 
+                      data = data_discretized_treatment[, c("y", "a", all_confounder_names)], 
+                      family = "binomial")
+summary(logistic_model_discrete_exposure)
+dim(data_discretized_treatment)
+```
+
+Run a negative binomial regression to explore the associations between the treatment and the outcome controlling for all the confounders.
+
+```{r naive-neg-bin, message=FALSE}
+# Negative Binomial
+negative_binomial <- glm.nb(y ~ ., data = data_analysis[, c("y", "a", all_confounder_names)])
+summary(negative_binomial)
+
+# Zero Inflated Negative Binomial
+zinb <- zeroinfl(y ~ a | a ,
+                 dist = "negbin", data = data_analysis)
+summary(zinb)
 ```

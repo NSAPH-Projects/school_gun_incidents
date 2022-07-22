@@ -43,8 +43,14 @@ factorize_cat_vars <- function(data){
   if ("census_division" %in% colnames(data)){
     data$census_division <- as.factor(data$census_division)
   }
+  if ("census_division_number" %in% colnames(data)){
+    data$census_division_number <- as.factor(data$census_division_number)
+  }
   if ("census_region" %in% colnames(data)){
     data$census_region <- as.factor(data$census_region)
+  }
+  if ("GEOID" %in% colnames(data)){
+    data$GEOID <- as.factor(data$GEOID)
   }
   if ("state_fips" %in% colnames(data)){
     data$state_fips <- ifelse(nchar(data$state_fips) == 1, paste0("0", data$state_fips), data$state_fips)
@@ -67,14 +73,13 @@ get_analysis_df <- function(data, treatment = "mean_total_km", confounder_names)
   data <- as.data.frame(data)
   y <- data[, "binary_shooting_incident"]
   a <- data[, treatment]
-  # x <- factorize_cat_vars(data[, confounder_names])
-  x <- data[, confounder_names]
+  x <- factorize_cat_vars(data[, confounder_names])
   return(cbind(y, a, x))
 }
 
 match_discretized <- function(data, control_name = "1", confounder_names,
                               exact_matches = c("census_division_number", "dealers_per_sq_meter_decile", "log_median_hh_income_decile"),
-                              caliper = NULL, seed = 42){
+                              caliper = NULL, seed = 42, confounders_in_regression = F){
   set.seed(seed)
   
   treatments <- levels(as.factor(data$a)) # Levels of treatment variable
@@ -101,10 +106,17 @@ match_discretized <- function(data, control_name = "1", confounder_names,
   match.weights <- data$match.weights
   
   #Estimate treatment effects
-  model_summary <- summary(glm(y ~ relevel(as.factor(a), control_name),
-                               data = data[data$match.weights > 0,],
-                               weights = match.weights),
-                           family = binomial(link = "logit"), robust = "HC1", digits = 5)
+  if (confounders_in_regression){
+    model_summary <- summary(glm(y ~ relevel(as.factor(a), control_name) + x,
+                                 data = data[data$match.weights > 0,],
+                                 weights = match.weights),
+                             family = binomial(link = "logit"), robust = "HC1", digits = 5)
+  } else{
+    model_summary <- summary(glm(y ~ relevel(as.factor(a), control_name),
+                                 data = data[data$match.weights > 0,],
+                                 weights = match.weights),
+                             family = binomial(link = "logit"), robust = "HC1", digits = 5)
+  }
   
   return(list("match.weights" = match.weights, "cov_bal_plots" = cov_bal_plots, "model_summary" = model_summary))
 }

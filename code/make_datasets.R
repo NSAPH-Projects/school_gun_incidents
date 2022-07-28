@@ -11,6 +11,8 @@ all_tracts_2020_new_distances <- read_excel(paste0(dir, "data/raw_data_to_be_joi
 all_tracts_2020_new_distances <- as.data.table(all_tracts_2020_new_distances)
 census_divisions_data <- fread(paste0(dir, "data/raw_data_to_be_joined/census_regions_divisions.csv"))
 mental_health_data <- fread(paste0(dir, "data/raw_data_to_be_joined/reworkedMentalHealth.csv"))
+county_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/NCHSURCodes2013.xlsx"))
+county_data <- as.data.table(county_data)
 
 codebook <- read_excel(paste0(dir, "data_dictionaries/codebook_all.xlsx"))
 
@@ -34,6 +36,10 @@ mental_health_data[, county_fips := ifelse(nchar(county_fips) == 1, paste0("00",
 mental_health_data[, county_fips := paste0(state_fips, county_fips)]
 mental_health_data[, state_fips := NULL]
 tracts_2020_all_data <- merge(tracts_2020_all_data, mental_health_data, by = "county_fips", all.x = T, all.y = F)
+
+county_data <- county_data[, .(county_fips = as.character(`FIPS code`), urban_rural = `2013 code`)]
+county_data[, county_fips := ifelse(nchar(county_fips) == 4, paste0("0", county_fips), county_fips)]
+tracts_2020_all_data <- merge(tracts_2020_all_data, county_data, by = "county_fips", all.x = T, all.y = F)
 
 
 ##### Remove rows #####
@@ -108,4 +114,4 @@ tracts_2020_transformed <- tracts_2020_transformed[, `:=`(mean_total_miles = NUL
 
 ##### Save dataset for all Census tracts containing a school #####
 
-fwrite(tracts_2020_transformed, paste0(dir, "data/all_tracts_2020_subset_vars.csv"))
+fwrite(tracts_2020_transformed, paste0(dir, "data/all_tracts_2020_subset_vars_incl_urban_rural.csv"))

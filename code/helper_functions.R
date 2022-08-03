@@ -13,6 +13,7 @@ all_confounder_names <- c("total_population_2020", "housing_units_per_sq_meter",
                           "prop_unemployed_16to24_2021", "prop_institutional_group",
                           "prop_noninstitutional_group", "prop_18plus")
 quantitative_confounders <- all_confounder_names[!all_confounder_names %in% c("census_division_number")]
+confounders_incl_urban_rural <- c(all_confounder_names, "urban_rural")
 
 
 load_packages <- function(){
@@ -99,7 +100,8 @@ match_discretized <- function(data, control_name = "1", confounder_names,
                                     var.order = "unadjusted",
                                     abs = TRUE,
                                     line = TRUE, 
-                                    thresholds = c(m = .1))  +
+                                    thresholds = c(m = .1),
+                                    stars = "raw")  +
       ggtitle(paste("Covariate Balance - Group", i, "vs Group", control_name))
   }
   
@@ -128,37 +130,6 @@ winsorize_counter_onesided <- function(counter, quantile){
   return(ifelse(counter > cutoff, cutoff, counter))
 }
 
-subset_state_data <- function(fips, trim_exposure = T){
-  data_state <- data_analysis[data_analysis$state_fips == fips, ]
-  if (trim_exposure){
-    data_state <- trim_exposure(data_state, data_state$a) # trim exposure at 95th percentile at state level
-  }
-  data_state$state_fips <- NULL
-  if ("census_division_number" %in% colnames(data_analysis)){
-    data_state$census_division_number <- NULL
-  }
-  return(data_state)
-}
-
-naive_state_logistic <- function(fips, trim_exposure){
-  state_data <- subset_state_data(fips, trim_exposure)
-  logistic_model <- glm(y ~ ., 
-                        data = state_data, 
-                        family = "binomial")
-  return(summary(logistic_model))
-}
-
-generate_state_pseudo_pop <- function(fips){
-  data_state <- subset_state_data(fips)
-  matched_pop <- get_matched_pseudo_pop(data_state$y, data_state$a, subset(data_state, select = confounders_without_division))
-  return(matched_pop)
-}
-
-make_state_correlation_plot <- function(fips, matched_pop){
-  data_state <- subset_state_data(fips)
-  return(make_matched_correlation_plot(matched_pop, data_state$a, subset(data_state, select = confounders_without_division), confounders_without_division))
-}
-
 weight_discretized <- function(df){
   w.out <- weightit(as.factor(a) ~ . -y -a -match.weights, data = df, focal = "1", estimand = "ATE")
   
@@ -171,6 +142,24 @@ weight_discretized <- function(df){
   print(summ(glm(y ~ a, data = df,
            weights = w.out$weights), robust = "HC1"))
   return(0)
+}
+
+loveplot_star_raw <- function(matched_pop){
+  love.plot(matched_pop,
+            drop.distance = TRUE, 
+            var.order = "unadjusted",
+            abs = TRUE,
+            line = TRUE, 
+            thresholds = c(m = .1),
+            stars = "raw")
+}
+
+logit <- function(p){
+  return(log(p/(1-p)))
+}
+
+inverse_logit <- function(x){
+  return(1 / (1 + exp(-x)))
 }
 
 
@@ -266,6 +255,15 @@ get_gps_matched_semiparametric_results <- function(matched_pop){
   return(summary(semi_outcome))
 }
 
+get_gps_matched_semiparametric_obj <- function(matched_pop){
+  pseudo <- matched_pop$pseudo_pop
+  semi_outcome <- estimate_semipmetric_erf(formula = Y ~ w,
+                                           family = binomial,
+                                           data = pseudo,
+                                           ci_appr = "matching")
+  return(semi_outcome)
+}
+
 get_gps_weighting_results <- function(gps_pop){
   pseudo <- gps_pop$pseudo_pop
   weighting_outcome <- estimate_pmetric_erf(formula = Y ~ w,
@@ -277,11 +275,56 @@ get_gps_weighting_results <- function(gps_pop){
 
 get_gps_matched_nonparametric_results <- function(matched_pop){
   pseudo <- matched_pop$pseudo_pop
+  w_lims <- range(pseudo$w)
   erf_obj <- estimate_npmetric_erf(as.double(pseudo$Y),
                                    as.double(pseudo$w),
-                                   bw_seq=seq(0.2,2,0.2),
-                                   w_vals = seq(0,15,0.5),
+                                   bw_seq=seq(0.2,5,0.2), # bw_seq=seq(0.1, 10, length.out = 15),
+                                   w_vals = seq(0, w_lims[2], length.out = 30),
                                    nthread = 1)
   
   return(plot(erf_obj))
+}
+
+get_gps_matched_nonparametric_results_with_counter <- function(matched_pop){
+  pseudo <- matched_pop$pseudo_pop
+  w_lims <- range(pseudo$w)
+  erf_obj <- estimate_npmetric_erf(as.double(pseudo$Y),
+                                   as.double(pseudo$w),
+                                   pseudo$counter,
+                                   bw_seq=seq(0.2,5,0.2), # bw_seq=seq(0.1, 10, length.out = 15),
+                                   w_vals = seq(0, w_lims[2], length.out = 30),
+                                   nthread = 1)
+  
+  return(plot(erf_obj))
+}
+
+subset_state_data <- function(fips, trim_exposure = T){
+  data_state <- data_analysis[data_analysis$state_fips == fips, ]
+  if (trim_exposure){
+    data_state <- trim_exposure(data_state, data_state$a) # trim exposure at 95th percentile at state level
+  }
+  data_state$state_fips <- NULL
+  if ("census_division_number" %in% colnames(data_analysis)){
+    data_state$census_division_number <- NULL
+  }
+  return(data_state)
+}
+
+naive_state_logistic <- function(fips, trim_exposure){
+  state_data <- subset_state_data(fips, trim_exposure)
+  logistic_model <- glm(y ~ ., 
+                        data = state_data, 
+                        family = "binomial")
+  return(summary(logistic_model))
+}
+
+generate_state_pseudo_pop <- function(fips){
+  data_state <- subset_state_data(fips)
+  matched_pop <- get_matched_pseudo_pop(data_state$y, data_state$a, subset(data_state, select = confounders_without_division))
+  return(matched_pop)
+}
+
+make_state_correlation_plot <- function(fips, matched_pop){
+  data_state <- subset_state_data(fips)
+  return(make_matched_correlation_plot(matched_pop, data_state$a, subset(data_state, select = confounders_without_division), confounders_without_division))
 }

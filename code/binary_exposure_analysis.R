@@ -8,16 +8,16 @@ setwd("/Users/falco//OneDrive - Harvard University/Research/Schools Vs Firearms"
 source("code/make_discretized_datasets.R")
 
 # Get datasets
-data_binary_exposure <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", cutoff = 2)
+data_binary_exposure <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", cutoff = 1.609)
 data_discretized <- decilize_quantitative_confounders(data_binary_exposure)
 
 # Get datasets for sensitivity analyses
-data_incl_urban_rural <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", cutoff = 2, confounder_names = c(all_confounder_names, "urban_rural"),
+data_incl_urban_rural <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", cutoff = 1.609, confounder_names = c(all_confounder_names, "urban_rural"),
                                                                                        alternate_data = "data/all_tracts_2020_subset_vars_incl_urban_rural.csv")
 data_discr_incl_urban_rural <- decilize_quantitative_confounders(data_incl_urban_rural)
-data_incl_na_mental_health <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", cutoff = 2, confounder_names = all_confounder_names[all_confounder_names != "mental_health_index"])
+data_incl_na_mental_health <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", cutoff = 1.609, confounder_names = all_confounder_names[all_confounder_names != "mental_health_index"])
 data_discr_incl_na_mental_health <- decilize_quantitative_confounders(data_incl_na_mental_health, decilized_confounders = quantitative_confounders[quantitative_confounders != "mental_health_index"])
-data_incl_state_name <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", cutoff = 2, confounder_names = c(quantitative_confounders, "State_Name")) # doesn't include: census_division_number
+data_incl_state_name <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", cutoff = 1.609, confounder_names = c(quantitative_confounders, "State_Name")) # doesn't include: census_division_number
 data_CA <- data_incl_state_name[data_incl_state_name$State_Name == "California", ]
 data_CA$State_Name <- NULL
 data_discr_CA <- decilize_quantitative_confounders(data_CA)
@@ -32,7 +32,7 @@ data_discr_TX <- decilize_quantitative_confounders(data_TX)
 table(data_discretized$a)
 
 # Initialize Formulas
-formula_matching <- as.formula(paste("a ~", paste(decilized_confounder_names, collapse = "+", sep = "")))
+formula_matching <- as.formula(paste("a ~", paste(confounder_names, collapse = "+", sep = "")))
 formula_main_eq <-  as.formula(paste("y ~ a +", paste(decilized_confounder_names, collapse = "+", sep = "")))
 formula_matching_incl_urban_rural <- as.formula(paste("a ~", paste(decilized_confounder_names_incl_urban_rural, collapse = "+", sep = "")))
 formula_main_eq_incl_urban_rural <-  as.formula(paste("y ~ a +", paste(decilized_confounder_names_incl_urban_rural, collapse = "+", sep = "")))
@@ -97,17 +97,16 @@ all_analyses_results <- rbind(all_analyses_results, c("TX_only", "naive_logistic
 
 set.seed(42)
 matched_pop <- matchit(formula_matching,
-                       data = data_discretized,
+                       data = data_binary_exposure,
                        estimand = "ATC",
                        method = "nearest",
-                       replace = TRUE,
-                       exact = c("census_division_number"))
+                       replace = TRUE)
 
 summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -134,7 +133,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -161,7 +160,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -187,7 +186,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -213,7 +212,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -239,7 +238,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -267,7 +266,7 @@ matched_pop_exact <- matchit(formula_matching,
 summary(matched_pop_exact$weights)
 
 loveplot_star_raw(matched_pop_exact)
-matched.data.exact <- match.data(matched_pop_exact)
+matched.data.exact <- get_matches(matched_pop_exact)
 n_matched_pop_exact <- nrow(matched.data.exact)
 n_matched_pop_exact
 
@@ -294,7 +293,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -321,7 +320,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -348,7 +347,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -375,7 +374,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -402,7 +401,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -429,7 +428,7 @@ matched_pop_exact_housing <- matchit(formula_matching,
 summary(matched_pop_exact_housing$weights)
 
 loveplot_star_raw(matched_pop_exact_housing)
-matched.data.exact.housing <- match.data(matched_pop_exact_housing)
+matched.data.exact.housing <- get_matches(matched_pop_exact_housing)
 n_matched_pop_exact_housing <- nrow(matched.data.exact.housing)
 n_matched_pop_exact_housing
 
@@ -456,7 +455,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -483,7 +482,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -510,7 +509,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -537,7 +536,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -567,7 +566,7 @@ matched_pop_caliper_0.2 <- matchit(formula_matching,
 summary(matched_pop_caliper_0.2$weights)
 loveplot_star_raw(matched_pop_caliper_0.2)
 
-matched.data.caliper.0.2 <- match.data(matched_pop_caliper_0.2)
+matched.data.caliper.0.2 <- get_matches(matched_pop_caliper_0.2)
 n_matched_pop_caliper_0.2 <- nrow(matched.data.caliper.0.2)
 n_matched_pop_caliper_0.2
 
@@ -596,7 +595,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -624,7 +623,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -652,7 +651,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 
@@ -680,7 +679,7 @@ summary(matched_pop$weights)
 # all_analyses_weights$match_division_only <- matched_pop$weights
 
 loveplot_star_raw(matched_pop)
-matched.data <- match.data(matched_pop)
+matched.data <- get_matches(matched_pop)
 n_matched_pop <- nrow(matched.data)
 n_matched_pop
 

@@ -1,7 +1,7 @@
 # This file contains functions (and a couple constants) used in our causal analysis
 
-all_confounder_names <- c("total_population_2020", "housing_units_per_sq_meter", "Tract_Area_sq_meters",
-                          "log_median_hh_income", "schools_per_sq_meter", "census_division_number",
+quantitative_confounders <- c("total_population_2020", "housing_units_per_sq_meter", "Tract_Area_sq_meters",
+                          "log_median_hh_income", "schools_per_sq_meter",
                           "log_median_hh_income_15to24", "total_crime_2021", 
                           "dealers_per_sq_meter", "mental_health_index",
                           "daytime_pop_2021", "prop_white_only", "prop_black_only", 
@@ -12,7 +12,7 @@ all_confounder_names <- c("total_population_2020", "housing_units_per_sq_meter",
                           "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
                           "prop_unemployed_16to24_2021", "prop_institutional_group",
                           "prop_noninstitutional_group", "prop_18plus")
-quantitative_confounders <- all_confounder_names[!all_confounder_names %in% c("census_division_number")]
+all_confounder_names <- c("census_division_number", quantitative_confounders)
 confounders_incl_urban_rural <- c(all_confounder_names, "urban_rural")
 
 
@@ -31,6 +31,8 @@ load_packages <- function(){
   library(cobalt)
   library(jtools)
   library(MatchIt)
+  library(lmtest)
+  library(sandwich)
 }
 
 load_packages()
@@ -78,6 +80,107 @@ get_analysis_df <- function(data, treatment = "mean_total_km", confounder_names)
   return(cbind(y, a, x))
 }
 
+round_results <- function(x){
+  rounded <- format(round(as.numeric(x), 4), scientific = F)
+  if (rounded == 0) rounded <- format(round(as.numeric(x), 5), scientific = F)
+  return(rounded)
+}
+
+codify_significance <- function(significance){
+  significance <- as.numeric(significance)
+  if (significance < 0.001) return("***")
+  else if (significance < 0.01) return("**")
+  else if (significance < 0.05) return("*")
+  else if (significance < 0.1) return(".")
+  else return(" ")
+}
+
+concatenate_results <- function(results_row){
+  estimate <- round_results(results_row["Estimate"])
+  SE <- round_results(results_row["Std. Error"])
+  if ("Pr(>|z|)" %in% names(results_row)){
+    signif_code <- codify_significance(results_row["Pr(>|z|)"])
+  } else{
+    signif_code <- codify_significance(results_row["Pr(>|t|)"])
+  }
+  return(paste0(estimate, " (", SE, ") ", signif_code))
+}
+
+match_binary_exposure <- function(formula, df, seed = 42, exact_vars = NULL, one_to_one = F){
+  set.seed(seed)
+  matched_pop <- matchit(formula,
+                         data = df,
+                         estimand = "ATC",
+                         method = "nearest",
+                         replace = !one_to_one,
+                         exact = exact_vars)
+  return(matched_pop)
+}
+
+get_match.data_outcome_model <- function(matched_pop){
+  matched.data <- match.data(matched_pop)
+  outcome <- glm(y ~ a,
+                 data = matched.data,
+                 weights = weights,
+                 family = quasibinomial(link = "logit"))
+  return(outcome)
+}
+
+# Heteroskedasticity Robust SE (MacKinnon and White, 1985)
+get_HC1_results <- function(matched_pop){
+  outcome <- get_match.data_outcome_model(matched_pop)
+  results <- summary(outcome, robust = "HC1", digits = 5)
+  return(results$coefficients["a", ])
+}
+
+# Heteroskedasticity Consistent SE (Zeileis, 2006)
+get_vcovHC_results <- function(matched_pop){
+  outcome <- get_match.data_outcome_model(matched_pop)
+  results <- coeftest(outcome, vcov. = vcovHC)
+  return(results["a", ])
+}
+
+# Clustered SE
+get_vcovCL_results <- function(matched_pop){
+  gm <- get_matches(matched_pop)
+  model <- glm(y ~ a, data = gm, weights = weights,
+               family = quasibinomial(link = "logit"))
+  # summary(model)
+  results <- coeftest(model, vcov. = vcovCL, cluster = ~ id + subclass)
+  return(results["a", ])
+}
+
+loveplot_star_raw <- function(matched_pop, title = "Covariate Balance"){
+  love.plot(matched_pop,
+            drop.distance = TRUE, 
+            var.order = "unadjusted",
+            abs = TRUE,
+            line = TRUE, 
+            thresholds = c(m = .1),
+            stars = "raw",
+            title = title)
+}
+
+explore_matches <- function(matched_pop){
+  cat("Number of control units = Number of included/matched control units = Number of matches =", length(matched_pop$match.matrix))
+  cat("Number of matched treated units:", length(unique(matched_pop$match.matrix)))
+  cat("Number of units that are not matched (all are treated units):", sum(matched_pop$weights == 0))
+  cat("Max times any [included/matched] treated unit is matched:", max(table(matched_pop$match.matrix)))
+  cat("Min times any [included/matched] treated unit is matched:", min(table(matched_pop$match.matrix)))
+  print("Distribution of number of times any [included/matched] treated unit is matched")
+  quantile(as.numeric(table(matched_pop$match.matrix)), c(0, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1))
+  print("IPW weights calculating from matches:")
+  summary(matched_pop$weights)
+  
+  # n_matched_pop <- nrow(match.data(matched_pop))
+  # n_matched_pop
+  # n_imbalanced <- length(which(abs(summary(matched_pop)[4]$sum.matched[,3]) > 0.1))
+  # n_imbalanced
+}
+
+
+##### THE FOLLOWING FUNCTIONS ARE OUTDATED (4-LEVEL EXPOSURE) #####
+
 match_discretized <- function(data, control_name = "1", confounder_names,
                               exact_matches = c("census_division_number", "dealers_per_sq_meter_decile", "log_median_hh_income_decile"),
                               caliper = NULL, seed = 42, confounders_in_regression = F){
@@ -123,13 +226,6 @@ match_discretized <- function(data, control_name = "1", confounder_names,
   return(list("match.weights" = match.weights, "cov_bal_plots" = cov_bal_plots, "model_summary" = model_summary))
 }
 
-# Function to winsorize counter (i.e., # of times each included observation is GPS-matched) at high quantile
-# Parameter quantile should be between 0.5 and 1
-winsorize_counter_onesided <- function(counter, quantile){
-  cutoff <- quantile(counter, quantile)
-  return(ifelse(counter > cutoff, cutoff, counter))
-}
-
 weight_discretized <- function(df){
   w.out <- weightit(as.factor(a) ~ . -y -a -match.weights, data = df, focal = "1", estimand = "ATE")
   
@@ -140,26 +236,8 @@ weight_discretized <- function(df){
   #(Can also use survey package)
   print(summ(glm(y ~ relevel(as.factor(a), "1"), data = df, weights = w.out$weights), robust = "HC1", digits = 5))
   print(summ(glm(y ~ a, data = df,
-           weights = w.out$weights), robust = "HC1"))
+                 weights = w.out$weights), robust = "HC1"))
   return(0)
-}
-
-loveplot_star_raw <- function(matched_pop){
-  love.plot(matched_pop,
-            drop.distance = TRUE, 
-            var.order = "unadjusted",
-            abs = TRUE,
-            line = TRUE, 
-            thresholds = c(m = .1),
-            stars = "raw")
-}
-
-logit <- function(p){
-  return(log(p/(1-p)))
-}
-
-inverse_logit <- function(x){
-  return(1 / (1 + exp(-x)))
 }
 
 
@@ -168,6 +246,14 @@ inverse_logit <- function(x){
 # exposure_vec: enter exposure as a vector of values, not as name of exposure variable
 trim_exposure <- function(df, exposure_vec, trim_quantile = 0.95){
   return(df[exposure_vec <= quantile(exposure_vec, trim_quantile), ])
+}
+
+logit <- function(p){
+  return(log(p/(1-p)))
+}
+
+inverse_logit <- function(x){
+  return(1 / (1 + exp(-x)))
 }
 
 get_gps_matched_pseudo_pop <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.95)){
@@ -195,6 +281,13 @@ get_gps_matched_pseudo_pop <- function(outcome, exposure, confounders, trim_quan
                              matching_fun = "matching_l1",
                              delta_n = 0.2,
                              scale = 1.0))
+}
+
+# Function to winsorize counter (i.e., # of times each included observation is GPS-matched) at high quantile
+# Parameter quantile should be between 0.5 and 1
+winsorize_counter_onesided <- function(counter, quantile){
+  cutoff <- quantile(counter, quantile)
+  return(ifelse(counter > cutoff, cutoff, counter))
 }
 
 get_gps <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.95)){

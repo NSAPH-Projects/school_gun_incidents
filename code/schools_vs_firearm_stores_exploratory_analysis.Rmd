@@ -46,7 +46,7 @@ colnames(cleaned_data)
 
 all_confounder_names
 
-data_analysis <- get_analysis_df(cleaned_data, treatment = "mean_total_km", all_confounder_names)
+data_analysis <- get_analysis_df(cleaned_data, treatment = "mean_total_miles", all_confounder_names)
 data_analysis <- na.omit(data_analysis)
 y <- data_analysis$y # to do: consider removing this line and not using a variable called y in the document (ambiguous)
 a <- data_analysis$a # to do: consider removing this line and not using a variable called a in the document (ambiguous)
@@ -187,7 +187,7 @@ We also have `mean_grocery_km` (containing 326 NA's), and `mean_pharmacy_km` (co
 ```{r explore-distances}
 sum(is.na(cleaned_data$mean_grocery_km))
 sum(is.na(cleaned_data$mean_pharmacy_km))
-round(quantile(cleaned_data$mean_total_km), 2)
+round(quantile(cleaned_data$mean_total_miles), 2)
 round(quantile(cleaned_data$mean_grocery_km, na.rm = TRUE), 2)
 round(quantile(cleaned_data$mean_pharmacy_km, na.rm = TRUE), 2)
 ```
@@ -463,7 +463,7 @@ plot(spline_exposure_only)
 # calculate global max (change point)
 plot <- plot(spline_exposure_only)
 cutoff <- plot[[1]]$x[which.max(plot[[1]]$fit)]
-# data_binary_exposure <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", F, cutoff)
+# data_binary_exposure <- get_binary_exposure_continuous_confounders_dataset("mean_total_miles", F, cutoff)
 
 # plot predicted log odds
 pred_spline_exposure_only <- predict(spline_exposure_only, newdata = list(a = a_grid), se = T)
@@ -505,7 +505,7 @@ plot(spline_exposure_with_covariates)
 # calculate global max (change point)
 plot <- plot(spline_exposure_with_covariates)
 cutoff <- plot[[1]]$x[which.max(plot[[1]]$fit)]
-# data_binary_exposure <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", F, cutoff)
+# data_binary_exposure <- get_binary_exposure_continuous_confounders_dataset("mean_total_miles", F, cutoff)
 ```
 
 ```{r spline-mgcv-bam-5-knots}
@@ -537,7 +537,7 @@ plot(spline_exposure_with_covariates_5knots)
 # calculate global max (change point)
 plot <- plot(spline_exposure_with_covariates_5knots)
 cutoff <- plot[[1]]$x[which.max(plot[[1]]$fit)]
-# data_binary_exposure <- get_binary_exposure_continuous_confounders_dataset("mean_total_km", F, cutoff)
+# data_binary_exposure <- get_binary_exposure_continuous_confounders_dataset("mean_total_miles", F, cutoff)
 ```
 
 ```{r spline-gnm, eval=F}

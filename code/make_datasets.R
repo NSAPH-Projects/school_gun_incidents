@@ -7,20 +7,20 @@ dir <- "/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniv
 
 tracts_2020_all_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/tracts_2020_all_data.xlsx"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
-all_tracts_2020_new_distances <- read_excel(paste0(dir, "data/raw_data_to_be_joined/all_tracts_2020_new_distances.xls"))
-all_tracts_2020_new_distances <- as.data.table(all_tracts_2020_new_distances)
+# all_tracts_2020_new_distances <- read_excel(paste0(dir, "data/raw_data_to_be_joined/all_tracts_2020_new_distances.xls")) # grocery and pharmacy data
+# all_tracts_2020_new_distances <- as.data.table(all_tracts_2020_new_distances)
 census_divisions_data <- fread(paste0(dir, "data/raw_data_to_be_joined/census_regions_divisions.csv"))
-mental_health_data <- fread(paste0(dir, "data/raw_data_to_be_joined/reworkedMentalHealth.csv"))
-county_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/NCHSURCodes2013.xlsx"))
-county_data <- as.data.table(county_data)
+mental_health_data <- fread(paste0(dir, "data/raw_data_to_be_joined/interpolated_mental_health.csv"))
+urbanity_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/NCHSURCodes2013.xlsx"))
+urbanity_data <- as.data.table(urbanity_data)
 
 codebook <- read_excel(paste0(dir, "data_dictionaries/codebook_all.xlsx"))
 
 
 ##### Merge datasets #####
 
-all_tracts_2020_new_distances[, mean_total_miles := NULL] # mean_total_miles is the same in both datasets up to 10 decimal digits
-tracts_2020_all_data <- merge(tracts_2020_all_data, all_tracts_2020_new_distances, by = "GEOID")
+# all_tracts_2020_new_distances[, mean_total_miles := NULL] # mean_total_miles is the same in both datasets up to 10 decimal digits
+# tracts_2020_all_data <- merge(tracts_2020_all_data, all_tracts_2020_new_distances, by = "GEOID") # grocery and pharmacy data
 
 census_divisions_data <- subset(census_divisions_data, select = c("state_fips", "census_division_number"))
 census_divisions_data[, state_fips := ifelse(nchar(state_fips) == 1, paste0("0", state_fips), state_fips)] # add leading 0 if necessary, convert state_fips to character
@@ -28,18 +28,15 @@ tracts_2020_all_data[, state_fips := substr(GEOID, 1, 2)]
 tracts_2020_all_data[, county_fips := substr(GEOID, 1, 5)]
 tracts_2020_all_data <- merge(tracts_2020_all_data, census_divisions_data, by = "state_fips", all.x = T, all.y = F)
 
-mental_health_data <- subset(mental_health_data, select = c("State Code (FIPS)", "County Code (FIPS)", "mental_health_index"))
-setnames(mental_health_data, c("State Code (FIPS)", "County Code (FIPS)", "mental_health_index"), c("state_fips", "county_fips", "mental_health_index"))
-mental_health_data[, state_fips := ifelse(nchar(state_fips) == 1, paste0("0", state_fips), state_fips)] # add leading 0 if necessary, convert state_fips to character
-mental_health_data[, county_fips := ifelse(nchar(county_fips) == 1, paste0("00", county_fips),
-                                           ifelse(nchar(county_fips) == 2, paste0("0", county_fips), county_fips))] # add leading 0s if necessary, convert county_fips to character
-mental_health_data[, county_fips := paste0(state_fips, county_fips)]
-mental_health_data[, state_fips := NULL]
-tracts_2020_all_data <- merge(tracts_2020_all_data, mental_health_data, by = "county_fips", all.x = T, all.y = F)
+mental_health_data <- subset(mental_health_data, select = c("GEOID_TXT", "mental_health_index"))
+setnames(mental_health_data, "GEOID_TXT", "GEOID")
+mental_health_data$GEOID <- as.character(mental_health_data$GEOID)
+mental_health_data[, GEOID := ifelse(nchar(GEOID) == 10, paste0("0", GEOID), GEOID)]
+tracts_2020_all_data <- merge(tracts_2020_all_data, mental_health_data, by = "GEOID", all.x = T, all.y = F)
 
-county_data <- county_data[, .(county_fips = as.character(`FIPS code`), urban_rural = `2013 code`)]
-county_data[, county_fips := ifelse(nchar(county_fips) == 4, paste0("0", county_fips), county_fips)]
-tracts_2020_all_data <- merge(tracts_2020_all_data, county_data, by = "county_fips", all.x = T, all.y = F)
+urbanity_data <- urbanity_data[, .(county_fips = as.character(`FIPS code`), urban_rural = `2013 code`)]
+urbanity_data[, county_fips := ifelse(nchar(county_fips) == 4, paste0("0", county_fips), county_fips)]
+tracts_2020_all_data <- merge(tracts_2020_all_data, urbanity_data, by = "county_fips", all.x = T, all.y = F)
 
 
 ##### Remove rows #####
@@ -62,12 +59,12 @@ setnames(tracts_2020_subset, old = c("Shape_Area",
                                      "PCT_P0030001", "PCT_P0020005", "PCT_P0020006", "PCT_P0020007", "PCT_P0020008", "PCT_P0020009", "PCT_P0020011", "PCT_P0020002", 
                                      "P0050002", "P0050007",
                                      "householdincome_medhinc_cy", "incomebyage_media15_cy",
-                                     "P0010001", "daytimepopulation_dpop_cy", "H0010001", "crime_crmcytotc"),
+                                     "P0010001", "P0030001", "daytimepopulation_dpop_cy", "H0010001", "crime_crmcytotc"),
          new = c("Tract_Area_sq_meters",
                  "pct_18plus", "white_only_pct", "black_only_pct", "american_indian_alaskan_native_only_pct", "asian_only_pct", "native_hawaiian_pacific_islander_only_pct", "multiracial_pct", "hispanic_latino_pct",
                  "institutional_group_pop", "noninstitutional_group_pop",
                  "median_household_inc_2021", "median_household_inc_15to24_2021",
-                 "total_population_2020", "daytime_pop_2021", "total_housing_units", "total_crime_2021"))
+                 "total_population_2020", "pop18plus", "daytime_pop_2021", "total_housing_units", "total_crime_2021"))
 
 
 ##### Extract, transform, scale variables ##### 
@@ -75,9 +72,6 @@ setnames(tracts_2020_subset, old = c("Shape_Area",
 tracts_2020_transformed <- copy(tracts_2020_subset)
 tracts_2020_transformed[, state_fips := substr(GEOID, 1, 2)]
 tracts_2020_transformed[, county_fips := substr(GEOID, 1, 5)]
-tracts_2020_transformed[, mean_total_km := mean_total_miles * 1.609344]
-tracts_2020_transformed[, mean_grocery_km := mean_distance_grocery_miles * 1.609344]
-tracts_2020_transformed[, mean_pharmacy_km := mean_distance_pharmacy_miles * 1.609344]
 tracts_2020_transformed[, log_median_hh_income := log(median_household_inc_2021 + 0.01)]
 tracts_2020_transformed[, log_median_hh_income_15to24 := log(median_household_inc_15to24_2021 + 0.01)]
 tracts_2020_transformed[, `:=`(dealers_per_sq_meter = count_gun_dealers/Tract_Area_sq_meters,
@@ -102,8 +96,7 @@ tracts_2020_transformed[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/
 tracts_2020_transformed[, `:=`(housing_units_per_sq_meter = total_housing_units/Tract_Area_sq_meters,
                                prop_institutional_group = institutional_group_pop/total_population_2020, 
                                prop_noninstitutional_group = noninstitutional_group_pop/total_population_2020)]
-tracts_2020_transformed <- tracts_2020_transformed[, `:=`(mean_total_miles = NULL, mean_distance_grocery_miles = NULL, mean_distance_pharmacy_miles = NULL,
-                                                          median_household_inc_2021 = NULL, median_household_inc_15to24_2021 = NULL,
+tracts_2020_transformed <- tracts_2020_transformed[, `:=`(median_household_inc_2021 = NULL, median_household_inc_15to24_2021 = NULL,
                                                           pct_18plus = NULL, white_only_pct = NULL, black_only_pct = NULL, american_indian_alaskan_native_only_pct = NULL,
                                                           asian_only_pct = NULL, native_hawaiian_pacific_islander_only_pct = NULL, multiracial_pct = NULL,
                                                           hispanic_latino_pct = NULL, foodstampssnap_acssnap_p = NULL, households_acspubai_p = NULL,
@@ -114,4 +107,4 @@ tracts_2020_transformed <- tracts_2020_transformed[, `:=`(mean_total_miles = NUL
 
 ##### Save dataset for all Census tracts containing a school #####
 
-fwrite(tracts_2020_transformed, paste0(dir, "data/all_tracts_2020_subset_vars_incl_urban_rural.csv"))
+fwrite(tracts_2020_transformed, paste0(dir, "data/all_tracts_2020_subset_vars.csv"))

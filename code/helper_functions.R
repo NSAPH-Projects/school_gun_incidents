@@ -55,6 +55,12 @@ factorize_cat_vars <- function(data){
   if ("GEOID" %in% colnames(data)){
     data$GEOID <- as.factor(data$GEOID)
   }
+  if ("State_Name" %in% colnames(data)){
+    data$State_Name <- as.factor(data$State_Name)
+  }
+  if ("County_Name" %in% colnames(data)){
+    data$County_Name <- as.factor(data$County_Name)
+  }
   if ("state_fips" %in% colnames(data)){
     data$state_fips <- ifelse(nchar(data$state_fips) == 1, paste0("0", data$state_fips), data$state_fips)
   }
@@ -65,14 +71,14 @@ factorize_cat_vars <- function(data){
 }
 
 # to do: figure out if/why this function returns a character matrix
-get_confounders_matrix <- function(data, confounder_names){
-  # x <- factorize_cat_vars(data[, confounder_names])
-  x <- data[, confounder_names]
-  x <- t(apply(x, 1, unlist)) # turn data frame into matrix, for CausalGPS functions
-  return(x)
-}
+# get_confounders_matrix <- function(data, confounder_names){
+#   # x <- factorize_cat_vars(data[, confounder_names])
+#   x <- data[, confounder_names]
+#   x <- t(apply(x, 1, unlist)) # turn data frame into matrix, for CausalGPS functions
+#   return(x)
+# }
 
-get_analysis_df <- function(data, treatment = "mean_total_km", confounder_names){
+get_analysis_df <- function(data, treatment = "mean_total_miles", confounder_names){
   data <- as.data.frame(data)
   y <- data[, "binary_shooting_incident"]
   a <- data[, treatment]

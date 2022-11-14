@@ -5,7 +5,7 @@ library(data.table)
 
 dir <- "/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
 
-tracts_2020_all_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/tracts_2020_all_data.xlsx"))
+tracts_2020_all_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/tracts_2020_all_data_revised.xlsx"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
 # all_tracts_2020_new_distances <- read_excel(paste0(dir, "data/raw_data_to_be_joined/all_tracts_2020_new_distances.xls")) # grocery and pharmacy data
 # all_tracts_2020_new_distances <- as.data.table(all_tracts_2020_new_distances)
@@ -42,8 +42,9 @@ tracts_2020_all_data <- merge(tracts_2020_all_data, urbanity_data, by = "county_
 ##### Remove rows #####
 
 tracts_2020_subset <- tracts_2020_all_data[!startsWith(GEOID, "72")] # remove Puerto Rico because school shooting dataset (https://www.chds.us/ssdb) doesn't cover PR
-tracts_2020_subset <- tracts_2020_subset[!is.na(mean_total_miles)] # remove 13 NA's in treatment variable
+tracts_2020_subset <- tracts_2020_subset[!is.na(MEAN_Total_Miles_1)] # remove 13 NA's in treatment variable
 tracts_2020_subset <- tracts_2020_subset[P0010001 != 0] # remove 19 Census tracts with total population 0
+tracts_2020_subset <- tracts_2020_subset[MEAN_Total_Miles_1 <= 500] # there are 124 tracts with MEAN_Total_Miles_1 >= 698.50; all other tracts have MEAN_Total_Miles_1 <= 100.21
 
 
 ##### Subset columns (aka variables) #####
@@ -55,12 +56,12 @@ tracts_2020_subset <- subset(tracts_2020_subset, select = include_vars)
 
 ##### Rename variables ##### 
 
-setnames(tracts_2020_subset, old = c("Shape_Area",
+setnames(tracts_2020_subset, old = c("MEAN_Total_Miles_1", "Shape_Area",
                                      "PCT_P0030001", "PCT_P0020005", "PCT_P0020006", "PCT_P0020007", "PCT_P0020008", "PCT_P0020009", "PCT_P0020011", "PCT_P0020002", 
                                      "P0050002", "P0050007",
                                      "householdincome_medhinc_cy", "incomebyage_media15_cy",
                                      "P0010001", "P0030001", "daytimepopulation_dpop_cy", "H0010001", "crime_crmcytotc"),
-         new = c("Tract_Area_sq_meters",
+         new = c("mean_total_miles", "Tract_Area_sq_meters",
                  "pct_18plus", "white_only_pct", "black_only_pct", "american_indian_alaskan_native_only_pct", "asian_only_pct", "native_hawaiian_pacific_islander_only_pct", "multiracial_pct", "hispanic_latino_pct",
                  "institutional_group_pop", "noninstitutional_group_pop",
                  "median_household_inc_2021", "median_household_inc_15to24_2021",
@@ -72,10 +73,11 @@ setnames(tracts_2020_subset, old = c("Shape_Area",
 tracts_2020_transformed <- copy(tracts_2020_subset)
 tracts_2020_transformed[, state_fips := substr(GEOID, 1, 2)]
 tracts_2020_transformed[, county_fips := substr(GEOID, 1, 5)]
+tracts_2020_transformed[, area_sq_miles := Tract_Area_sq_meters / 1.60934^2]
 tracts_2020_transformed[, log_median_hh_income := log(median_household_inc_2021 + 0.01)]
 tracts_2020_transformed[, log_median_hh_income_15to24 := log(median_household_inc_15to24_2021 + 0.01)]
-tracts_2020_transformed[, `:=`(dealers_per_sq_meter = count_gun_dealers/Tract_Area_sq_meters,
-                          schools_per_sq_meter = count_schools/Tract_Area_sq_meters)]
+tracts_2020_transformed[, `:=`(dealers_per_100_sq_miles = count_gun_dealers/area_sq_miles*100,
+                          schools_per_100_sq_miles = count_schools/area_sq_miles*100)]
 tracts_2020_transformed[, `:=`(prop_18plus = pct_18plus/100,
                           prop_white_only = white_only_pct/100,
                                prop_black_only = black_only_pct/100,
@@ -93,10 +95,10 @@ tracts_2020_transformed[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/
                                prop_grad_deg_25plus_2021 = educationalattainment_graddeg_cy_p/100,
                                prop_unemployed_2021 = employmentunemployment_unemprt_cy/100,
                                prop_unemployed_16to24_2021 = employmentunemployment_unage16cy_p/100)]
-tracts_2020_transformed[, `:=`(housing_units_per_sq_meter = total_housing_units/Tract_Area_sq_meters,
+tracts_2020_transformed[, `:=`(housing_units_per_100_sq_miles = total_housing_units/area_sq_miles*100,
                                prop_institutional_group = institutional_group_pop/total_population_2020, 
                                prop_noninstitutional_group = noninstitutional_group_pop/total_population_2020)]
-tracts_2020_transformed <- tracts_2020_transformed[, `:=`(median_household_inc_2021 = NULL, median_household_inc_15to24_2021 = NULL,
+tracts_2020_transformed <- tracts_2020_transformed[, `:=`(Tract_Area_sq_meters = NULL, median_household_inc_2021 = NULL, median_household_inc_15to24_2021 = NULL,
                                                           pct_18plus = NULL, white_only_pct = NULL, black_only_pct = NULL, american_indian_alaskan_native_only_pct = NULL,
                                                           asian_only_pct = NULL, native_hawaiian_pacific_islander_only_pct = NULL, multiracial_pct = NULL,
                                                           hispanic_latino_pct = NULL, foodstampssnap_acssnap_p = NULL, households_acspubai_p = NULL,
@@ -107,4 +109,4 @@ tracts_2020_transformed <- tracts_2020_transformed[, `:=`(median_household_inc_2
 
 ##### Save dataset for all Census tracts containing a school #####
 
-fwrite(tracts_2020_transformed, paste0(dir, "data/all_tracts_2020_subset_vars.csv"))
+fwrite(tracts_2020_transformed, paste0(dir, "data/all_tracts_2020_subset_vars_revised.csv"))

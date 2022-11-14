@@ -25,11 +25,6 @@ all_results <- as.data.table(data.frame(Cat_Covariates = rep(rep(c("State", "Sta
                           Counter_Cap = "",
                           Model = rep(c("Naive Logistic", "Naive NegBin", "Match", "Weight", "Adjust"), 4),
                           Results = ""))
-# all_results <- data.frame(Covariates = rep(c("State", "Census Div", "State + Urbanity", "Census Div + Urbanity", each = 6)),
-#                           Exposure_Range = "",
-#                           Counter_Max = "",
-#                           Counter_Cap = rep(c("-", "", "", "-", "", ""), 2),
-#                           Logistic_Results = "")
 
 # get 1st/99th and 5th/95th percentiles of exposure (for trimming)
 exposure1.99 <- quantile(data_with_state$a, c(0.01, 0.99))
@@ -91,34 +86,6 @@ all_matching_results_1model <- function(seed, data, trim, model_name, cat_confou
     results_list[[paste0("cov_bal.capped", capped)]] <- get_matched_correlation_plot(pseudo_pop, cat_confounder_names, data$a, subset(data, select = cat_confounder_names), quant_confounders)
     # cov_bal <- make_correlation_plot(pseudo_pop, "matching", cat_confounder_names, data$a, subset(data, select = cat_confounder_names))
     # ggsave(paste0("results/covariate_balance_plots/filtered_FFL/continuous_exposure/", model_name, model_name_addition, ".png"), cov_bal)
-    
-    # # save splines
-    # for (knots in c(3)){ # c(3,5)
-    #   # default spline plot
-    #   spline_exposure_only <- mgcv::bam(Y~ s(w, bs='cr', k=knots), data = pseudo_pop$pseudo_pop,
-    #                                     family=binomial(link="logit"),
-    #                                     weights = pseudo_pop$pseudo_pop$counter_weight)
-    #   # png(file = paste0("results/splines/filtered_FFL/gps_matched/", model_name, model_name_addition, "_", knots, "knots.png"))
-    #   # plot(spline_exposure_only)
-    #   # dev.off()
-    #   
-    #   # spline with interpretable y-axis (log odds) using predict()
-    #   w_lims <- range(pseudo_pop$pseudo_pop$w)
-    #   w_grid <- seq(w_lims[1], w_lims[2], length.out = 100)
-    #   pred_spline_exposure_only <- predict(spline_exposure_only, newdata = list(w = w_grid), se = T)
-    #   png(file = paste0("results/splines/filtered_FFL/gps_matched/", model_name, model_name_addition, "_", knots, "knots.logodds.png"))
-    #   p <- plot(w_grid, pred_spline_exposure_only$fit, type = "l", col = "red", lwd = 3, xlab = "Mean minimum distance to gun dealer (miles)", ylab = "Log odds (log(p/(1-p))")
-    #   lines(w_grid, pred_spline_exposure_only$fit + 2*pred_spline_exposure_only$se.fit, lty = "dashed", lwd = 2, col = "green")
-    #   lines(w_grid, pred_spline_exposure_only$fit - 2*pred_spline_exposure_only$se.fit, lty = "dashed", lwd = 2, col = "green")
-    #   dev.off()
-    #   
-    #   # spline with interpretable y-axis (probability) using predict()
-    #   # To Do: calculate transformed SEs properly (bootstrap?)
-    #   pred_probability <- inverse_logit(pred_spline_exposure_only$fit)
-    #   png(file = paste0("results/splines/filtered_FFL/gps_matched/", model_name, model_name_addition, "_", knots, "knots.probability.png"))
-    #   p <- plot(w_grid, pred_probability, type = "l", col = "red", lwd = 3, xlab = "Mean minimum distance to gun dealer (miles)", ylab = "Probability (p)")
-    #   dev.off()
-    # }
   }
   
   return(results_list) # numerical output, to be stored in results table
@@ -152,8 +119,8 @@ n_boot <- 10^3
 n <- nrow(data_with_state.5.95)
 m <- 10
 
-# a.vals <- seq(min(aggregate_data$pm25_ensemble),max(aggregate_data$pm25_ensemble),length.out = 50)
-# delta_n<-a.vals[2]-a.vals[1]
+# a.vals <- seq(min(data_with_state.5.95$a), max(data_with_state.5.95$a), length.out = 50)
+# delta_n <- a.vals[2] - a.vals[1]
 
 
 
@@ -226,7 +193,7 @@ state.urbanity.5.95_weight <- all_weighting_results_1model(100, data_with_urbani
 state.urbanity.1.99_weight <- all_weighting_results_1model(100, data_with_urbanity_state, c(0.01, 0.99),
                                                    "state.urbanity.1.99", c("State_Name", "urban_rural"))
 
-##### Adjusting by GPS
+##### NOT UPDATED (IGNORE FOR NOW): Adjusting by GPS
 
 all_adjusting_results_1model <- function(seed, data, trim, cat_confounder_names){
   set.seed(seed)
@@ -253,6 +220,7 @@ state.urbanity.5.95_adjust <- all_adjusting_results_1model(100, data_with_urbani
 state.urbanity.1.99_adjust <- all_adjusting_results_1model(100, data_with_urbanity_state, exposure1.99, c("State_Name", "urban_rural"))
 
 
+##### AD HOC (to do: re-code this better, use 5.95 instead of 1.99)
 ##### Collect covariate balances into one plot
 
 state.1.99_weight_cov_bal.capped0.99 <- read.csv("results/covariate_balance_plots/filtered_FFL/continuous_exposure/csvs/state.1.99_weight.capped0.99_cov_bal.csv")
@@ -273,47 +241,7 @@ p <- ggplot(abs_cor, aes(x = `Absolute Correlation`, y = Covariate, color = Data
   geom_line(orientation = "y")
 ggsave(paste0("results/covariate_balance_plots/filtered_FFL/continuous_exposure/all_methods_on_one_plot/state.1.99.capped99_all.cov.bal.png"), p)
 
-temp1 <- state.urbanity.1.99_match$cov_bal.capped0.99
-temp1$Dataset[temp1$Dataset == "Unmatched"] <- "Unadjusted"
-temp2 <- state.urbanity.1.99_weight_cov_bal.capped0.99
-temp2 <- temp2[temp2$Dataset == "Weighted", ]
-temp2$X <- NULL
-colnames(temp2)[3] <- "Absolute Correlation"
-abs_cor <- rbind(temp1, temp2)
-
-p <- ggplot(abs_cor, aes(x = `Absolute Correlation`, y = Covariate, color = Dataset, group = Dataset)) +
-  geom_point() +
-  geom_line(orientation = "y")
-ggsave(paste0("results/covariate_balance_plots/filtered_FFL/continuous_exposure/all_methods_on_one_plot/state.urbanity.1.99.capped99_all.cov.bal.png"), p)
-
-
-temp1 <- state.1.99_match$cov_bal.capped1
-temp1$Dataset[temp1$Dataset == "Unmatched"] <- "Unadjusted"
-temp2 <- state.1.99_weight_cov_bal.capped1
-temp2 <- temp2[temp2$Dataset == "Weighted", ]
-temp2$X <- NULL
-colnames(temp2)[3] <- "Absolute Correlation"
-abs_cor <- rbind(temp1, temp2)
-
-p <- ggplot(abs_cor, aes(x = `Absolute Correlation`, y = Covariate, color = Dataset, group = Dataset)) +
-  geom_point() +
-  geom_line(orientation = "y")
-ggsave(paste0("results/covariate_balance_plots/filtered_FFL/continuous_exposure/all_methods_on_one_plot/state.1.99_all.cov.bal.png"), p)
-
-temp1 <- state.urbanity.1.99_match$cov_bal.capped1
-temp1$Dataset[temp1$Dataset == "Unmatched"] <- "Unadjusted"
-temp2 <- state.urbanity.1.99_weight_cov_bal.capped1
-temp2 <- temp2[temp2$Dataset == "Weighted", ]
-temp2$X <- NULL
-colnames(temp2)[3] <- "Absolute Correlation"
-abs_cor <- rbind(temp1, temp2)
-
-p <- ggplot(abs_cor, aes(x = `Absolute Correlation`, y = Covariate, color = Dataset, group = Dataset)) +
-  geom_point() +
-  geom_line(orientation = "y")
-ggsave(paste0("results/covariate_balance_plots/filtered_FFL/continuous_exposure/all_methods_on_one_plot/state.urbanity.1.99_all.cov.bal.png"), p)
-
-
+##### AD HOC (to do: re-code this better) #####
 ##### Print results in LaTeX
 all_results[Model %in% c("Naive Logistic", "Naive NegBin", "Adjust"), `:=`(Counter_Max = "-", Counter_Cap = "-")]
 all_results[Cat_Covariates == "State" & Model == "Match" & Exposure_Range == formatted1.99, `:=`(Counter_Max = state.1.99$counter_max, Counter_Cap = state.1.99$counter99, Results = state.1.99$logistic_regression_output_capped99)]
@@ -353,22 +281,4 @@ all_results[Cat_Covariates == "State + Urbanity" & Model == "Adjust" & Exposure_
 #                                   censusdiv.urbanity.5.95[["logistic_regression_output"]], censusdiv.urbanity.5.95[["logistic_regression_output_capped99"]], censusdiv.urbanity.5.95[["logistic_regression_output_capped95"]])
 
 xtable(all_results)
-
-##### Not used anymore: Display results in figure
-key_results <- all_results[Cat_Covariates == "State" & Exposure_Range == formatted5.95, .(Model, Results)]
-key_results$Estimate <- c(-0.0635, -0.0617, -0.052, -0.0636, -0.0413)
-key_results$SE <- c(0.0343, 0.0338, 0.0051, 0.0189, 0.0193)
-# key_results[, Probability := inv.logit(Estimate)]
-key_results[, Model := factor(Model, levels = c("Naive Logistic", "Naive NegBin", "Match", "Weight", "Adjust"))]
-
-p1 <- ggplot(key_results, aes(x=Model, y=Estimate)) + 
-  geom_point() +
-  geom_errorbar(aes(ymin = Estimate - 2*SE, ymax = Estimate + 2*SE)) + 
-  ylab("Log odds (log(p/(1-p))")
-ggsave(paste0("results/results_as_figure/state.5.95.capped99_all.results.logodds.png"), p1)
-
-# p2 <- ggplot(key_results, aes(x=Model, y=Probability)) +
-#   geom_point() +
-#   ylab("Probability (p)")
-# ggsave(paste0("results/results_as_figure/state.5.95.capped99_all.results.probability.png"), p2)
 

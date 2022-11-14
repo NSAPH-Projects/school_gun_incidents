@@ -7,12 +7,16 @@ source("code/helper_functions.R")
 df <- fread("data/all_tracts_2020_subset_vars_revised.csv")
 data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
 data_with_state <- na.omit(data_with_state)
+factual_exposures <- data_with_state$a
+
+# the following dataset (sensitivity analysis) is not used because we only perform this counterfactual-vs-factual calculation on the main analysis
 # data_with_urbanity_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders, "urban_rural"))
 # data_with_urbanity_state <- na.omit(data_with_urbanity_state)
-factual_exposures <- data_with_state$a
 
 
 #### Get GPS matching results ####
+
+### The code below performs matching; commented out to save time ###
 
 # set.seed(100)
 # state.5.95_match <- get_gps_matched_pseudo_pop(data_with_state$y, data_with_state$a, data_with_state[, c("State_Name", quantitative_confounders)], trim_quantiles = c(0.05, 0.95))
@@ -32,7 +36,7 @@ factual_exposures <- data_with_state$a
 # state.urbanity.5.95_match.cap99.logistic
 # vcov(state.urbanity.5.95_match.cap99.logistic)
 
-### results from GPS matching (trim 5/95, cap 99)
+### To save time, hard-code results from GPS matching (trim 5/95, cap 99) ###
 beta0_state <- -4.1528
 beta1_state <- -0.0520
 beta0_state.urbanity <- -4.0811
@@ -42,13 +46,6 @@ vcov_state.urbanity <- matrix(c(0.0002415, -0.00006514, -0.00006514, 0.00002387)
 
 
 #### Calculate number of events avoided ####
-
-# events_avoided <- data.frame(factual_exposure_lower_bound = c(rep(0,9), rep(1,8), rep(2,7), rep(3,6), rep(4,5), rep(5,4), rep(6,3), rep(7,2), 8),
-#                              factual_exposure_upper_bound = c(rep(1,9), rep(2,8), rep(3,7), rep(4,6), rep(5,5), rep(6,4), rep(7,3), rep(8,2), 9),
-#                              counterfactual_exposure = c(2:10, 3:10, 4:10, 5:10, 6:10, 7:10, 8:10, 9:10, 10),
-#                              factual_expected_events = NA,
-#                              counterfactual_expected_events = NA,
-#                              expected_events_avoided = NA)
 
 # parameters for counterfactual calculation
 all.factual.exposure.lower.bounds <- 0:8
@@ -357,133 +354,3 @@ for (i in 1:nrow(state_expected.fewer.ppl.affected_CI)){
 # write.csv(state_counterfactual.expected.ppl.affected_CI, "results/factual_vs_counterfactual/filtered_FFL/state_counterfactual.expected.ppl.affected_95pctCI.csv")
 write.csv(state_expected.fewer.ppl.affected_CI, "results/factual_vs_counterfactual/filtered_FFL/state_expected.fewer.ppl.affected.from.model_95pctCI.csv")
 write.csv(state_expected.fewer.ppl.affected.from.reality_CI, "results/factual_vs_counterfactual/filtered_FFL/state_expected.fewer.ppl.affected.from.reality_95pctCI.csv")
-
-
-
-
-#### old stuff - IGNORE ####
-
-# total populations
-sum(data_with_state$total_population_2020[data_with_state$a<1])
-# [1] 74750399
-sum(data_with_state$total_population_2020[data_with_state$a<2])
-# [1] 151614622
-sum(data_with_state$total_population_2020)
-# [1] 239467905
-
-# causal estimates
-sum(p.factual_state.1mi*data_with_state$total_population_2020[data_with_state$a<1])
-# [1] 1119585
-sum(data_with_state$total_population_2020[data_with_state$a<1]) * p.counterfactual_state.1mi
-# [1] 1099154
-sum(p.factual_state.2mi*data_with_state$total_population_2020[data_with_state$a<2])
-# [1] 2224303
-sum(data_with_state$total_population_2020[data_with_state$a<2]) * p.counterfactual_state.2mi
-# [1] 2118003
-sum(p.factual.1mi_state.urbanity*data_with_state$total_population_2020[data_with_state$a<1])
-# [1] 1202831
-sum(p.factual.2mi_state.urbanity*data_with_state$total_population_2020[data_with_state$a<2])
-# [1] 2391436
-sum(data_with_state$total_population_2020[data_with_state$a<1]) * p.counterfactual.1mi_state.urbanity
-# [1] 1181660
-sum(data_with_state$total_population_2020[data_with_state$a<2]) * p.counterfactual.2mi_state.urbanity
-# [1] 2281155
-
-### Option 2 calculation ###
-
-sum(p2.factual_state * data_with_state$total_population_2020)
-# [1] 3333621
-sum(p2.factual_state.urbanity * data_with_state$total_population_2020)
-# [1] 3590115
-sum(p2.counterfactual_state * data_with_state$total_population_2020)
-# [1] 3166959
-sum(p2.counterfactual_state.urbanity * data_with_state$total_population_2020)
-# [1] 3416872
-
-
-
-
-#### Below this is old ####
-
-### Option 1 calculation ###
-
-p.factual_state.1mi <- beta0_state + beta1_state * data_with_state$a[data_with_state$a <1]
-p.factual_state.2mi <- beta0_state + beta1_state * data_with_state$a[data_with_state$a <2]
-p.factual.1mi_state.urbanity <- beta0_state.urbanity + beta1_state.urbanity * data_with_state$a[data_with_state$a <1]
-p.factual.2mi_state.urbanity <- beta0_state.urbanity + beta1_state.urbanity * data_with_state$a[data_with_state$a <2]
-p.counterfactual.2mi_state.urbanity <- beta0_state.urbanity + beta1_state.urbanity * 2
-p.counterfactual_state.2mi <- beta0_state + beta1_state * 2
-p.counterfactual.1mi_state.urbanity <- beta0_state.urbanity + beta1_state.urbanity
-p.counterfactual_state.1mi <- beta0_state + beta1_state
-
-p.counterfactual_state.1mi <- exp(p.counterfactual_state.1mi)/(1+exp(p.counterfactual_state.1mi))
-p.counterfactual_state.2mi <- exp(p.counterfactual_state.2mi)/(1+exp(p.counterfactual_state.2mi))
-p.counterfactual.1mi_state.urbanity <- exp(p.counterfactual.1mi_state.urbanity) / (1+exp(p.counterfactual.1mi_state.urbanity))
-p.counterfactual.2mi_state.urbanity <- exp(p.counterfactual.2mi_state.urbanity) / (1+exp(p.counterfactual.2mi_state.urbanity))
-p.factual_state.1mi <- exp(p.factual_state.1mi) / (1+exp(p.factual_state.1mi))
-p.factual_state.2mi <- exp(p.factual_state.2mi) / (1+exp(p.factual_state.2mi))
-p.factual.1mi_state.urbanity <- exp(p.factual.1mi_state.urbanity) / (1+exp(p.factual.1mi_state.urbanity))
-p.factual.2mi_state.urbanity <- exp(p.factual.2mi_state.urbanity) / (1+exp(p.factual.2mi_state.urbanity))
-
-sum(p.factual_state.1mi)
-# [1] 268.2528
-sum(p.factual_state.2mi)
-# [1] 519.6879
-sum(p.factual.1mi_state.urbanity)
-# [1] 288.1932
-sum(p.factual.2mi_state.urbanity)
-# [1] 558.7208
-
-vcov(get_gps_matched_logistic_results_glm(state.5.95_match.cap99))
-vcov(get_gps_matched_logistic_results_glm(state.urbanity.5.95_match.cap99))
-
-sqrt(0.0161^2 + 0.0051^2 -0.00006991 * 2)
-# [1] 0.01205819
-sqrt(0.0155^2 + 0.0049^2 -0.00006514 * 2)
-# [1] 0.01157497
-sqrt(0.0161^2 + 4*0.0051^2 -0.00006991 * 2*2)
-# [1] 0.00914385
-sqrt(0.0155^2 + 4*0.0049^2 -0.00006514 * 2*2)
-# [1] 0.008702299
-
-
-### Option 2 calculation ###
-
-p2.factual_state.urbanity <- beta0_state.urbanity + beta1_state.urbanity * data_with_state$a
-p2.factual_state <- beta0_state + beta1_state * data_with_state$a
-p2.counterfactual_state.urbanity <- beta0_state.urbanity + beta1_state.urbanity * (data_with_state$a + 1)
-p2.counterfactual_state <- beta0_state + beta1_state * (data_with_state$a + 1)
-
-p2.factual_state.urbanity <- exp(p2.factual_state.urbanity) / (1 + exp(p2.factual_state.urbanity))
-p2.factual_state <- exp(p2.factual_state) / (1 + exp(p2.factual_state))
-p2.counterfactual_state.urbanity <- exp(p2.counterfactual_state.urbanity) / (1 + exp(p2.counterfactual_state.urbanity))
-p2.counterfactual_state <- exp(p2.counterfactual_state) / (1 + exp(p2.counterfactual_state))
-
-# causal estimates
-sum(p2.factual_state)
-# [1] 786.8986
-sum(p2.factual_state.urbanity)
-# [1] 847.5773
-sum(p2.counterfactual_state)
-# [1] 747.5565
-sum(p2.counterfactual_state.urbanity)
-# [1] 806.6751
-
-# real numbers
-sum(data_with_state$y[data_with_state$a<1])
-# [1] 262
-sum(data_with_state$y[data_with_state$a<2])
-# [1] 543
-sum(data_with_state$y)
-# [1] 826
-
-
-
-
-
-
-
-
-
-
-

@@ -27,6 +27,7 @@ racioethnic_confounders <- c("prop_white_only", "prop_black_only", "prop_asian_o
 
 ##### Get data and functions
 
+# get data, excluding classes of covariates
 df <- fread("data/all_tracts_2020_subset_vars_revised.csv")
 data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
 data_without_demographic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% demographic_confounders)]))
@@ -35,7 +36,12 @@ data_without_gun_affinity <- get_analysis_df(df, "mean_total_miles", c("State_Na
 data_without_racioethnic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% racioethnic_confounders)]))
 # data_with_state <- na.omit(data_with_state) # unnecessary since there are no NAs at this point
 
-exposure5.95 <- quantile(data_with_state$a, c(0.05, 0.95)) # 5th/95th percentiles of exposure (for trimming)
+# get exposure in half-miles
+data_with_state$a <- data_with_state$a / 0.5
+data_without_demographic$a <- data_without_demographic$a / 0.5
+data_without_socioeconomic$a <- data_without_socioeconomic$a / 0.5
+data_without_gun_affinity$a <- data_without_gun_affinity$a / 0.5
+data_without_racioethnic$a <- data_without_racioethnic$a / 0.5
 
 
 ##### CausalGPS matching
@@ -97,7 +103,7 @@ all_matching_results_1model <- function(seed, data, trim,
   return(results_list) # numerical output, to be stored in results table
 }
 
-# Get numerical results
+# get GPS matching results excluding classes of covariates
 # state.5.95_match <- all_matching_results_1model(100, data_with_state, c(0.05, 0.95), "State_Name")
 match_without_demographic <- all_matching_results_1model(100, data_without_demographic, c(0.05, 0.95), "State_Name",
                                                          quantitative_confounders[!(quantitative_confounders %in% demographic_confounders)])
@@ -107,4 +113,16 @@ match_without_gun_affinity <- all_matching_results_1model(100, data_without_gun_
                                                          quantitative_confounders[!(quantitative_confounders %in% gun_affinity_confounders)])
 match_without_racioethnic <- all_matching_results_1model(100, data_without_racioethnic, c(0.05, 0.95), "State_Name",
                                                          quantitative_confounders[!(quantitative_confounders %in% racioethnic_confounders)])
+
+# check covariate balance for GPS-matched pseudopopulations
+make_correlation_plot(match_without_demographic$cov_bal.capped0.99) # total_crime_2021 has AC ~0.15
+make_correlation_plot(match_without_socioeconomic$cov_bal.capped0.99) # schools_per_100_sq_miles has AC ~0.15
+make_correlation_plot(match_without_gun_affinity$cov_bal.capped0.99) # all AC below 0.15
+make_correlation_plot(match_without_racioethnic$cov_bal.capped0.99) # total_crime_2021 has AC ~0.15
+
+# get logistic regression results from GPS-matched pseudopopulations
+match_without_demographic$logistic_regression_output_capped99
+match_without_socioeconomic$logistic_regression_output_capped99
+match_without_gun_affinity$logistic_regression_output_capped99
+match_without_racioethnic$logistic_regression_output_capped99
 

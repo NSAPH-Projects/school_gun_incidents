@@ -232,6 +232,7 @@ get_matched_correlation_plot <- function(matched_pop, cat_confounder_names, w_or
                         Matched = cor_matched)
   abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unmatched)
   abs_cor <- abs_cor %>% gather(c(Unmatched, Matched), key = 'Dataset', value = 'Absolute Correlation')
+  abs_cor <- as.data.table(abs_cor)
   return(abs_cor)
 }
 
@@ -253,10 +254,17 @@ get_weighted_correlation_plot <- function(weighted_pop, cat_confounder_names, w_
                         Weighted = cor_weighted)
   abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unweighted)
   abs_cor <- abs_cor %>% gather(c(Unweighted, Weighted), key = 'Dataset', value = 'Absolute Correlation')
+  abs_cor <- as.data.table(abs_cor)
   return(abs_cor)
 }
 
-make_correlation_plot <- function(pseudo_pop, ci, cat_confounder_names, w_orig, unordered_vars_orig){
+make_correlation_plot <- function(abs_cor_table){
+  ggplot(abs_cor_table, aes(x = `Absolute Correlation`, y = Covariate, color = Dataset, group = Dataset)) +
+    geom_point() +
+    geom_line(orientation = "y")
+}
+
+make_correlation_plot2 <- function(pseudo_pop, ci, cat_confounder_names, w_orig, unordered_vars_orig){
   if (ci == "matching"){
     abs_cor <- get_matched_correlation_plot(pseudo_pop, cat_confounder_names, w_orig, unordered_vars_orig)
   } else if (ci == "weighting"){
@@ -293,13 +301,6 @@ get_gps_weighted_logistic_results <- function(weighted_pop){
                                   data = pseudo,
                                   ci_appr = "weighting")
   return(summary(outcome))
-}
-
-get_gps_adjusted_logistic_results <- function(data_with_gps){
-  logistic_model <- glm(y ~ ., 
-                        data = data_with_gps, 
-                        family = "binomial")
-  return(summary(logistic_model))
 }
 
 

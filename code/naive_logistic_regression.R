@@ -94,14 +94,13 @@ state.urbanity.5.95_naivenegbin_results <- concatenate_results(summary(state.urb
 
 
 ## Check for spatial confounding
-# To Do: consider AR-M instead of independence (but then would have to order states so that closer states are correlated)
 gee_model <- function(df){
   data_contiguous_clusters <- df[order(df$State_Name), ]
   outcome <- gee(formula = y ~ .,
                  family = "binomial",
                  data = data_contiguous_clusters[, c("y", "a", quantitative_confounders)],
                  id = data_contiguous_clusters$State_Name,
-                 corstr = "independence")
+                 corstr = "exchangeable")
   return(summary(outcome)$coefficients)
 }
 

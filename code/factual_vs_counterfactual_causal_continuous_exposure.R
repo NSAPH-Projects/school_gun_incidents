@@ -5,7 +5,7 @@ source("code/helper_functions.R")
 ##### Get data and functions #####
 
 df <- fread("data/all_tracts_2020_subset_vars_revised.csv")
-data_with_state <- get_analysis_df(df, "mean_total_miles", c("Name", quantitative_confounders))
+data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
 data_with_state <- na.omit(data_with_state)
 data_with_state$a <- data_with_state$a / 0.5 # get exposure in half-miles
 factual_exposures <- data_with_state$a
@@ -33,13 +33,13 @@ vcov_state <- matrix(c(0.0001321, -0.00001798, -0.00001798, 0.000003337), nrow =
 #### Set up counterfactual and factual calculations ####
 
 # parameters for counterfactual calculation
-all.factual.exposure.lower.bounds <- seq(0, 2, by = 0.5)
-all.factual.exposure.upper.bounds <- all.factual.exposure.lower.bounds + 0.5
-all.counterfactual.exposures <- all.factual.exposure.upper.bounds + 0.5
+all.factual.exposure.lower.bounds <- seq(0, 4, by = 1)
+all.factual.exposure.upper.bounds <- all.factual.exposure.lower.bounds + 1
+all.counterfactual.exposures <- all.factual.exposure.upper.bounds + 1
 
 # get n for each exposure bin
 get_number_of_tracts_in_bin <- function(factual_exposure_upper_bound){
-  factual_exposure_lower_bound <- factual_exposure_upper_bound - 0.5
+  factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
   census_tracts_within_range <- (factual_exposures >= factual_exposure_lower_bound) &
     (factual_exposures < factual_exposure_upper_bound)
   return(sum(census_tracts_within_range))
@@ -48,14 +48,14 @@ n.tracts.in.bins <- sapply(all.counterfactual.exposures, get_number_of_tracts_in
 
 # functions for calculations
 get_factual_logit_p_hat <- function(beta0, beta1, factual_exposure_upper_bound){
-  factual_exposure_lower_bound <- factual_exposure_upper_bound - 0.5
+  factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
   exposures_within_range <- factual_exposures[(factual_exposures >= factual_exposure_lower_bound) &
                                                 (factual_exposures < factual_exposure_upper_bound)]
   return(beta0 + beta1 * exposures_within_range)
 }
 
 get_counterfactual_logit_p_hat <- function(beta0, beta1, factual_exposure_upper_bound, counterfactual_exposure){
-  factual_exposure_lower_bound <- factual_exposure_upper_bound - 0.5
+  factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
   num_exposures_within_range <- sum((factual_exposures >= factual_exposure_lower_bound) &
                                       (factual_exposures < factual_exposure_upper_bound))
   return(beta0 + beta1 * rep(counterfactual_exposure, num_exposures_within_range))
@@ -74,12 +74,12 @@ true.factual.events <- rep(NA, length(all.factual.exposure.upper.bounds))
 
 counterfactual.expected.events <- matrix(nrow = length(all.factual.exposure.upper.bounds),
                                                ncol = length(all.counterfactual.exposures)) # rows: factual half-mile bins of exposure. columns: counterfactual exposures
-rownames(counterfactual.expected.events) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") miles", recycle0 = T)
-colnames(counterfactual.expected.events) <- paste(all.counterfactual.exposures, "miles (counterfactual)")
+rownames(counterfactual.expected.events) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") half-miles", recycle0 = T)
+colnames(counterfactual.expected.events) <- paste(all.counterfactual.exposures, "half-miles (counterfactual)")
 # counterfactual.expected.events[, 1] <- n.tracts.in.bins
 
 expected.events.avoided <- copy(counterfactual.expected.events)
-expected.events.avoided2 <- copy(counterfactual.expected.events)
+# expected.events.avoided.from.reality <- copy(counterfactual.expected.events)
 
 get_expected_events <- function(logit_p_hats){
   p_hats <- inv.logit(logit_p_hats)
@@ -87,7 +87,7 @@ get_expected_events <- function(logit_p_hats){
 }
 
 get_true_factual_events <- function(factual_exposure_upper_bound){
-  factual_exposure_lower_bound <- factual_exposure_upper_bound - 0.5
+  factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
   census_tracts_within_range <- (factual_exposures >= factual_exposure_lower_bound) &
     (factual_exposures < factual_exposure_upper_bound)
   return(sum(data_with_state$y[census_tracts_within_range]))
@@ -110,19 +110,19 @@ for (i in 1:length(all.factual.exposure.upper.bounds)){
   for (j in 1:length(all.counterfactual.exposures)){
     factual_exposure_upper_bound <- all.factual.exposure.upper.bounds[i]
     counterfactual_exposure <- all.counterfactual.exposures[j]
-    if(counterfactual_exposure >= factual_exposure_upper_bound + 0.5){
+    if(counterfactual_exposure >= factual_exposure_upper_bound + 1){
       logit.p.hats <- get_counterfactual_logit_p_hat(beta0_state, beta1_state, factual_exposure_upper_bound, counterfactual_exposure)
       counterfactual.expected.events[i,j] <- get_expected_events(logit.p.hats)
       expected.events.avoided[i,j] <- factual.expected.events[i] - counterfactual.expected.events[i,j]
-      expected.events.avoided2[i,j] <- true.factual.events[i] - counterfactual.expected.events[i,j]
+      # expected.events.avoided.from.reality[i,j] <- true.factual.events[i] - counterfactual.expected.events[i,j]
     }
   }
 }
 rm(logit.p.hats, factual_exposure_upper_bound, counterfactual_exposure)
 expected.events.avoided <- round(expected.events.avoided, 2)
-expected.events.avoided2 <- round(expected.events.avoided2, 2)
+# expected.events.avoided.from.reality <- round(expected.events.avoided.from.reality, 2)
 write.csv(expected.events.avoided, "results/factual_vs_counterfactual/filtered_FFL/exposure_in_half_miles/expected.events.avoided.from.model.csv")
-write.csv(expected.events.avoided2, "results/factual_vs_counterfactual/filtered_FFL/exposure_in_half_miles/expected.events.avoided.from.reality.csv")
+# write.csv(expected.events.avoided.from.reality, "results/factual_vs_counterfactual/filtered_FFL/exposure_in_half_miles/expected.events.avoided.from.reality.csv")
 
 ### compute confidence intervals
 
@@ -150,7 +150,7 @@ for (sim in 1:n_sims){
     for (j in 1:length(all.counterfactual.exposures)){
       factual_exposure_upper_bound <- all.factual.exposure.upper.bounds[i]
       counterfactual_exposure <- all.counterfactual.exposures[j]
-      if(counterfactual_exposure >= factual_exposure_upper_bound + 0.5){
+      if(counterfactual_exposure >= factual_exposure_upper_bound + 1){
         logit.p.hats <- get_counterfactual_logit_p_hat(betas_sim[1], betas_sim[2], factual_exposure_upper_bound, counterfactual_exposure)
         counterfactual.expected.events_sims[sim, i,j] <- get_expected_events(logit.p.hats)
         expected.events.avoided_sims[sim, i,j] <- factual.expected.events_sims[sim, i] - counterfactual.expected.events_sims[sim, i,j]
@@ -167,12 +167,12 @@ expected.events.avoided.from.model_mean <- apply(expected.events.avoided_sims, c
 expected.events.avoided.from.model_CI.lower <- round(apply(expected.events.avoided_sims, c(2,3), quantile, probs = 0.025, na.rm=T), 0)
 expected.events.avoided.from.model_CI.upper <- round(apply(expected.events.avoided_sims, c(2,3), quantile, probs = 0.975, na.rm=T), 0)
 
-rownames(expected.events.avoided.from.model_mean) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") miles", recycle0 = T)
-colnames(expected.events.avoided.from.model_mean) <- paste(all.counterfactual.exposures, "miles (counterfactual)")
-rownames(expected.events.avoided.from.model_CI.lower) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") miles", recycle0 = T)
-colnames(expected.events.avoided.from.model_CI.lower) <- paste(all.counterfactual.exposures, "miles (counterfactual)")
-rownames(expected.events.avoided.from.model_CI.upper) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") miles", recycle0 = T)
-colnames(expected.events.avoided.from.model_CI.upper) <- paste(all.counterfactual.exposures, "miles (counterfactual)")
+rownames(expected.events.avoided.from.model_mean) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") half-miles", recycle0 = T)
+colnames(expected.events.avoided.from.model_mean) <- paste(all.counterfactual.exposures, "half-miles (counterfactual)")
+rownames(expected.events.avoided.from.model_CI.lower) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") half-miles", recycle0 = T)
+colnames(expected.events.avoided.from.model_CI.lower) <- paste(all.counterfactual.exposures, "half-miles (counterfactual)")
+rownames(expected.events.avoided.from.model_CI.upper) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") half-miles", recycle0 = T)
+colnames(expected.events.avoided.from.model_CI.upper) <- paste(all.counterfactual.exposures, "half-miles (counterfactual)")
 
 expected.events.avoided.from.model_CI <- copy(expected.events.avoided.from.model_CI.lower)
 for (i in 1:nrow(expected.events.avoided.from.model_CI)){
@@ -194,14 +194,14 @@ true.ppl.affected <- rep(NA, length(all.factual.exposure.upper.bounds))
 
 counterfactual.expected.ppl.affected <- matrix(nrow = length(all.factual.exposure.upper.bounds),
                                                ncol = length(all.counterfactual.exposures)) # rows: factual half-mile bins of exposure. columns: counterfactual exposures
-rownames(counterfactual.expected.ppl.affected) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") miles", recycle0 = T)
-colnames(counterfactual.expected.ppl.affected) <- paste(all.counterfactual.exposures, "miles (counterfactual)")
+rownames(counterfactual.expected.ppl.affected) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") half-miles", recycle0 = T)
+colnames(counterfactual.expected.ppl.affected) <- paste(all.counterfactual.exposures, "half-miles (counterfactual)")
 expected.fewer.ppl.affected <- copy(counterfactual.expected.ppl.affected)
 # expected.fewer.ppl.affected.from.reality <- copy(counterfactual.expected.ppl.affected)
 
 # function to get number of people affected
 get_expected_ppl_affected <- function(factual_exposure_upper_bound, logit_p_hats, data){
-  factual_exposure_lower_bound <- factual_exposure_upper_bound - 0.5
+  factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
   census_tracts_within_range <- (factual_exposures >= factual_exposure_lower_bound) &
     (factual_exposures < factual_exposure_upper_bound)
   p_hats <- inv.logit(logit_p_hats)
@@ -210,7 +210,7 @@ get_expected_ppl_affected <- function(factual_exposure_upper_bound, logit_p_hats
 }
 
 # get_true_ppl_affected <- function(factual_exposure_upper_bound, data){
-#   factual_exposure_lower_bound <- factual_exposure_upper_bound - 0.5
+#   factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
 #   census_tracts_within_range <- (factual_exposures >= factual_exposure_lower_bound) &
 #     (factual_exposures < factual_exposure_upper_bound)
 #   return(sum(data$y[census_tracts_within_range] * data$total_population_2020[census_tracts_within_range]))
@@ -233,7 +233,7 @@ for (i in 1:length(all.factual.exposure.upper.bounds)){
   for (j in 1:length(all.counterfactual.exposures)){
     factual_exposure_upper_bound <- all.factual.exposure.upper.bounds[i]
     counterfactual_exposure <- all.counterfactual.exposures[j]
-    if(counterfactual_exposure >= factual_exposure_upper_bound + 0.5){
+    if(counterfactual_exposure >= factual_exposure_upper_bound + 1){
       logit.p.hats <- get_counterfactual_logit_p_hat(beta0_state, beta1_state, factual_exposure_upper_bound, counterfactual_exposure)
       counterfactual.expected.ppl.affected[i,j] <- get_expected_ppl_affected(factual_exposure_upper_bound, logit.p.hats, data_with_state)
       expected.fewer.ppl.affected[i,j] <- factual.expected.ppl.affected[i] - counterfactual.expected.ppl.affected[i,j]
@@ -274,7 +274,7 @@ for (sim in 1:n_sims){
     for (j in 1:length(all.counterfactual.exposures)){
       factual_exposure_upper_bound <- all.factual.exposure.upper.bounds[i]
       counterfactual_exposure <- all.counterfactual.exposures[j]
-      if(counterfactual_exposure >= factual_exposure_upper_bound + 0.5){
+      if(counterfactual_exposure >= factual_exposure_upper_bound + 1){
         logit.p.hats <- get_counterfactual_logit_p_hat(betas_sim[1], betas_sim[2], factual_exposure_upper_bound, counterfactual_exposure)
         counterfactual.expected.ppl.affected_sims[sim,i,j] <- get_expected_ppl_affected(factual_exposure_upper_bound, logit.p.hats, data_with_state)
         expected.fewer.ppl.affected_sims[sim,i,j] <- factual.expected.ppl.affected_sims[sim,i] - counterfactual.expected.ppl.affected_sims[sim,i,j]
@@ -293,10 +293,10 @@ expected.fewer.ppl.affected_mean <- apply(expected.fewer.ppl.affected_sims, c(2,
 expected.fewer.ppl.affected_CI.lower <- round(apply(expected.fewer.ppl.affected_sims, c(2,3), quantile, probs = 0.025, na.rm=T), 0)
 expected.fewer.ppl.affected_CI.upper <- round(apply(expected.fewer.ppl.affected_sims, c(2,3), quantile, probs = 0.975, na.rm=T), 0)
 
-rownames(expected.fewer.ppl.affected_mean) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") miles", recycle0 = T)
-colnames(expected.fewer.ppl.affected_mean) <- paste(all.counterfactual.exposures, "miles (counterfactual)")
-rownames(expected.fewer.ppl.affected_CI.lower) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") miles", recycle0 = T)
-colnames(expected.fewer.ppl.affected_CI.lower) <- paste(all.counterfactual.exposures, "miles (counterfactual)")
+rownames(expected.fewer.ppl.affected_mean) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") half-miles", recycle0 = T)
+colnames(expected.fewer.ppl.affected_mean) <- paste(all.counterfactual.exposures, "half-miles (counterfactual)")
+rownames(expected.fewer.ppl.affected_CI.lower) <- paste0("[", all.factual.exposure.lower.bounds, ", ", all.factual.exposure.upper.bounds, ") half-miles", recycle0 = T)
+colnames(expected.fewer.ppl.affected_CI.lower) <- paste(all.counterfactual.exposures, "half-miles (counterfactual)")
 
 expected.fewer.ppl.affected_CI <- copy(expected.fewer.ppl.affected_CI.lower)
 for (i in 1:nrow(expected.fewer.ppl.affected_CI)){

@@ -1,6 +1,7 @@
 # setwd("/Users/falco//OneDrive - Harvard University/Research/Schools Vs Firearms")
 setwd("/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/")
 source("code/helper_functions.R")
+source("code/functions_using_gps.R")
 
 ##### Classify covariates (for exclusion, to calculate resulting e-values)
 
@@ -45,63 +46,6 @@ data_without_racioethnic$a <- data_without_racioethnic$a / 0.5
 
 
 ##### CausalGPS matching
-
-all_matching_results_1model <- function(seed, data, trim,
-                                        cat_confounder_names,
-                                        quant_confounders = quantitative_confounders){
-  set.seed(seed)
-  results_list <- list()
-  
-  # GPS matching
-  matched_pop <- get_gps_matched_pseudo_pop(data$y,
-                                            data$a,
-                                            data[, c(cat_confounder_names, quant_confounders)],
-                                            trim)
-  # Store key counter quantiles
-  results_list[["counter_max"]] <- round(max(matched_pop$pseudo_pop$counter_weight), 2)
-  cap99 <- round(quantile(matched_pop$pseudo_pop$counter_weight, 0.99), 2)
-  results_list[["counter99"]] <- paste(cap99, "(99th)")
-  
-  # Create alternate pseudopopulation where counter is capped
-  matched_pop_capped99 <- copy(matched_pop)
-  matched_pop_capped99$pseudo_pop$counter_weight[which(matched_pop_capped99$pseudo_pop$counter_weight >= cap99)] <- cap99
-  
-  # Store logistic regression output
-  results_list[["logistic_regression_output"]] <- concatenate_results(get_gps_matched_logistic_results(matched_pop)$coefficients["w", ])
-  results_list[["logistic_regression_output_capped99"]] <- concatenate_results(get_gps_matched_logistic_results(matched_pop_capped99)$coefficients["w", ])
-  
-  # Save covariate balance plots and splines
-  for (capped in c(1, .99)){ # quantiles of counter # c(1, .99, .95)
-    if (capped == 1){
-      pseudo_pop <- matched_pop
-      model_name_addition <- ""
-    } else if (capped == .99){
-      pseudo_pop <- matched_pop_capped99
-      model_name_addition <- ".capped99"
-    }
-    
-    # for capped pseudopopulations, recalculate covariate balance
-    if (capped < 1){
-      adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
-                                               c = subset(pseudo_pop$pseudo_pop, select = quant_confounders),
-                                               ci_appr = "matching",
-                                               counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
-                                               nthread = 1,
-                                               covar_bl_method = "absolute",
-                                               covar_bl_trs = 0.1,
-                                               covar_bl_trs_type = "mean",
-                                               optimized_compile=TRUE)
-      pseudo_pop$adjusted_corr_results <- adjusted_corr_obj$corr_results
-    }
-    
-    # save covariate balance plot
-    results_list[[paste0("cov_bal.capped", capped)]] <- get_matched_correlation_plot(pseudo_pop, cat_confounder_names, data$a, subset(data, select = cat_confounder_names), quant_confounders)
-    # cov_bal <- make_correlation_plot(pseudo_pop, "matching", cat_confounder_names, data$a, subset(data, select = cat_confounder_names))
-    # ggsave(paste0("results/covariate_balance_plots/filtered_FFL/continuous_exposure/", model_name, model_name_addition, ".png"), cov_bal)
-  }
-  
-  return(results_list) # numerical output, to be stored in results table
-}
 
 # get GPS matching results excluding classes of covariates
 # state.5.95_match <- all_matching_results_1model(100, data_with_state, c(0.05, 0.95), "State_Name")

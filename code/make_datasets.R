@@ -7,8 +7,6 @@ dir <- "/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniv
 
 tracts_2020_all_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/tracts_2020_all_data_revised.xlsx"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
-# all_tracts_2020_new_distances <- read_excel(paste0(dir, "data/raw_data_to_be_joined/all_tracts_2020_new_distances.xls")) # grocery and pharmacy data
-# all_tracts_2020_new_distances <- as.data.table(all_tracts_2020_new_distances)
 census_divisions_data <- fread(paste0(dir, "data/raw_data_to_be_joined/census_regions_divisions.csv"))
 mental_health_data <- fread(paste0(dir, "data/raw_data_to_be_joined/interpolated_mental_health.csv"))
 urbanity_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/NCHSURCodes2013.xlsx"))
@@ -18,9 +16,6 @@ codebook <- read_excel(paste0(dir, "data_dictionaries/codebook_all.xlsx"))
 
 
 ##### Merge datasets #####
-
-# all_tracts_2020_new_distances[, mean_total_miles := NULL] # mean_total_miles is the same in both datasets up to 10 decimal digits
-# tracts_2020_all_data <- merge(tracts_2020_all_data, all_tracts_2020_new_distances, by = "GEOID") # grocery and pharmacy data
 
 census_divisions_data <- subset(census_divisions_data, select = c("state_fips", "census_division_number"))
 census_divisions_data[, state_fips := ifelse(nchar(state_fips) == 1, paste0("0", state_fips), state_fips)] # add leading 0 if necessary, convert state_fips to character
@@ -42,9 +37,9 @@ tracts_2020_all_data <- merge(tracts_2020_all_data, urbanity_data, by = "county_
 ##### Remove rows #####
 
 tracts_2020_subset <- tracts_2020_all_data[!startsWith(GEOID, "72")] # remove Puerto Rico because school shooting dataset (https://www.chds.us/ssdb) doesn't cover PR
-tracts_2020_subset <- tracts_2020_subset[!is.na(MEAN_Total_Miles_1)] # remove 13 NA's in treatment variable
-tracts_2020_subset <- tracts_2020_subset[P0010001 != 0] # remove 19 Census tracts with total population 0
-tracts_2020_subset <- tracts_2020_subset[MEAN_Total_Miles_1 <= 500] # there are 124 tracts with MEAN_Total_Miles_1 >= 698.50; all other tracts have MEAN_Total_Miles_1 <= 100.21
+tracts_2020_subset <- tracts_2020_subset[!is.na(MEAN_Total_Miles_1)] # remove 252 NA's in exposure variable; removes Hawaii
+tracts_2020_subset <- tracts_2020_subset[P0010001 != 0] # remove 18 Census tracts with total population 0
+tracts_2020_subset <- tracts_2020_subset[MEAN_Total_Miles_1 <= 500] # there are 136 tracts with MEAN_Total_Miles_1 >= 500; all other tracts have MEAN_Total_Miles_1 <= 100.21; removes Alaska
 
 
 ##### Subset columns (aka variables) #####

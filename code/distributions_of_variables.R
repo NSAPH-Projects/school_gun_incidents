@@ -26,14 +26,12 @@ data_with_urbanity_state_trimmed <- data_with_urbanity_state[data_with_urbanity_
 nrow(data_with_state) # number of observations, i.e., census tracts
 sum(data_with_state$y)
 # mean(data_with_state$y)
-min(data_with_state$a)
-max(data_with_state$a)
+median(data_with_state$a)
 
 nrow(data_with_state_trimmed) # number of observations, i.e., census tracts
 sum(data_with_state_trimmed$y)
 # mean(data_with_state_trimmed$y)
-min(data_with_state_trimmed$a)
-max(data_with_state_trimmed$a)
+median(data_with_state_trimmed$a)
 
 # get summary statistics of quantitative covariates
 for (var in quantitative_confounders){

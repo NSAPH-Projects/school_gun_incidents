@@ -16,3 +16,5 @@
 7. [functions_for_factual_vs_counterfactual.R](https://github.com/NSAPH/firearm_store_proximity_school_shootings/blob/main/code/functions_for_factual_vs_counterfactual.R) contains several functions used by [factual_vs_counterfactual_causal_continuous_exposure.R](https://github.com/NSAPH/firearm_store_proximity_school_shootings/blob/main/code/factual_vs_counterfactual_causal_continuous_exposure.R).
 8. [factual_vs_counterfactual_causal_continuous_exposure.R](https://github.com/NSAPH/firearm_store_proximity_school_shootings/blob/main/code/factual_vs_counterfactual_causal_continuous_exposure.R) performs our events avoided and people affected calculations.
 9. [matching_without_covariates_for_evalue.R](https://github.com/NSAPH/firearm_store_proximity_school_shootings/blob/main/code/matching_without_covariates_for_evalue.R) repeats our main analysis while excluding classes of covariates, so that the results may be inputted to [the E-value calculator](https://www.evalue-calculator.com/evalue/).
+
+**Contact Us**: michelleqin@college.harvard.edu, fbargaglistoffi@hsph.harvard.edu

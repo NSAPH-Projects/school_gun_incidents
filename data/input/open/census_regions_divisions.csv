@@ -1,0 +1,52 @@
+﻿state_name,state_fips,census_division,census_division_number,census_region,census_region_number
+Connecticut,9,New England,1,Northeast,1
+Maine,23,New England,1,Northeast,1
+Massachusetts,25,New England,1,Northeast,1
+New Hampshire,33,New England,1,Northeast,1
+Rhode Island,44,New England,1,Northeast,1
+Vermont,50,New England,1,Northeast,1
+New Jersey,34,Middle Atlantic,2,Northeast,1
+New York,36,Middle Atlantic,2,Northeast,1
+Pennsylvania,42,Middle Atlantic,2,Northeast,1
+Illinois,17,East North Central,3,Midwest,2
+Indiana,18,East North Central,3,Midwest,2
+Michigan,26,East North Central,3,Midwest,2
+Ohio,39,East North Central,3,Midwest,2
+Wisconsin,55,East North Central,3,Midwest,2
+Iowa,19,West North Central,4,Midwest,2
+Kansas,20,West North Central,4,Midwest,2
+Minnesota,27,West North Central,4,Midwest,2
+Missouri,29,West North Central,4,Midwest,2
+Nebraska,31,West North Central,4,Midwest,2
+North Dakota,38,West North Central,4,Midwest,2
+South Dakota,46,West North Central,4,Midwest,2
+Delaware,10,South Atlantic,5,South,3
+District of Columbia,11,South Atlantic,5,South,3
+Florida,12,South Atlantic,5,South,3
+Georgia,13,South Atlantic,5,South,3
+Maryland,24,South Atlantic,5,South,3
+North Carolina,37,South Atlantic,5,South,3
+South Carolina,45,South Atlantic,5,South,3
+Virginia,51,South Atlantic,5,South,3
+West Virginia,54,South Atlantic,5,South,3
+Alabama,1,East South Central,6,South,3
+Kentucky,21,East South Central,6,South,3
+Mississippi,28,East South Central,6,South,3
+Tennessee,47,East South Central,6,South,3
+Arkansas,5,West South Central,7,South,3
+Louisiana,22,West South Central,7,South,3
+Oklahoma,40,West South Central,7,South,3
+Texas,48,West South Central,7,South,3
+Arizona,4,Mountain,8,West,4
+Colorado,8,Mountain,8,West,4
+Idaho,16,Mountain,8,West,4
+Montana,30,Mountain,8,West,4
+Nevada,32,Mountain,8,West,4
+New Mexico,35,Mountain,8,West,4
+Utah,49,Mountain,8,West,4
+Wyoming,56,Mountain,8,West,4
+Alaska,2,Pacific,9,West,4
+California,6,Pacific,9,West,4
+Hawaii,15,Pacific,9,West,4
+Oregon,41,Pacific,9,West,4
+Washington,53,Pacific,9,West,4

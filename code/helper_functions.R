@@ -27,8 +27,6 @@ load_packages <- function(){
   library(xtable)
 }
 
-load_packages()
-
 read_cleaned_data_as_df <- function(dir = ""){
   return(read.csv(paste0(dir, "data/all_tracts_2020_subset_vars.csv"), header = TRUE, stringsAsFactors = FALSE))
 }

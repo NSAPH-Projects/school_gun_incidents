@@ -1,12 +1,17 @@
-# setwd("/Users/falco//OneDrive - Harvard University/Research/Schools Vs Firearms")
-setwd("/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/")
+## Load functions ----
 source("code/helper_functions.R")
 
-##### Get data and functions
+## Load packages ----
+load_packages()
 
-df <- fread("data/all_tracts_2020_subset_vars_revised.csv")
+## Load datasets ----
+dir <- "../" # run code in the script location
 
-# get dataset for main analysis
+df <- fread(paste0(dir, "data/all_tracts_2020_subset_vars_revised.csv"))
+
+## Main body ----
+
+# prepare dataset for main analysis
 data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
 data_with_state <- na.omit(data_with_state)
 data_with_state$a <- data_with_state$a / 0.5 # get exposure in half-miles
@@ -50,4 +55,3 @@ prop.table(table(data_with_urbanity_state$urban_rural)) # for sensitivity analys
 
 prop.table(table(data_with_state_trimmed$State_Name))
 prop.table(table(data_with_urbanity_state_trimmed$urban_rural)) # for sensitivity analysis using urbanity as covariate
-

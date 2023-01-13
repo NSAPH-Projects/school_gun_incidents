@@ -1,7 +1,9 @@
+## Load packages ----
+
 library(SuperLearner)
 library(CausalGPS)
 
-##### Functions to perform causal analyses for continuous exposure (GPS) #####
+## Main body: Functions to perform causal analyses for continuous exposure (GPS) ----
 
 get_gps_matched_pseudo_pop <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.95)){
   # if ("census_division" %in% colnames(confounders)){
@@ -308,6 +310,3 @@ all_weighting_results_1model <- function(seed, data, trim,
   
   return(results_list) # numerical output, to be stored in results table
 }
-
-
-

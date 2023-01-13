@@ -1,18 +1,19 @@
+## Load packages ----
 library(readxl)
 library(data.table)
 
 ##### Import raw data #####
 
-dir <- "/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/"
+dir <- "../" # run code in the script location
 
-tracts_2020_all_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/tracts_2020_all_data_revised.xlsx"))
+tracts_2020_all_data <- read_excel(paste0(dir, "data/input/private/tracts_2020_all_data_revised.xlsx"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
-census_divisions_data <- fread(paste0(dir, "data/raw_data_to_be_joined/census_regions_divisions.csv"))
-mental_health_data <- fread(paste0(dir, "data/raw_data_to_be_joined/interpolated_mental_health.csv"))
-urbanity_data <- read_excel(paste0(dir, "data/raw_data_to_be_joined/NCHSURCodes2013.xlsx"))
+census_divisions_data <- fread(paste0(dir, "data/input/open/census_regions_divisions.csv"))
+mental_health_data <- fread(paste0(dir, "data/input/private/interpolated_mental_health.csv"))
+urbanity_data <- fread(paste0(dir, "data/input/open/NCHSURCodes2013.csv"))
 urbanity_data <- as.data.table(urbanity_data)
 
-codebook <- read_excel(paste0(dir, "data_dictionaries/codebook_all.xlsx"))
+codebook <- read_excel(paste0(dir, "data/input/private/codebook_all.xlsx"))
 
 
 ##### Merge datasets #####
@@ -104,4 +105,4 @@ tracts_2020_transformed <- tracts_2020_transformed[, `:=`(Tract_Area_sq_meters =
 
 ##### Save dataset for all Census tracts containing a school #####
 
-fwrite(tracts_2020_transformed, paste0(dir, "data/all_tracts_2020_subset_vars_revised.csv"))
+fwrite(tracts_2020_transformed, paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))

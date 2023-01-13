@@ -1,10 +1,19 @@
+## Load packages ----
 library(gee)
+library(MASS)
+library(data.table)
 
-setwd("/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/")
-source("code/helper_functions.R")
+## Load functions ----
+dir <- "../" # run code in the script location
 
-# get data for continuous treatment (in half-miles)
-df <- fread("data/all_tracts_2020_subset_vars_revised.csv")
+source(paste0(dir, "code/helper_functions.R"))
+
+## Load datasets ----
+df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))
+
+## Main body ----
+
+# prepare dataset for main analysis
 data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
 data_with_state <- na.omit(data_with_state)
 data_with_state$a <- data_with_state$a / 0.5 # get exposure in half-miles
@@ -18,8 +27,7 @@ data_with_urbanity_state <- get_analysis_df(df, "mean_total_miles", c("State_Nam
 data_with_urbanity_state <- na.omit(data_with_urbanity_state)
 data_with_urbanity_state$a <- data_with_urbanity_state$a / 0.5 # get exposure in half-miles
 
-
-## Functions to get regression results
+## Functions to get regression results ----
 
 get_models <- function(df, model = "logistic", confounder_names){
   if (model == "logistic"){

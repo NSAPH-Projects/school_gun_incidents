@@ -1,11 +1,19 @@
-# setwd("/Users/falco//OneDrive - Harvard University/Research/Schools Vs Firearms")
-setwd("/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/")
-source("code/helper_functions.R")
-source("code/functions_for_factual_vs_counterfactual.R")
+## Load packages ----
+library(MASS)
+library(data.table)
 
-#### Get data and functions ####
+## Load functions ----
+dir <- "../" # run code in the script location
 
-df <- fread("data/all_tracts_2020_subset_vars_revised.csv")
+source(paste0(dir, "code/helper_functions.R"))
+source(paste0(dir, "code/functions_for_factual_vs_counterfactual.R"))
+
+## Load datasets ----
+df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))
+
+## Main body ----
+
+# prepare dataset for main analysis
 data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
 data_with_state <- na.omit(data_with_state)
 data_with_state$a <- data_with_state$a / 0.5 # get exposure in half-miles
@@ -15,6 +23,11 @@ factual_exposures <- data_with_state$a
 #### Get GPS matching results ####
 
 ### The code below performs matching; commented out to save time ###
+
+# library(ggplot2)
+# library(tidyr)
+
+# source(paste0(dir, "code/functions_using_gps.R"))
 
 # set.seed(100)
 # state.5.95_match <- get_gps_matched_pseudo_pop(data_with_state$y, data_with_state$a, data_with_state[, c("Name", quantitative_confounders)], trim_quantiles = c(0.05, 0.95))

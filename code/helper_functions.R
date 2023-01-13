@@ -15,20 +15,6 @@ quantitative_confounders <- c("total_population_2020", "housing_units_per_100_sq
                           "prop_unemployed_16to24_2021", "prop_institutional_group",
                           "prop_noninstitutional_group", "prop_18plus")
 
-
-load_packages <- function(){
-  library(MASS)
-  library(ggplot2)
-  library(tidyr)
-  library(dplyr)
-  library(data.table)
-  library(jtools)
-  library(lmtest)
-  library(xtable)
-}
-
-load_packages()
-
 read_cleaned_data_as_df <- function(dir = ""){
   return(read.csv(paste0(dir, "data/all_tracts_2020_subset_vars.csv"), header = TRUE, stringsAsFactors = FALSE))
 }

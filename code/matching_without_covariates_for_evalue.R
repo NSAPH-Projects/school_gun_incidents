@@ -35,21 +35,12 @@ socioeconomic_confounders <- c("log_median_hh_income", "log_median_hh_income_15t
 gun_affinity_confounders <- c("dealers_per_100_sq_miles", "prop_hunted_with_shotgun_2021")
 racioethnic_confounders <- c("prop_white_only", "prop_black_only", "prop_asian_only", "prop_multiracial", "prop_hispanic_latino")
 
-
 ## Get data, excluding classes of covariates ----
 data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
 data_without_demographic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% demographic_confounders)]))
 data_without_socioeconomic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% socioeconomic_confounders)]))
 data_without_gun_affinity <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% gun_affinity_confounders)]))
 data_without_racioethnic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% racioethnic_confounders)]))
-# data_with_state <- na.omit(data_with_state) # unnecessary since there are no NAs at this point
-
-# get exposure in half-miles
-data_with_state$a <- data_with_state$a / 0.5
-data_without_demographic$a <- data_without_demographic$a / 0.5
-data_without_socioeconomic$a <- data_without_socioeconomic$a / 0.5
-data_without_gun_affinity$a <- data_without_gun_affinity$a / 0.5
-data_without_racioethnic$a <- data_without_racioethnic$a / 0.5
 
 ## GPS matching ----
 

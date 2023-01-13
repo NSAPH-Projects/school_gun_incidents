@@ -16,13 +16,9 @@ df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.c
 
 # prepare dataset for main analysis
 data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
-data_with_state <- na.omit(data_with_state)
-data_with_state$a <- data_with_state$a / 0.5 # get exposure in half-miles
 
 # for sensitivity analysis: get data including urban_rural variable
 data_with_urbanity_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders, "urban_rural"))
-data_with_urbanity_state <- na.omit(data_with_urbanity_state)
-data_with_urbanity_state$a <- data_with_urbanity_state$a / 0.5 # get exposure in half-miles
 
 # get 1st/99th and 5th/95th percentiles of exposure (for trimming)
 exposure5.95 <- quantile(data_with_state$a, c(0.05, 0.95))

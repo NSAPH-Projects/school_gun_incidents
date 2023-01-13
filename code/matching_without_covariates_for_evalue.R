@@ -1,10 +1,20 @@
-# setwd("/Users/falco//OneDrive - Harvard University/Research/Schools Vs Firearms")
-setwd("/Users/s012852/Library/CloudStorage/OneDrive-SharedLibraries-HarvardUniversity/Bargagli Stoffi, Falco Joannes - Schools Vs Firearms/")
-source("code/helper_functions.R")
-source("code/functions_using_gps.R")
+## Load packages ----
+library(ggplot2)
+library(tidyr)
+library(data.table)
 
-##### Classify covariates (for exclusion, to calculate resulting e-values)
+## Load functions ----
+dir <- "../" # run code in the script location
 
+source(paste0(dir, "code/helper_functions.R"))
+source(paste0(dir, "code/functions_using_gps.R"))
+
+## Load datasets ----
+df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))
+
+## Main body ----
+
+## Classify covariates (for exclusion, to calculate resulting e-values) ----
 quantitative_confounders <- c("total_population_2020", "housing_units_per_100_sq_miles", "area_sq_miles",
                               "log_median_hh_income", "schools_per_100_sq_miles",
                               "log_median_hh_income_15to24", "total_crime_2021", 
@@ -26,10 +36,7 @@ gun_affinity_confounders <- c("dealers_per_100_sq_miles", "prop_hunted_with_shot
 racioethnic_confounders <- c("prop_white_only", "prop_black_only", "prop_asian_only", "prop_multiracial", "prop_hispanic_latino")
 
 
-##### Get data and functions
-
-# get data, excluding classes of covariates
-df <- fread("data/all_tracts_2020_subset_vars_revised.csv")
+## Get data, excluding classes of covariates ----
 data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
 data_without_demographic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% demographic_confounders)]))
 data_without_socioeconomic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% socioeconomic_confounders)]))
@@ -44,8 +51,7 @@ data_without_socioeconomic$a <- data_without_socioeconomic$a / 0.5
 data_without_gun_affinity$a <- data_without_gun_affinity$a / 0.5
 data_without_racioethnic$a <- data_without_racioethnic$a / 0.5
 
-
-##### CausalGPS matching
+## GPS matching ----
 
 # get GPS matching results excluding classes of covariates
 # state.5.95_match <- all_matching_results_1model(100, data_with_state, c(0.05, 0.95), "State_Name")

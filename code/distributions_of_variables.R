@@ -1,13 +1,12 @@
-## Load functions ----
-source("code/helper_functions.R")
-
 ## Load packages ----
-load_packages()
+library(data.table)
+
+## Load functions ----
+dir <- "../" # run code in the script location
+source(paste0(dir, "code/helper_functions.R"))
 
 ## Load datasets ----
-dir <- "../" # run code in the script location
-
-df <- fread(paste0(dir, "data/all_tracts_2020_subset_vars_revised.csv"))
+df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))
 
 ## Main body ----
 

@@ -51,12 +51,15 @@ factorize_cat_vars <- function(data){
   return(data)
 }
 
-get_analysis_df <- function(data, treatment = "mean_total_miles", confounder_names){
+get_analysis_df <- function(data, exposure = "mean_total_miles", confounder_names){
   data <- as.data.frame(data)
   y <- data[, "binary_shooting_incident"]
-  a <- data[, treatment]
+  a <- data[, exposure]
   x <- factorize_cat_vars(data[, confounder_names])
-  return(cbind(y, a, x))
+  a <- a / 0.5 # convert exposure to half-miles
+  new_df <- cbind(y, a, x)
+  new_df <- na.omit(new_df)
+  return(new_df)
 }
 
 ##### Functions to handle parametric results #####

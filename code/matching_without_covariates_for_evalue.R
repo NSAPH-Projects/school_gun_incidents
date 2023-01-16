@@ -15,7 +15,7 @@ df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.c
 ## Main body ----
 
 ## Classify covariates (for exclusion, to calculate resulting e-values) ----
-quantitative_confounders <- c("total_population_2020", "housing_units_per_100_sq_miles", "area_sq_miles",
+quantitative_covariates <- c("total_population_2020", "housing_units_per_100_sq_miles", "area_sq_miles",
                               "log_median_hh_income", "schools_per_100_sq_miles",
                               "log_median_hh_income_15to24", "total_crime_2021", 
                               "dealers_per_100_sq_miles", "mental_health_index",
@@ -27,33 +27,33 @@ quantitative_confounders <- c("total_population_2020", "housing_units_per_100_sq
                               "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
                               "prop_unemployed_16to24_2021", "prop_institutional_group",
                               "prop_noninstitutional_group", "prop_18plus")
-demographic_confounders <- c("total_population_2020", "daytime_pop_2021", "housing_units_per_100_sq_miles", "schools_per_100_sq_miles",
+demographic_covariates <- c("total_population_2020", "daytime_pop_2021", "housing_units_per_100_sq_miles", "schools_per_100_sq_miles",
                              "area_sq_miles", "prop_institutional_group", "prop_noninstitutional_group", "prop_18plus")
-socioeconomic_confounders <- c("log_median_hh_income", "log_median_hh_income_15to24", "prop_food_stamps_2019", "prop_public_assist_income_2019",
+socioeconomic_covariates <- c("log_median_hh_income", "log_median_hh_income_15to24", "prop_food_stamps_2019", "prop_public_assist_income_2019",
                           "prop_below_poverty_2019", "prop_unemployed_2021", "prop_unemployed_16to24_2021", "total_crime_2021",
                           "mental_health_index", "prop_without_vehicles_2019", "prop_bachelor_deg_25plus_2021", "prop_grad_deg_25plus_2021")
-gun_affinity_confounders <- c("dealers_per_100_sq_miles", "prop_hunted_with_shotgun_2021")
-racioethnic_confounders <- c("prop_white_only", "prop_black_only", "prop_asian_only", "prop_multiracial", "prop_hispanic_latino")
+gun_affinity_covariates <- c("dealers_per_100_sq_miles", "prop_hunted_with_shotgun_2021")
+racioethnic_covariates <- c("prop_white_only", "prop_black_only", "prop_asian_only", "prop_multiracial", "prop_hispanic_latino")
 
 ## Get data, excluding classes of covariates ----
-data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
-data_without_demographic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% demographic_confounders)]))
-data_without_socioeconomic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% socioeconomic_confounders)]))
-data_without_gun_affinity <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% gun_affinity_confounders)]))
-data_without_racioethnic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders[!(quantitative_confounders %in% racioethnic_confounders)]))
+data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_covariates))
+data_without_demographic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_covariates[!(quantitative_covariates %in% demographic_covariates)]))
+data_without_socioeconomic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_covariates[!(quantitative_covariates %in% socioeconomic_covariates)]))
+data_without_gun_affinity <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_covariates[!(quantitative_covariates %in% gun_affinity_covariates)]))
+data_without_racioethnic <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_covariates[!(quantitative_covariates %in% racioethnic_covariates)]))
 
 ## GPS matching ----
 
 # get GPS matching results excluding classes of covariates
 # state.5.95_match <- all_matching_results_1model(100, data_with_state, c(0.05, 0.95), "State_Name")
 match_without_demographic <- all_matching_results_1model(100, data_without_demographic, c(0.05, 0.95), "State_Name",
-                                                         quantitative_confounders[!(quantitative_confounders %in% demographic_confounders)])
+                                                         quantitative_covariates[!(quantitative_covariates %in% demographic_covariates)])
 match_without_socioeconomic <- all_matching_results_1model(100, data_without_socioeconomic, c(0.05, 0.95), "State_Name",
-                                                         quantitative_confounders[!(quantitative_confounders %in% socioeconomic_confounders)])
+                                                         quantitative_covariates[!(quantitative_covariates %in% socioeconomic_covariates)])
 match_without_gun_affinity <- all_matching_results_1model(100, data_without_gun_affinity, c(0.05, 0.95), "State_Name",
-                                                         quantitative_confounders[!(quantitative_confounders %in% gun_affinity_confounders)])
+                                                         quantitative_covariates[!(quantitative_covariates %in% gun_affinity_covariates)])
 match_without_racioethnic <- all_matching_results_1model(100, data_without_racioethnic, c(0.05, 0.95), "State_Name",
-                                                         quantitative_confounders[!(quantitative_confounders %in% racioethnic_confounders)])
+                                                         quantitative_covariates[!(quantitative_covariates %in% racioethnic_covariates)])
 
 # check covariate balance for GPS-matched pseudopopulations
 make_correlation_plot(match_without_demographic$cov_bal.capped0.99) # total_crime_2021 has AC ~0.15

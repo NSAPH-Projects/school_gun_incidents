@@ -2,7 +2,7 @@
 
 ##### Functions to set up analysis #####
 
-quantitative_confounders <- c("total_population_2020", "housing_units_per_100_sq_miles", "area_sq_miles",
+quantitative_covariates <- c("total_population_2020", "housing_units_per_100_sq_miles", "area_sq_miles",
                           "log_median_hh_income", "schools_per_100_sq_miles",
                           "log_median_hh_income_15to24", "total_crime_2021", 
                           "dealers_per_100_sq_miles", "mental_health_index",
@@ -51,11 +51,11 @@ factorize_cat_vars <- function(data){
   return(data)
 }
 
-get_analysis_df <- function(data, exposure = "mean_total_miles", confounder_names){
+get_analysis_df <- function(data, exposure = "mean_total_miles", covariate_names){
   data <- as.data.frame(data)
   y <- data[, "binary_shooting_incident"]
   a <- data[, exposure]
-  x <- factorize_cat_vars(data[, confounder_names])
+  x <- factorize_cat_vars(data[, covariate_names])
   a <- a / 0.5 # convert exposure to half-miles
   new_df <- cbind(y, a, x)
   new_df <- na.omit(new_df)

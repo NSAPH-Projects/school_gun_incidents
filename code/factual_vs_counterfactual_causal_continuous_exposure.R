@@ -14,7 +14,7 @@ df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.c
 ## Main body ----
 
 # prepare dataset for main analysis
-data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
+data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_covariates))
 factual_exposures <- data_with_state$a
 
 
@@ -28,7 +28,7 @@ factual_exposures <- data_with_state$a
 # source(paste0(dir, "code/functions_using_gps.R"))
 
 # set.seed(100)
-# state.5.95_match <- get_gps_matched_pseudo_pop(data_with_state$y, data_with_state$a, data_with_state[, c("Name", quantitative_confounders)], trim_quantiles = c(0.05, 0.95))
+# state.5.95_match <- get_gps_matched_pseudo_pop(data_with_state$y, data_with_state$a, data_with_state[, c("Name", quantitative_covariates)], trim_quantiles = c(0.05, 0.95))
 # state.5.95_cap99 <- round(quantile(state.5.95_match$pseudo_pop$counter_weight, 0.99), 2)
 # state.5.95_match.cap99 <- copy(state.5.95_match)
 # state.5.95_match.cap99$pseudo_pop$counter_weight[which(state.5.95_match.cap99$pseudo_pop$counter_weight >= state.5.95_cap99)] <- state.5.95_cap99

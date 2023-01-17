@@ -5,14 +5,14 @@ library(CausalGPS)
 
 ## Main body: Functions to perform causal analyses for continuous exposure (GPS) ----
 
-get_gps_matched_pseudo_pop <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.95)){
-  # if ("census_division" %in% colnames(confounders)){
-  #   confounders$census_division <- NULL # to do: figure out if this function can use categorical variables
+get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95)){
+  # if ("census_division" %in% colnames(covariates)){
+  #   covariates$census_division <- NULL # to do: figure out if this function can use categorical variables
   # }
   
   return(generate_pseudo_pop(Y = outcome,
                              w = exposure,
-                             c = as.data.frame(confounders),
+                             c = as.data.frame(covariates),
                              ci_appr = "matching",
                              pred_model = "sl",
                              gps_model = "parametric",
@@ -32,10 +32,10 @@ get_gps_matched_pseudo_pop <- function(outcome, exposure, confounders, trim_quan
                              scale = 1.0))
 }
 
-get_gps_weighted_pseudo_pop <- function(outcome, exposure, confounders, trim_quantiles = c(0.05, 0.95)){
+get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95)){
   return(generate_pseudo_pop(Y = outcome,
                              w = exposure,
-                             c = as.data.frame(confounders),
+                             c = as.data.frame(covariates),
                              ci_appr = "weighting",
                              pred_model = "sl",
                              gps_model = "parametric",
@@ -55,10 +55,10 @@ get_gps_weighted_pseudo_pop <- function(outcome, exposure, confounders, trim_qua
                              scale = 1.0))
 }
 
-get_gps <- function(outcome, exposure, confounders){
+get_gps <- function(outcome, exposure, covariates){
   return(estimate_gps(Y = outcome,
                       w = exposure,
-                      c = as.data.frame(confounders),
+                      c = as.data.frame(covariates),
                       pred_model = "sl",
                       gps_model = "parametric",
                       sl_lib = c("m_xgboost"),
@@ -104,20 +104,20 @@ weighted_cor_unordered_var <- function(w, unordered_var, weights){
   return(mean(unlist(abs_weighted_cor)))
 }
 
-get_matched_correlation_plot <- function(matched_pop, cat_confounder_names, w_orig, unordered_vars_orig, quant_confounders = quantitative_confounders){
-  confounder_names <- c(cat_confounder_names, quant_confounders)
-  cor_unmatched <- matched_pop$original_corr_results$absolute_corr[confounder_names]
-  cor_matched <- matched_pop$adjusted_corr_results$absolute_corr[confounder_names]
+get_matched_correlation_plot <- function(matched_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
+  covariate_names <- c(cat_covariate_names, quant_covariates)
+  cor_unmatched <- matched_pop$original_corr_results$absolute_corr[covariate_names]
+  cor_matched <- matched_pop$adjusted_corr_results$absolute_corr[covariate_names]
   weights <- matched_pop$pseudo_pop$counter_weight
   
   # correct abs corr values for unordered categorical variables
-  for (unordered_var in cat_confounder_names){
+  for (unordered_var in cat_covariate_names){
     cor_matched[unordered_var] <- weighted_cor_unordered_var(matched_pop$pseudo_pop$w, matched_pop$pseudo_pop[[unordered_var]], weights)
     cor_unmatched[unordered_var] <- cor_unordered_var(w_orig, unordered_vars_orig[[unordered_var]])
   }
   cor_matched <- cor_matched[!is.na(cor_matched)]
   
-  abs_cor <- data.frame(Covariate = confounder_names,
+  abs_cor <- data.frame(Covariate = covariate_names,
                         Unmatched = cor_unmatched,
                         Matched = cor_matched)
   abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unmatched)
@@ -126,20 +126,20 @@ get_matched_correlation_plot <- function(matched_pop, cat_confounder_names, w_or
   return(abs_cor)
 }
 
-get_weighted_correlation_plot <- function(weighted_pop, cat_confounder_names, w_orig, unordered_vars_orig, quant_confounders = quantitative_confounders){
-  confounder_names <- c(cat_confounder_names, quant_confounders)
-  cor_unweighted <- weighted_pop$original_corr_results$absolute_corr[confounder_names]
-  cor_weighted <- weighted_pop$adjusted_corr_results$absolute_corr[confounder_names]
+get_weighted_correlation_plot <- function(weighted_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
+  covariate_names <- c(cat_covariate_names, quant_covariates)
+  cor_unweighted <- weighted_pop$original_corr_results$absolute_corr[covariate_names]
+  cor_weighted <- weighted_pop$adjusted_corr_results$absolute_corr[covariate_names]
   weights <- weighted_pop$pseudo_pop$counter_weight
   
   # correct abs corr values for unordered categorical variables
-  for (unordered_var in cat_confounder_names){
+  for (unordered_var in cat_covariate_names){
     cor_weighted[unordered_var] <- weighted_cor_unordered_var(weighted_pop$pseudo_pop$w, weighted_pop$pseudo_pop[[unordered_var]], weights)
     cor_unweighted[unordered_var] <- cor_unordered_var(w_orig, unordered_vars_orig[[unordered_var]])
   }
   cor_weighted <- cor_weighted[!is.na(cor_weighted)]
   
-  abs_cor <- data.frame(Covariate = confounder_names,
+  abs_cor <- data.frame(Covariate = covariate_names,
                         Unweighted = cor_unweighted,
                         Weighted = cor_weighted)
   abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unweighted)
@@ -154,11 +154,11 @@ make_correlation_plot <- function(abs_cor_table){
     geom_line(orientation = "y")
 }
 
-# make_correlation_plot2 <- function(pseudo_pop, ci, cat_confounder_names, w_orig, unordered_vars_orig){
+# make_correlation_plot2 <- function(pseudo_pop, ci, cat_covariate_names, w_orig, unordered_vars_orig){
 #   if (ci == "matching"){
-#     abs_cor <- get_matched_correlation_plot(pseudo_pop, cat_confounder_names, w_orig, unordered_vars_orig)
+#     abs_cor <- get_matched_correlation_plot(pseudo_pop, cat_covariate_names, w_orig, unordered_vars_orig)
 #   } else if (ci == "weighting"){
-#     abs_cor <- get_weighted_correlation_plot(pseudo_pop, cat_confounder_names, w_orig, unordered_vars_orig)
+#     abs_cor <- get_weighted_correlation_plot(pseudo_pop, cat_covariate_names, w_orig, unordered_vars_orig)
 #   }
 #   p <- ggplot(abs_cor, aes(x = `Absolute Correlation`, y = Covariate, color = Dataset, group = Dataset)) +
 #     geom_point() +
@@ -206,14 +206,14 @@ get_gps_weighting_results <- function(gps_pop){
 ### Functions to get all pertinent results from 1 model
 
 all_matching_results_1model <- function(seed, data, trim,
-                                        cat_confounder_names, quant_confounders = quantitative_confounders){
+                                        cat_covariate_names, quant_covariates = quantitative_covariates){
   set.seed(seed)
   results_list <- list()
   
   # GPS matching
   matched_pop <- get_gps_matched_pseudo_pop(data$y,
                                             data$a,
-                                            data[, c(cat_confounder_names, quant_confounders)],
+                                            data[, c(cat_covariate_names, quant_covariates)],
                                             trim)
   # Store key counter quantiles
   results_list[["counter_max"]] <- round(max(matched_pop$pseudo_pop$counter_weight), 2)
@@ -239,7 +239,7 @@ all_matching_results_1model <- function(seed, data, trim,
     # for capped pseudopopulations, recalculate covariate balance
     if (capped < 1){
       adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
-                                               c = subset(pseudo_pop$pseudo_pop, select = quant_confounders),
+                                               c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
                                                ci_appr = "matching",
                                                counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
                                                nthread = 1,
@@ -251,22 +251,22 @@ all_matching_results_1model <- function(seed, data, trim,
     }
     
     # save covariate balance plot
-    results_list[[paste0("cov_bal.capped", capped)]] <- get_matched_correlation_plot(pseudo_pop, cat_confounder_names, data$a, subset(data, select = cat_confounder_names), quant_confounders)
-    # cov_bal <- make_correlation_plot(pseudo_pop, "matching", cat_confounder_names, data$a, subset(data, select = cat_confounder_names))
+    results_list[[paste0("cov_bal.capped", capped)]] <- get_matched_correlation_plot(pseudo_pop, cat_covariate_names, data$a, subset(data, select = cat_covariate_names), quant_covariates)
+    # cov_bal <- make_correlation_plot(pseudo_pop, "matching", cat_covariate_names, data$a, subset(data, select = cat_covariate_names))
   }
   
   return(results_list) # numerical output, to be stored in results table
 }
 
 all_weighting_results_1model <- function(seed, data, trim,
-                                         cat_confounder_names, quant_confounders = quantitative_confounders){
+                                         cat_covariate_names, quant_covariates = quantitative_covariates){
   set.seed(seed)
   results_list <- list()
   
   # GPS weighting
   weighted_pop <- get_gps_weighted_pseudo_pop(data$y,
                                               data$a,
-                                              data[, c(cat_confounder_names, quant_confounders)],
+                                              data[, c(cat_covariate_names, quant_covariates)],
                                               trim)
   # Store key counter quantiles
   results_list[["counter_max"]] <- round(max(weighted_pop$pseudo_pop$counter_weight), 2)
@@ -292,7 +292,7 @@ all_weighting_results_1model <- function(seed, data, trim,
     # for capped pseudopopulations, recalculate covariate balance
     if (capped < 1){
       adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
-                                               c = subset(pseudo_pop$pseudo_pop, select = quant_confounders),
+                                               c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
                                                ci_appr = "matching",
                                                counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
                                                nthread = 1,
@@ -304,8 +304,8 @@ all_weighting_results_1model <- function(seed, data, trim,
     }
     
     # save covariate balance plot
-    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlation_plot(pseudo_pop, cat_confounder_names, data$a, subset(data, select = cat_confounder_names), quant_confounders)
-    # cov_bal <- make_correlation_plot(pseudo_pop, "weighting", cat_confounder_names, data$a, subset(data, select = cat_confounder_names))
+    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlation_plot(pseudo_pop, cat_covariate_names, data$a, subset(data, select = cat_covariate_names), quant_covariates)
+    # cov_bal <- make_correlation_plot(pseudo_pop, "weighting", cat_covariate_names, data$a, subset(data, select = cat_covariate_names))
   }
   
   return(results_list) # numerical output, to be stored in results table

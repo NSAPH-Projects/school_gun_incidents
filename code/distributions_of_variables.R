@@ -11,10 +11,10 @@ df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.c
 ## Main body ----
 
 # prepare dataset for main analysis
-data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders))
+data_with_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_covariates))
 
 # for sensitivity analysis: get data including urban_rural variable
-data_with_urbanity_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_confounders, "urban_rural"))
+data_with_urbanity_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", quantitative_covariates, "urban_rural"))
 
 # get 1st/99th and 5th/95th percentiles of exposure (for trimming)
 exposure5.95 <- quantile(data_with_state$a, c(0.05, 0.95))
@@ -34,7 +34,7 @@ sum(data_with_state_trimmed$y)
 median(data_with_state_trimmed$a)
 
 # get summary statistics of quantitative covariates
-for (var in quantitative_confounders){
+for (var in quantitative_covariates){
   print(var)
   
   print(mean(data_with_state[[var]]))

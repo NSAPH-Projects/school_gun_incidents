@@ -23,81 +23,107 @@ exposure5.95 <- quantile(data_with_state$a, c(0.05, 0.95))
 # get data including urban_rural variable
 data_with_urbanity_state <- get_analysis_df(df, "mean_total_miles", c("State_Name", "urban_rural", quantitative_covariates))
 
-## Functions to get regression results ----
-
-get_models <- function(df, model = "logistic", covariate_names){
-  if (model == "logistic"){
-    model <- glm(y ~ ., 
-                 data = df[, c("y", "a", covariate_names)], 
-                 family = "binomial")
-  } else if (model == "negbin"){
-    model <- glm.nb(y ~ .,
-                    data = df[, c("y", "a", covariate_names)])
-  } else message("model must be `logistic` or `negbin`")
-  return(model)
-}
-
-get_all_models <- function(df){
-  logistic_state <- get_models(df, "logistic", c("State_Name", quantitative_covariates))
-  logistic_censusdiv <- get_models(df, "logistic", c("census_division_number", quantitative_covariates))
-  negbin_state <- get_models(df, "negbin", c("State_Name", quantitative_covariates))
-  negbin_censusdiv <- get_models(df, "negbin", c("census_division_number", quantitative_covariates))
-  
-  return(list(logistic_state, logistic_censusdiv, negbin_state, negbin_censusdiv))
-}
-
-get_all_models_with_urban_rural <- function(df){
-  logistic_state <- get_models(df, "logistic", c("State_Name", quantitative_covariates, "urban_rural"))
-  logistic_censusdiv <- get_models(df, "logistic", c("census_division_number", quantitative_covariates, "urban_rural"))
-  negbin_state <- get_models(df, "negbin", c("State_Name", quantitative_covariates, "urban_rural"))
-  negbin_censusdiv <- get_models(df, "negbin", c("census_division_number", quantitative_covariates, "urban_rural"))
-  return(list(logistic_state, logistic_censusdiv, negbin_state, negbin_censusdiv))
-}
-
-get_coefs <- function(model, var_names){
-  coefs <- summary(model)$coefficients
-  coefs_subset <- coefs[var_names, ]
-  coefs_codified <- apply(coefs_subset, 1, concatenate_results)
-  return(coefs_codified)
-}
-
 ## Get naive logistic regression results
-# state.1.99_naivelogistic <- get_models(data_with_state[data_with_state$a >= exposure1.99[1] & data_with_state$a <= exposure1.99[2], ],
-#                                        model = "logistic", c("State_Name", quantitative_covariates))
-# state.1.99_naivelogistic_results <- concatenate_results(summary(state.1.99_naivelogistic)$coefficients["a",])
 
-state.5.95_naivelogistic <- get_models(data_with_state[data_with_state$a >= exposure5.95[1] & data_with_state$a <= exposure5.95[2], ],
-                                       model = "logistic", c("State_Name", quantitative_covariates))
-state.5.95_naivelogistic_results <- concatenate_results(summary(state.5.95_naivelogistic)$coefficients["a",])
+models <- list()
+results <- list()
+models[["naivelogistic"]] <- list()
+results[["naivelogistic"]] <- list()
 
-# state.urbanity.1.99_naivelogistic <- get_models(data_with_urbanity_state[data_with_urbanity_state$a >= exposure1.99[1] & data_with_urbanity_state$a <= exposure1.99[2], ],
-#                                        model = "logistic", c("State_Name", "urban_rural", quantitative_covariates))
-# state.urbanity.1.99_naivelogistic_results <- concatenate_results(summary(state.urbanity.1.99_naivelogistic)$coefficients["a",])
+models[["naivelogistic"]][["state.1.99"]] <- get_models(
+  data_with_state[data_with_state$a >= exposure1.99[1] & 
+                    data_with_state$a <= exposure1.99[2], ], 
+  model = "logistic", 
+  covariate_names = c("State_Name", quantitative_covariates)
+  )
 
-state.urbanity.5.95_naivelogistic <- get_models(data_with_urbanity_state[data_with_urbanity_state$a >= exposure5.95[1] & data_with_urbanity_state$a <= exposure5.95[2], ],
-                                       model = "logistic", c("State_Name", "urban_rural", quantitative_covariates))
-state.urbanity.5.95_naivelogistic_results <- concatenate_results(summary(state.urbanity.5.95_naivelogistic)$coefficients["a",])
+results[["naivelogistic"]][["state.1.99"]] <- concatenate_results(
+  summary(models[["naivelogistic"]][["state.1.99"]])$coefficients["a",]
+  )
 
+models[["naivelogistic"]][["state.5.95"]] <- get_models(
+  data_with_state[data_with_state$a >= exposure5.95[1] & 
+                    data_with_state$a <= exposure5.95[2], ],
+  model = "logistic", 
+  covariate_names = c("State_Name", quantitative_covariates)
+  )
 
-## Get naive negative binomial regression results (note though that our outcome is binary, not counts)
-# state.1.99_naivenegbin <- get_models(data_with_state[data_with_state$a >= exposure1.99[1] & data_with_state$a <= exposure1.99[2], ],
-#                                        model = "negbin", c("State_Name", quantitative_covariates))
-# state.1.99_naivenegbin_results <- concatenate_results(summary(state.1.99_naivenegbin)$coefficients["a",])
+results[["naivelogistic"]][["state.5.95"]] <- concatenate_results(
+  summary(models[["naivelogistic"]][["state.5.95"]])$coefficients["a",]
+  )
 
-state.5.95_naivenegbin <- get_models(data_with_state[data_with_state$a >= exposure5.95[1] & data_with_state$a <= exposure5.95[2], ],
-                                       model = "negbin", c("State_Name", quantitative_covariates))
-state.5.95_naivenegbin_results <- concatenate_results(summary(state.5.95_naivenegbin)$coefficients["a",])
+models[["naivelogistic"]][["state.urbanity.1.99"]] <- get_models(
+  data_with_urbanity_state[data_with_urbanity_state$a >= exposure1.99[1] & 
+                             data_with_urbanity_state$a <= exposure1.99[2], ],
+  model = "logistic", 
+  covariate_names = c("State_Name", "urban_rural", quantitative_covariates)
+  )
 
-# state.urbanity.1.99_naivenegbin <- get_models(data_with_urbanity_state[data_with_urbanity_state$a >= exposure1.99[1] & data_with_urbanity_state$a <= exposure1.99[2], ],
-#                                                 model = "negbin", c("State_Name", "urban_rural", quantitative_covariates))
-# state.urbanity.1.99_naivenegbin_results <- concatenate_results(summary(state.urbanity.1.99_naivenegbin)$coefficients["a",])
+results[["naivelogistic"]][["state.urbanity.1.99"]] <- concatenate_results(
+  summary(models[["naivelogistic"]][["state.urbanity.1.99"]])$coefficients["a",]
+  )
 
-state.urbanity.5.95_naivenegbin <- get_models(data_with_urbanity_state[data_with_urbanity_state$a >= exposure5.95[1] & data_with_urbanity_state$a <= exposure5.95[2], ],
-                                                model = "negbin", c("State_Name", "urban_rural", quantitative_covariates))
-state.urbanity.5.95_naivenegbin_results <- concatenate_results(summary(state.urbanity.5.95_naivenegbin)$coefficients["a",])
+models[["naivelogistic"]][["state.urbanity.5.95"]] <- get_models(
+  data_with_urbanity_state[data_with_urbanity_state$a >= exposure5.95[1] & 
+                             data_with_urbanity_state$a <= exposure5.95[2], ],
+  model = "logistic", 
+  covariate_names = c("State_Name", "urban_rural", quantitative_covariates)
+  )
 
+results[["naivelogistic"]][["state.urbanity.5.95"]] <- concatenate_results(
+  summary(models[["naivelogistic"]][["state.urbanity.5.95"]])$coefficients["a",]
+  )
+
+# Get naive negative binomial regression results (note though that our outcome is binary, not counts)
+models[["naivenegbin"]][["state.1.99"]] <- get_models(
+  data_with_state[data_with_state$a >= exposure1.99[1] & 
+                    data_with_state$a <= exposure1.99[2], ],
+  model = "negbin", 
+  covariate_names = c("State_Name", quantitative_covariates)
+  )
+
+results[["naivenegbin"]][["state.1.99"]] <- concatenate_results(
+  summary(models[["naivenegbin"]][["state.1.99"]])$coefficients["a",]
+  )
+
+models[["naivenegbin"]][["state.5.95"]] <- get_models(
+  data_with_state[data_with_state$a >= exposure5.95[1] & 
+                    data_with_state$a <= exposure5.95[2], ], 
+  model = "negbin",
+  covariate_names = c("State_Name", quantitative_covariates)
+  )
+
+results[["naivenegbin"]][["state.5.95"]] <- concatenate_results(
+  summary(models[["naivenegbin"]][["state.5.95"]])$coefficients["a",]
+  )
+
+models[["naivenegbin"]][["state.urbanity.1.99"]] <- get_models(
+  data_with_urbanity_state[data_with_urbanity_state$a >= exposure1.99[1] & 
+                             data_with_urbanity_state$a <= exposure1.99[2], ],
+  model = "negbin", 
+  covariate_names = c("State_Name", "urban_rural", quantitative_covariates)
+  )
+
+results[["naivenegbin"]][["state.urbanity.1.99"]] <- concatenate_results(
+  summary(models[["naivenegbin"]][["state.urbanity.1.99"]])$coefficients["a",]
+  )
+
+models[["naivenegbin"]][["state.urbanity.5.95"]] <- get_models(
+  data_with_urbanity_state[data_with_urbanity_state$a >= exposure5.95[1] & 
+                             data_with_urbanity_state$a <= exposure5.95[2], ],
+  model = "negbin", 
+  covariate_names = c("State_Name", "urban_rural", quantitative_covariates)
+  )
+
+results[["naivenegbin"]][["state.urbanity.5.95"]] <- concatenate_results(
+  summary(models[["naivenegbin"]][["state.urbanity.5.95"]])$coefficients["a",])
+
+print(models)
+print(results)
 
 ## Check for spatial confounding
+rm(models)
+
 gee_model <- function(df){
   data_contiguous_clusters <- df[order(df$State_Name), ]
   outcome <- gee(formula = y ~ .,
@@ -108,5 +134,11 @@ gee_model <- function(df){
   return(summary(outcome)$coefficients)
 }
 
-state.5.95_gee <- gee_model(data_with_state[data_with_state$a >= exposure5.95[1] & data_with_state$a <= exposure5.95[2], ])
+state.5.95_gee <- gee_model(
+  data_with_state[data_with_state$a >= exposure5.95[1] & 
+                    data_with_state$a <= exposure5.95[2], ]
+  )
+
+print(state.5.95_gee)
+
 # state.urbanity.5.95_gee <- gee_model(data_with_urbanity_state[data_with_urbanity_state$a >= exposure5.95[1] & data_with_urbanity_state$a <= exposure5.95[2], ])

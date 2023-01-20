@@ -15,10 +15,6 @@ quantitative_covariates <- c("total_population_2020", "housing_units_per_100_sq_
                           "prop_unemployed_16to24_2021", "prop_institutional_group",
                           "prop_noninstitutional_group", "prop_18plus")
 
-read_cleaned_data_as_df <- function(dir = ""){
-  return(read.csv(paste0(dir, "data/all_tracts_2020_subset_vars.csv"), header = TRUE, stringsAsFactors = FALSE))
-}
-
 # to do: figure out if/why this function returns a character matrix
 factorize_cat_vars <- function(data){
   if ("census_division" %in% colnames(data)){
@@ -89,3 +85,16 @@ concatenate_results <- function(results_row){
   return(paste0(estimate, " (", SE, ") ", signif_code))
 }
 
+## Functions to get regression results ----
+
+get_models <- function(df, model = "logistic", covariate_names){
+  if (model == "logistic"){
+    model <- glm(y ~ ., 
+                 data = df[, c("y", "a", covariate_names)], 
+                 family = "binomial")
+  } else if (model == "negbin"){
+    model <- glm.nb(y ~ .,
+                    data = df[, c("y", "a", covariate_names)])
+  } else message("model must be `logistic` or `negbin`")
+  return(model)
+}

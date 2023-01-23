@@ -17,7 +17,8 @@ dir <- "../" # run code in the script location
 ```
 
 ```{r}
-tracts_2020_all_data <- read_excel(paste0(dir, "data/input/private/tracts_2020_all_data_revised.xlsx"))
+#tracts_2020_all_data <- read_excel(paste0(dir, "data/input/private/tracts_2020_all_data_revised.xlsx"))
+tracts_2020_all_data <- read.csv(paste0(dir, "data/input/private/tracts_2020_all_data_revised.csv"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
 tracts_2020_all_data
 ```
@@ -40,7 +41,8 @@ urbanity_data
 ```
 
 ```{r}
-codebook <- read_excel(paste0(dir, "data/input/private/codebook_all.xlsx"))
+#codebook <- read_excel(paste0(dir, "data/input/private/codebook_all.xlsx"))
+codebook <- read.csv(paste0(dir, "data/input/private/codebook_all.csv"))
 codebook
 ```
 
@@ -68,6 +70,8 @@ mental_health_data
 ```
 
 ```{r}
+#Need to transform GEOID to character (when using csv)
+tracts_2020_all_data$GEOID <- as.character(tracts_2020_all_data$GEOID)
 tracts_2020_all_data <- merge(tracts_2020_all_data, mental_health_data, by = "GEOID", all.x = T, all.y = F)
 tracts_2020_all_data
 ```

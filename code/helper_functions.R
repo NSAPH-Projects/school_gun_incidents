@@ -98,3 +98,60 @@ get_models <- function(df, model = "logistic", covariate_names){
   } else message("model must be `logistic` or `negbin`")
   return(model)
 }
+
+## Correlation functions ----
+
+# Generate point-biserial correlation between continuous exposure (w) and binary covariate (binary_cov)
+# Note - equivalent to pearson correlation
+pt_biserial_cor <- function(w, binary_cov){
+  mean_gp1 <- mean(w[binary_cov == 1])
+  mean_gp0 <- mean(w[binary_cov == 0])
+  s_nminus1 <- sd(w)
+  n1 <- sum(binary_cov == 1)
+  n0 <- sum(binary_cov == 0)
+  n <- length(binary_cov) # n = n0 + n1
+  
+  cor_pb <- (mean_gp1 - mean_gp0) / s_nminus1 * sqrt(n1 / n * n0 / (n-1))
+  return(cor_pb)
+}
+
+abs_pt_biserial_cor <- function(w, binary_cov){
+  return(abs(cor(w, binary_cov)))
+}
+
+# Calculate mean of absolute point-biserial correlation between continuous exposure and each binary indicator for an unordered categorical covariate 
+# params: w is the vector of continuous exposure, unordered_var is vector of unordered categorical covariate 
+cor_unordered_var <- function(w, unordered_var){
+  levels <- levels(unordered_var) # assumes unordered_var is already a factor, as it should be to be entered into generate_pseudo_pop()
+  binary_indicators <- lapply(levels, function(i) 1*(unordered_var == i))
+  abs_cor_pb <- lapply(binary_indicators, abs_pt_biserial_cor, w = w)
+  return(mean(unlist(abs_cor_pb)))
+}
+
+weighted_cor_unordered_var <- function(w, unordered_var, weights){
+  library(wCorr)
+  
+  levels <- levels(unordered_var) # assumes unordered_var is already a factor, as it should be to be entered into generate_pseudo_pop()
+  binary_indicators <- lapply(levels, function(i) 1*(unordered_var == i))
+  weighted_cor <- lapply(binary_indicators, weightedCorr, y = w, method = "Pearson", weights = weights)
+  abs_weighted_cor <- lapply(weighted_cor, abs)
+  return(mean(unlist(abs_weighted_cor)))
+}
+
+make_correlation_plot <- function(abs_cor_table){
+  ggplot(abs_cor_table, aes(x = `Absolute Correlation`, y = Covariate, color = Dataset, group = Dataset)) +
+    geom_point() +
+    geom_line(orientation = "y")
+}
+
+# make_correlation_plot2 <- function(pseudo_pop, ci, cat_confounder_names, w_orig, unordered_vars_orig){
+#   if (ci == "matching"){
+#     abs_cor <- get_matched_correlation_plot(pseudo_pop, cat_confounder_names, w_orig, unordered_vars_orig)
+#   } else if (ci == "weighting"){
+#     abs_cor <- get_weighted_correlation_plot(pseudo_pop, cat_confounder_names, w_orig, unordered_vars_orig)
+#   }
+#   p <- ggplot(abs_cor, aes(x = `Absolute Correlation`, y = Covariate, color = Dataset, group = Dataset)) +
+#     geom_point() +
+#     geom_line(orientation = "y")
+#   return(p)
+# }

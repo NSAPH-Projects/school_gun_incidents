@@ -125,15 +125,6 @@ get_gps_matched_logistic_results <- function(matched_pop){
   return(summary(outcome))
 }
 
-# get_gps_matched_logistic_results_glm <- function(matched_pop){
-#   pseudo <- matched_pop$pseudo_pop
-#   outcome <- glm(formula = Y ~ w,
-#                  family = "binomial",
-#                  data = pseudo,
-#                  weights = counter_weight)
-#   return(summary(outcome))
-# }
-
 #### gps weighted ####
 
 all_weighting_results_1model <- function(seed, data, trim,

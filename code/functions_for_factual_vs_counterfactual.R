@@ -1,6 +1,15 @@
 #### Functions used by factual_vs_counterfactual_causal_continuous_exposure.R ####
 
-get_number_of_tracts_in_bin <- function(factual_exposure_upper_bound){
+get_gps_matched_logistic_results_glm <- function(matched_pop){
+  pseudo <- matched_pop$pseudo_pop
+  outcome <- glm(formula = Y ~ w,
+                 family = "binomial",
+                 data = pseudo,
+                 weights = counter_weight)
+  return(summary(outcome))
+}
+
+get_number_of_tracts_in_bin <- function(factual_exposure_upper_bound, factual_exposures){
   factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
   census_tracts_within_range <- (factual_exposures >= factual_exposure_lower_bound) &
     (factual_exposures < factual_exposure_upper_bound)
@@ -9,14 +18,14 @@ get_number_of_tracts_in_bin <- function(factual_exposure_upper_bound){
 
 ## Functions for calculations
 
-get_factual_logit_p_hat <- function(beta0, beta1, factual_exposure_upper_bound){
+get_factual_logit_p_hat <- function(beta0, beta1, factual_exposure_upper_bound){ #add factual_exposures argument
   factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
   exposures_within_range <- factual_exposures[(factual_exposures >= factual_exposure_lower_bound) &
                                                 (factual_exposures < factual_exposure_upper_bound)]
   return(beta0 + beta1 * exposures_within_range)
 }
 
-get_counterfactual_logit_p_hat <- function(beta0, beta1, factual_exposure_upper_bound, counterfactual_exposure){
+get_counterfactual_logit_p_hat <- function(beta0, beta1, factual_exposure_upper_bound, counterfactual_exposure){ #add factual_exposures argument
   factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
   num_exposures_within_range <- sum((factual_exposures >= factual_exposure_lower_bound) &
                                       (factual_exposures < factual_exposure_upper_bound))
@@ -59,6 +68,3 @@ get_expected_ppl_affected <- function(factual_exposure_upper_bound, logit_p_hats
 #     (factual_exposures < factual_exposure_upper_bound)
 #   return(sum(data$y[census_tracts_within_range] * data$total_population_2020[census_tracts_within_range]))
 # }
-
-
-

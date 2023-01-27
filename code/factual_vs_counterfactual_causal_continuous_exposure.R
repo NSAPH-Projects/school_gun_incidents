@@ -300,7 +300,7 @@ all.factual.exposure.upper.bounds <- all.factual.exposure.lower.bounds + 1
 all.counterfactual.exposures <- all.factual.exposure.upper.bounds + 1
 
 # get n for each exposure bin
-n.tracts.in.bins <- sapply(all.counterfactual.exposures, get_number_of_tracts_in_bin)
+n.tracts.in.bins <- sapply(all.counterfactual.exposures, get_number_of_tracts_in_bin, factual_exposures = factual_exposures)
 
 #### #### ####
 ### Calculate number of events avoided ###
@@ -365,8 +365,16 @@ expected.events.avoided.from.model_CI.lower <- round(apply(expected.events.avoid
 expected.events.avoided.from.model_CI.upper <- round(apply(expected.events.avoided_sims, 2, quantile, probs = 0.975, na.rm=T), 2)
 
 ## calculate total events avoided in all census tracts (sum CI bounds to get conservative CI) ##
-cat("Lower bound of 95% credible interval for total events avoided:", sum(expected.events.avoided.from.model_CI.lower))
-cat("Upper bound of 95% credible interval for total events avoided:", sum(expected.events.avoided.from.model_CI.upper))
+cat("Lower bound of 95% credible interval for total events avoided: ", 
+    sum(expected.events.avoided.from.model_CI.lower), 
+    sep = "\n",
+    file=paste0(dir, "results/factual_vs_counterfactual/expected.events.avoided.from.model_CI.lower"), 
+    append=TRUE)
+cat("Upper bound of 95% credible interval for total events avoided: ", 
+    sum(expected.events.avoided.from.model_CI.upper), 
+    sep = "\n",
+    file=paste0(dir, "results/factual_vs_counterfactual/expected.events.avoided.from.model_CI.lower"), 
+    append=TRUE)
 
 #### #### ####
 ### Calculate number of people affected ###
@@ -430,6 +438,16 @@ expected.fewer.ppl.affected_CI.lower <- round(apply(expected.fewer.ppl.affected_
 expected.fewer.ppl.affected_CI.upper <- round(apply(expected.fewer.ppl.affected_sims, 2, quantile, probs = 0.975, na.rm=T), 0)
 
 ## calculate total fewer people affected in all census tracts (sum CI bounds to get conservative CI) ##
-cat("Lower bound of 95% credible interval for total fewer people affected:", sum(expected.fewer.ppl.affected_CI.lower))
-cat("Upper bound of 95% credible interval for total fewer people affected:", sum(expected.fewer.ppl.affected_CI.upper))
+#cat("Lower bound of 95% credible interval for total fewer people affected:", sum(expected.fewer.ppl.affected_CI.lower))
+#cat("Upper bound of 95% credible interval for total fewer people affected:", sum(expected.fewer.ppl.affected_CI.upper))
 
+cat("Lower bound of 95% credible interval for total events avoided: ", 
+    sum(expected.fewer.ppl.affected_CI.lower), 
+    sep = "\n",
+    file=paste0(dir, "results/factual_vs_counterfactual/expected.fewer.ppl.affected_CI.lower"), 
+    append=TRUE)
+cat("Upper bound of 95% credible interval for total events avoided: ", 
+    sum(expected.fewer.ppl.affected_CI.upper), 
+    sep = "\n",
+    file=paste0(dir, "results/factual_vs_counterfactual/expected.fewer.ppl.affected_CI.lower"), 
+    append=TRUE)

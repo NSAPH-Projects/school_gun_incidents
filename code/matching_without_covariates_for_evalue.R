@@ -6,7 +6,7 @@ library(data.table)
 ## Load functions ----
 dir <- "../" # run code in the script location
 
-source(paste0(dir, "code/helper_functions.R"))
+source(paste0(dir, "lib/helper_functions.R"))
 source(paste0(dir, "code/functions_using_gps.R"))
 
 ## Load datasets ----

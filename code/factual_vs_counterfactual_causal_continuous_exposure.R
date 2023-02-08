@@ -117,7 +117,7 @@ process_half_mile_data <- function(data_type_processed) {
   
   # write.csv(expected.events.avoided.from.reality, "results/factual_vs_counterfactual/expected.events.avoided.from.reality.csv")
   
-  ### compute confidence intervals
+  ### compute credible intervals
   
   set.seed(100)
   n_sims <- 10^4
@@ -228,7 +228,7 @@ process_one_half_mile_data <- function(data_type_processed) {
   cat("Total" , paste(strsplit(data_type_processed, "\\.")[[1]], collapse=' ') ,":", sum(expected.events.avoided))
   
   
-  ### Compute confidence intervals for number of events avoided ###
+  ### Compute credible intervals for number of events avoided ###
   
   set.seed(100)
   n_sims <- 10^4

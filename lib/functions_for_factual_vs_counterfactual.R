@@ -9,11 +9,10 @@ get_gps_matched_logistic_results_glm <- function(matched_pop){
   return(summary(outcome))
 }
 
-get_number_of_tracts_in_bin <- function(factual_exposure_upper_bound, factual_exposures){
-  factual_exposure_lower_bound <- factual_exposure_upper_bound - 1
-  census_tracts_within_range <- (factual_exposures >= factual_exposure_lower_bound) &
-    (factual_exposures < factual_exposure_upper_bound)
-  return(sum(census_tracts_within_range))
+############# haven't checked below this #############
+
+get_number_of_tracts_below_threshold <- function(threshold, factual_exposures){
+  return(sum(factual_exposures < threshold))
 }
 
 ## Functions for calculations

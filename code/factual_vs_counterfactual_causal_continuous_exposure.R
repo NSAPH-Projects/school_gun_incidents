@@ -37,12 +37,11 @@ state.5.95_match.cap99$pseudo_pop$counter_weight[which(state.5.95_match.cap99$ps
 
 ## matched logistic
 state.5.95_match.cap99.logistic <- get_gps_matched_logistic_results_glm(state.5.95_match.cap99)
-#state.5.95_match.cap99.logistic
-#vcov(state.5.95_match.cap99.logistic)
- 
 beta0_state <- state.5.95_match.cap99.logistic$coefficients[1,1] #-4.1514
 beta1_state <- state.5.95_match.cap99.logistic$coefficients[2,1] #-0.0296
-vcov_state <- vcov(state.5.95_match.cap99.logistic)# matrix(c(0.0001321, -0.00001798, -0.00001798, 0.000003337), nrow = 2)
+vcov_state <- vcov(state.5.95_match.cap99.logistic) # matrix(c(0.0001321, -0.00001798, -0.00001798, 0.000003337), nrow = 2)
+
+############# haven't checked below this #############
 
 get_expected_data <- function(upper_bound, logit.p.hats, data_with_state, data_type_processed) {
   if(data_type_processed=="events.avoided") {

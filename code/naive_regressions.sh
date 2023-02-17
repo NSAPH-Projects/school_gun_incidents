@@ -1,8 +1,0 @@
-Rscript --vanilla naive_regressions.R -m 'naivelogistic' -s 'state' -p '5.95'
-Rscript --vanilla naive_regressions.R -m 'naivelogistic' -s 'state' -p '1.99'
-Rscript --vanilla naive_regressions.R -m 'naivelogistic' -s 'state.urbanity' -p '5.95'
-Rscript --vanilla naive_regressions.R -m 'naivelogistic' -s 'state.urbanity' -p '1.99'
-Rscript --vanilla naive_regressions.R -m 'naivenegbin' -s 'state' -p '5.95'
-Rscript --vanilla naive_regressions.R -m 'naivenegbin' -s 'state' -p '1.99'
-Rscript --vanilla naive_regressions.R -m 'naivenegbin' -s 'state.urbanity' -p '5.95'
-Rscript --vanilla naive_regressions.R -m 'naivenegbin' -s 'state.urbanity' -p '1.99'

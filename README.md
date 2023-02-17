@@ -9,8 +9,8 @@
 **Overview**: Causal inference to estimate causal and associative effects of average firearm-dealer-to-school proximity on occurrence of a school gun incident within a school-containing census tract in the United States.
 
 **Code**:
-1. [](code/make_datasets.R): combines our various data sources, excludes certain outlier rows, and creates one csv for our analyses: `data/intermediate/all_tracts_2020_subset_vars_revised.csv`.
-2. [lib/helper_functions.R]: contains many functions, such as a function to read in the columns we want from `all_tracts_2020_subset_vars_revised.csv`, which are used by most of the following files.
+1. [code/make_datasets.R](./code/make_datasets.R): combines our various data sources, excludes certain outlier rows, and creates one csv for our analyses: `data/intermediate/all_tracts_2020_subset_vars_revised.csv`.
+2. [lib/helper_functions.R](./lib/helper_functions.R): contains many functions, such as a function to read in the columns we want from `all_tracts_2020_subset_vars_revised.csv`, which are used by most of the following files.
 3. [code/distributions_of_variables.R]: creates Table 1 in our manuscript, i.e., summary statistics of our variables.
 4. [code/associational_analyses.R]: performs our associational analyses, i.e., logistic and binomial regression.
 5. [code/associational_analyses.sh]: bash script used to run [code/associational_analyses.R].

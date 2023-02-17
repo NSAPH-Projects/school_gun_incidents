@@ -18,6 +18,6 @@
 7. [code/continuous_treatment_causal_analyses.R](./code/continuous_treatment_causal_analyses.R): performs our main causal analysis.
 8. [code/continuous_treatment_causal_analyses.sh](./code/continuous_treatment_causal_analyses.sh): bash script used to run [code/continuous_treatment_causal_analyses.R](./code/continuous_treatment_causal_analyses.R)
 9. [code/matching_without_covariates_for_evalue.R](./code/matching_without_covariates_for_evalue.R): repeats our main analysis while excluding classes of covariates, so that the results may be inputted to [the E-value calculator](https://www.evalue-calculator.com/evalue/).
-10: [code/gee_model](./code/gee_model): logistic regression using states as GEE clusters; used as a sensitivity analysis to check for spatial confounding.
+10. [code/gee_model.R](./code/gee_model.R): logistic regression using states as GEE clusters; used as a sensitivity analysis to check for spatial confounding.
 
 **Contact Us**: michelleqin@college.harvard.edu, fbargaglistoffi@hsph.harvard.edu

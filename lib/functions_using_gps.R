@@ -19,6 +19,9 @@ all_matching_results_1model <- function(seed, data, trim,
                                             data$a,
                                             data[, c(cat_covariate_names, quant_covariates)],
                                             trim)
+  # Store how many observations were matched
+  results_list[["num_obs_matched"]] <- sum(matched_pop$pseudo_pop$counter_weight > 0)
+  
   # Store key counter quantiles
   results_list[["counter_max"]] <- round(max(matched_pop$pseudo_pop$counter_weight), 2)
   cap99 <- round(quantile(matched_pop$pseudo_pop$counter_weight, 0.99), 2)

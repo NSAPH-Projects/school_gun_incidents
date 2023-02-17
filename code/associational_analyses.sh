@@ -1,0 +1,8 @@
+Rscript --vanilla associational_analyses.R -m 'naivelogistic' -s 'state' -p '5.95'
+Rscript --vanilla associational_analyses.R -m 'naivelogistic' -s 'state' -p '1.99'
+Rscript --vanilla associational_analyses.R -m 'naivelogistic' -s 'state.urbanity' -p '5.95'
+Rscript --vanilla associational_analyses.R -m 'naivelogistic' -s 'state.urbanity' -p '1.99'
+Rscript --vanilla associational_analyses.R -m 'naivenegbin' -s 'state' -p '5.95'
+Rscript --vanilla associational_analyses.R -m 'naivenegbin' -s 'state' -p '1.99'
+Rscript --vanilla associational_analyses.R -m 'naivenegbin' -s 'state.urbanity' -p '5.95'
+Rscript --vanilla associational_analyses.R -m 'naivenegbin' -s 'state.urbanity' -p '1.99'

@@ -2,7 +2,7 @@
 
 **Authors**: Falco Bargagli Stoffi, Michelle Qin
 
-**Contributors**: Michelle Audirauc, Nishta Sinha
+**Contributors**: Michelle Audirac, Nishtha Sardana
 
 **Created**: June 2022
 

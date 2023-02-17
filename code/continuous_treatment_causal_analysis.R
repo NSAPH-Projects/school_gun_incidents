@@ -77,7 +77,9 @@ lapply(results,
 
 ## Weighted CausalGPS ----
 
+
 var_arg_a_p_weight = paste0(args$sensitivity_analysis, ".", args$percentiles,"_weight")
+
 
 results_weight <- all_weighting_results_1model(
   seed_,
@@ -85,6 +87,7 @@ results_weight <- all_weighting_results_1model(
   trim_,
   "State_Name"
 )
+
 
 ggsave(paste0(dir, "results/", var_arg_a_p_weight, "_correlation_plot.png"),
        make_correlation_plot(results_weight$cov_bal.capped0.99))

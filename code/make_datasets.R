@@ -48,23 +48,11 @@ tracts_2020_all_data <- merge(tracts_2020_all_data, urbanity_data, by = "county_
 
 tracts_2020_subset <- tracts_2020_all_data[!startsWith(GEOID, "72")] # remove Puerto Rico because school shooting dataset (https://www.chds.us/ssdb) doesn't cover PR
 
-# checking if Puerto Rico is removed
-#nrow(tracts_2020_subset[startsWith(GEOID, "72")])
-
 tracts_2020_subset <- tracts_2020_subset[!is.na(MEAN_Total_Miles_1)] # remove 252 NA's in exposure variable; removes Hawaii
-
-#checking if all NAs in 'MEAN_Total_Miles_1' have been removed
-#nrow(tracts_2020_subset[is.na(MEAN_Total_Miles_1)])
 
 tracts_2020_subset <- tracts_2020_subset[P0010001 != 0] # remove 18 Census tracts with total population 0
 
-#checking if all Tracts with 0 population are removed 
-#nrow(tracts_2020_subset[P0010001 == 0])
-
 tracts_2020_subset <- tracts_2020_subset[MEAN_Total_Miles_1 <= 500] # there are 136 tracts with MEAN_Total_Miles_1 >= 500; all other tracts have MEAN_Total_Miles_1 <= 100.21; removes Alaska
-
-#checking if Alaska is removed
-#nrow(tracts_2020_subset[MEAN_Total_Miles_1>500])
 
 ### Subset columns (aka variables) 
 
@@ -72,9 +60,6 @@ all_vars <- setDT(data.frame(var_name = codebook$FieldName, include = as.logical
 include_vars <- all_vars[include == TRUE, var_name]
 
 tracts_2020_subset <- subset(tracts_2020_subset, select = include_vars)
-
-#check if all required columns are included
-#setequal(colnames(tracts_2020_subset), include_vars)
 
 ### Rename Variables
 

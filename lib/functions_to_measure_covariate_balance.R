@@ -1,4 +1,6 @@
-## Correlation functions ----
+## Some functions to measure correlation between covariates and exposure (covariate balance) ----
+
+library(wCorr)
 
 get_abs_cor <- function(w, binary_cov){
   return(abs(cor(w, binary_cov)))

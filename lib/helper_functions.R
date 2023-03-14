@@ -15,7 +15,6 @@ quantitative_covariates <- c("total_population_2020", "housing_units_per_100_sq_
                           "prop_unemployed_16to24_2021", "prop_institutional_group",
                           "prop_noninstitutional_group", "prop_18plus")
 
-# to do: figure out if/why this function returns a character matrix
 factorize_cat_vars <- function(data){
   if ("census_division" %in% colnames(data)){
     data$census_division <- as.factor(data$census_division)
@@ -58,33 +57,6 @@ get_analysis_df <- function(data, exposure = "mean_total_miles", covariate_names
   return(new_df)
 }
 
-##### Functions to handle parametric results #####
-
-round_results <- function(x){
-  rounded <- format(round(as.numeric(x), 4), scientific = F)
-  if (rounded == 0) rounded <- format(round(as.numeric(x), 5), scientific = F)
-  return(rounded)
-}
-
-codify_significance <- function(significance){
-  significance <- as.numeric(significance)
-  if (significance < 0.01) return("***")
-  else if (significance < 0.05) return("**")
-  else if (significance < 0.1) return("*")
-  else return(" ")
-}
-
-concatenate_results <- function(results_row){
-  estimate <- round_results(results_row["Estimate"])
-  SE <- round_results(results_row["Std. Error"])
-  if ("Pr(>|z|)" %in% names(results_row)){
-    signif_code <- codify_significance(results_row["Pr(>|z|)"])
-  } else{
-    signif_code <- codify_significance(results_row["Pr(>|t|)"])
-  }
-  return(paste0(estimate, " (", SE, ") ", signif_code))
-}
-
 ## Functions to get regression results ----
 
 get_models <- function(df, model = "logistic", covariate_names){
@@ -100,20 +72,6 @@ get_models <- function(df, model = "logistic", covariate_names){
 }
 
 ## Correlation functions ----
-
-# Generate point-biserial correlation between continuous exposure (w) and binary covariate (binary_cov)
-# Note - equivalent to pearson correlation
-pt_biserial_cor <- function(w, binary_cov){
-  mean_gp1 <- mean(w[binary_cov == 1])
-  mean_gp0 <- mean(w[binary_cov == 0])
-  s_nminus1 <- sd(w)
-  n1 <- sum(binary_cov == 1)
-  n0 <- sum(binary_cov == 0)
-  n <- length(binary_cov) # n = n0 + n1
-  
-  cor_pb <- (mean_gp1 - mean_gp0) / s_nminus1 * sqrt(n1 / n * n0 / (n-1))
-  return(cor_pb)
-}
 
 abs_pt_biserial_cor <- function(w, binary_cov){
   return(abs(cor(w, binary_cov)))

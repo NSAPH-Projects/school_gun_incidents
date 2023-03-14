@@ -2,9 +2,9 @@
 
 library(SuperLearner)
 library(CausalGPS)
+library(lmtest) # for coeftest, getting clustered robust standard errors (CRSE)
+library(sandwich) # for vcovCL, getting clustered robust standard errors (CRSE)
 library(gee)
-library(sandwich)
-library(lmtest)
 
 ####
 # Functions to perform causal analyses for continuous exposure (GPS)
@@ -38,16 +38,42 @@ all_matching_results_1model <- function(seed, data, trim,
   # (do not proceed to logistic regression on uncapped matched population since covariate balance is poor)
   matching_results <- get_gps_matched_logistic_results(matched_pop_capped99)$coefficients["w", ]
   
-  # # Save point estimate, 95%, and 90% confidence intervals for odds (exponentiated log odds)
+  # Store point estimate for odds (exponentiated log odds)
   results_list[["logistic_regression_estimated_odds"]] <- round(exp(matching_results["Estimate"]), 4)
   
-  # results_list[["lb_95ci"]] <- round(exp( matching_results["Estimate"] - 1.96 * matching_results["Std. Error"]), 4)
-  # results_list[["ub_95ci"]] <- round(exp( matching_results["Estimate"] + 1.96 * matching_results["Std. Error"]), 4)
-  # results_list[["lb_90ci"]] <- round(exp( matching_results["Estimate"] - 1.645 * matching_results["Std. Error"]), 4)
-  # results_list[["ub_90ci"]] <- round(exp( matching_results["Estimate"] + 1.645 * matching_results["Std. Error"]), 4)
+  # Before getting clustered robust standard errors (CRSE) and GEE model with clusters,
+  # convert data to long format (to make clustering explicit)
+  pseudopop_long <- matched_pop_capped99$pseudo_pop[, lapply(.SD, function(x) rep(x, counter_weight)), by = row_index]
   
-  # Save covariate balance plots and splines
-  for (capped in c(1, .99)){ # quantiles of counter # c(1, .99, .95)
+  # Store clustered robust standard errors (CRSE) for logistic model
+  logit_model <- glm(Y ~ w,
+                     family = binomial(link = "logit"),
+                     data = pseudopop_long[, c("Y", "w", "row_index")])
+  cl_sd_results <- coeftest(logit_model,
+                            vcov. = vcovCL(logit_model,
+                                           cluster = pseudopop_long$row_index,
+                                           type = "HC0"))
+  results_list[["cl_sd_lb_95ci"]] <- round(exp(cl_sd_results[2,1] - 1.96 * cl_sd_results[2,2]), 4)
+  results_list[["cl_sd_ub_95ci"]] <- round(exp(cl_sd_results[2,1] + 1.96 * cl_sd_results[2,2]), 4)
+  results_list[["cl_sd_lb_90ci"]] <- round(exp(cl_sd_results[2,1] - 1.645 * cl_sd_results[2,2]), 4)
+  results_list[["cl_sd_ub_90ci"]] <- round(exp(cl_sd_results[2,1] + 1.645 * cl_sd_results[2,2]), 4)
+  
+  # Fit GEE model
+  outcome <- gee(formula = Y ~ w,
+                 family = "binomial",
+                 data = pseudopop_long, 
+                 id = pseudopop_long$row_index,
+                 corstr = "exchangeable") # allows same correlation coefficient between states
+  
+  # Store GEE model results
+  results_list[["GEE_estimated_odds"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"]), 4)
+  results_list[["GEE_lb_95ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] - 1.96 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+  results_list[["GEE_ub_95ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] + 1.96 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+  results_list[["GEE_lb_90ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] - 1.645 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+  results_list[["GEE_ub_90ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] + 1.645 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+  
+  # Save covariate balance plots
+  for (capped in c(1, .99)){ # 1 is uncapped counter_weight, .99 is counter_weight capped at 99th percentile
     if (capped == 1){
       pseudo_pop <- matched_pop
     } else if (capped == .99){

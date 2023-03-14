@@ -1,3 +1,6 @@
+##### Note: GEE model may take more memory to run than is available on some computers #####
+
+
 ## Load packages ----
 library(gee)
 library(MASS)
@@ -40,6 +43,7 @@ state.5.95_gee <- gee_model(
                     data_with_state$a <= exposure5.95[2], ]
 )
 
+# to do: save in results/sensitivity_analyses/gee_associational_model/
 cat("GEE associational model, estimated odds:", round(exp(state.5.95_gee["w",]["Estimate"]), 4))
 cat("GEE associational model, 95% CI lower bound:", round(exp(state.5.95_gee["w",]["Estimate"] - 1.96 * state.5.95_gee["w",]["Robust S.E."]), 4))
 cat("GEE associational model, 95% CI upper bound:", round(exp(state.5.95_gee["w",]["Estimate"] + 1.96 * state.5.95_gee["w",]["Robust S.E."]), 4))

@@ -12,8 +12,12 @@ library(gee)
 
 #### GPS matching ####
 
-all_matching_results_1model <- function(seed, data, trim,
-                                        cat_covariate_names, quant_covariates = quantitative_covariates){
+all_matching_results_1model <- function(seed,
+                                        data,
+                                        trim,
+                                        cat_covariate_names,
+                                        quant_covariates = quantitative_covariates,
+                                        run_gee_model = F){ # GEE model requires a lot of memory to run, some computers may not be able to
   set.seed(seed)
   results_list <- list()
   
@@ -58,19 +62,22 @@ all_matching_results_1model <- function(seed, data, trim,
   results_list[["cl_sd_lb_90ci"]] <- round(exp(cl_sd_results[2,1] - 1.645 * cl_sd_results[2,2]), 4)
   results_list[["cl_sd_ub_90ci"]] <- round(exp(cl_sd_results[2,1] + 1.645 * cl_sd_results[2,2]), 4)
   
-  # Fit GEE model
-  outcome <- gee(formula = Y ~ w,
-                 family = "binomial",
-                 data = pseudopop_long, 
-                 id = pseudopop_long$row_index,
-                 corstr = "exchangeable") # allows same correlation coefficient between states
-  
-  # Store GEE model results
-  results_list[["GEE_estimated_odds"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"]), 4)
-  results_list[["GEE_lb_95ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] - 1.96 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
-  results_list[["GEE_ub_95ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] + 1.96 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
-  results_list[["GEE_lb_90ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] - 1.645 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
-  results_list[["GEE_ub_90ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] + 1.645 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+  if (run_gee_model){
+    
+    # Fit GEE model
+    outcome <- gee(formula = Y ~ w,
+                   family = "binomial",
+                   data = pseudopop_long, 
+                   id = pseudopop_long$row_index,
+                   corstr = "exchangeable") # allows same correlation coefficient between states
+    
+    # Store GEE model results
+    results_list[["GEE_estimated_odds"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"]), 4)
+    results_list[["GEE_lb_95ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] - 1.96 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+    results_list[["GEE_ub_95ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] + 1.96 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+    results_list[["GEE_lb_90ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] - 1.645 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+    results_list[["GEE_ub_90ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] + 1.645 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+  }
   
   # Save covariate balance plots
   for (capped in c(1, .99)){ # 1 is uncapped counter_weight, .99 is counter_weight capped at 99th percentile
@@ -101,7 +108,6 @@ all_matching_results_1model <- function(seed, data, trim,
                                    data$a, 
                                    subset(data, select = cat_covariate_names), 
                                    quant_covariates)
-    # cov_bal <- make_correlation_plot(pseudo_pop, "matching", cat_covariate_names, data$a, subset(data, select = cat_covariate_names))
   }
   
   return(results_list) # numerical output, to be stored in results table
@@ -163,8 +169,11 @@ get_gps_matched_logistic_results <- function(matched_pop){
 
 #### GPS weighting ####
 
-all_weighting_results_1model <- function(seed, data, trim,
-                                         cat_covariate_names, quant_covariates = quantitative_covariates){
+all_weighting_results_1model <- function(seed,
+                                         data,
+                                         trim,
+                                         cat_covariate_names,
+                                         quant_covariates = quantitative_covariates){
   set.seed(seed)
   results_list <- list()
   

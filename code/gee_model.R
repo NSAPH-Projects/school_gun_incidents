@@ -6,7 +6,7 @@ library(data.table)
 ## Load functions ----
 dir <- "../" # run code in the script location
 
-source(paste0(dir, "code/helper_functions.R"))
+source(paste0(dir, "lib/functions_to_load_data.R"))
 
 ## Load datasets ----
 df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))

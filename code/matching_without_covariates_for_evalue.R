@@ -15,7 +15,8 @@ args = parser$parse_args()
 ## Load functions ----
 dir <- "../" # run code in the script location
 
-source(paste0(dir, "lib/helper_functions.R"))
+source(paste0(dir, "lib/functions_to_load_data.R"))
+source(paste0(dir, "lib/functions_to_measure_covariate_balance.R"))
 source(paste0(dir, "lib/functions_using_gps.R"))
 
 ## Load datasets ----
@@ -66,4 +67,4 @@ ggsave(paste0(dir, "results/e_value/", covariate, "_correlation_plot.png"),
        make_correlation_plot(match_without_covariate$cov_bal.capped0.99))
 
 # get logistic regression results from GPS-matched pseudopopulations
-match_without_covariate$logistic_regression_output_capped99
+match_without_covariate$logistic_regression_estimated_odds

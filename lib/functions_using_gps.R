@@ -2,12 +2,15 @@
 
 library(SuperLearner)
 library(CausalGPS)
+library(gee)
+library(sandwich)
+library(lmtest)
 
 ####
 # Functions to perform causal analyses for continuous exposure (GPS)
 ####
 
-#### gps matching ####
+#### GPS matching ####
 
 all_matching_results_1model <- function(seed, data, trim,
                                         cat_covariate_names, quant_covariates = quantitative_covariates){
@@ -35,12 +38,13 @@ all_matching_results_1model <- function(seed, data, trim,
   # (do not proceed to logistic regression on uncapped matched population since covariate balance is poor)
   matching_results <- get_gps_matched_logistic_results(matched_pop_capped99)$coefficients["w", ]
   
-  # Save point estimate, 95%, and 90% confidence intervals for odds (exponentiated log odds)
+  # # Save point estimate, 95%, and 90% confidence intervals for odds (exponentiated log odds)
   results_list[["logistic_regression_estimated_odds"]] <- round(exp(matching_results["Estimate"]), 4)
-  results_list[["lb_95ci"]] <- round(exp( matching_results["Estimate"] - 1.96 * matching_results["Std. Error"]), 4)
-  results_list[["ub_95ci"]] <- round(exp( matching_results["Estimate"] + 1.96 * matching_results["Std. Error"]), 4)
-  results_list[["lb_90ci"]] <- round(exp( matching_results["Estimate"] - 1.645 * matching_results["Std. Error"]), 4)
-  results_list[["ub_90ci"]] <- round(exp( matching_results["Estimate"] + 1.645 * matching_results["Std. Error"]), 4)
+  
+  # results_list[["lb_95ci"]] <- round(exp( matching_results["Estimate"] - 1.96 * matching_results["Std. Error"]), 4)
+  # results_list[["ub_95ci"]] <- round(exp( matching_results["Estimate"] + 1.96 * matching_results["Std. Error"]), 4)
+  # results_list[["lb_90ci"]] <- round(exp( matching_results["Estimate"] - 1.645 * matching_results["Std. Error"]), 4)
+  # results_list[["ub_90ci"]] <- round(exp( matching_results["Estimate"] + 1.645 * matching_results["Std. Error"]), 4)
   
   # Save covariate balance plots and splines
   for (capped in c(1, .99)){ # quantiles of counter # c(1, .99, .95)
@@ -131,7 +135,7 @@ get_gps_matched_logistic_results <- function(matched_pop){
   return(summary(outcome))
 }
 
-#### gps weighting ####
+#### GPS weighting ####
 
 all_weighting_results_1model <- function(seed, data, trim,
                                          cat_covariate_names, quant_covariates = quantitative_covariates){

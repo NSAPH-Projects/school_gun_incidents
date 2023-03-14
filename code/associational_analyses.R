@@ -16,7 +16,8 @@ args = parser$parse_args()
 ## Load functions ----
 dir <- "../" # run code in the script location
 
-source(paste0(dir, "lib/helper_functions.R"))
+source(paste0(dir, "lib/functions_to_load_data.R"))
+source(paste0(dir, "lib/functions_to_get_associational_models.R"))
 
 ## Load datasets ----
 df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))

@@ -11,7 +11,7 @@
 **Code**:
 1. [code/make_datasets.R](./code/make_datasets.R): combines our various data sources, excludes certain outlier rows, and creates one csv for our analyses: `data/intermediate/all_tracts_2020_subset_vars_revised.csv`.
 2. [lib/functions_to_load_data.R](./lib/functions_to_load_data.R): contains multiple functions, such as a function to read in the columns we want from `all_tracts_2020_subset_vars_revised.csv`, which are used by most of the following files.
-3. [code/distributions_of_variables.R](./code/distributions_of_variables.R): creates Table 1 in our manuscript, i.e., summary statistics of our variables.
+3. [notebooks/distributions_of_variables.Rmd](./notebooks/_knit/distributions_of_variables.md): explores summary statistics of our variables (Table 1 in our manuscript).
 4.  [lib/functions_to_get_associational_models.R](./lib/functions_to_get_associational_models.R): contains 1 function (glm), to run our associational logistic and binomial regressions; called by [code/associational_analyses.R](./code/associational_analyses.R)
 5. [code/associational_analyses.R](./code/associational_analyses.R): performs our associational analyses, i.e., logistic and binomial regression.
 6. [code/associational_analyses.sh](./code/associational_analyses.sh): bash script used to run [code/associational_analyses.R].

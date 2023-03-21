@@ -3,8 +3,7 @@
 Folder in which datasets that require usage agreements are placed.
 
 ```			
-interpolated_mental_health.csv: Added 'INDEX' as the first column name
-codebook_all.csv			
-tracts_2020_all_data_revised.csv: Transform 'GEOID' to character while using csv with below
-                                  (tracts_2020_all_data$GEOID <- as.character(tracts_2020_all_data$GEOID))
+ln -s /n/dominici_lab/lab/data/school_gun_incidents/data_input_private .
 ```
+
+The data can be shared upon request. Contact the repository authors to get `data_input_private.zip`, then unzip in this location.

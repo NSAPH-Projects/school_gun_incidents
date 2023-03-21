@@ -1,3 +1,6 @@
+##### Note: GEE model may take more memory to run than is available on some computers #####
+
+
 ## Load packages ----
 library(gee)
 library(MASS)
@@ -6,7 +9,7 @@ library(data.table)
 ## Load functions ----
 dir <- "../" # run code in the script location
 
-source(paste0(dir, "code/helper_functions.R"))
+source(paste0(dir, "lib/functions_to_load_data.R"))
 
 ## Load datasets ----
 df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))
@@ -40,6 +43,7 @@ state.5.95_gee <- gee_model(
                     data_with_state$a <= exposure5.95[2], ]
 )
 
-print(state.5.95_gee)
-
-# state.urbanity.5.95_gee <- gee_model(data_with_urbanity_state[data_with_urbanity_state$a >= exposure5.95[1] & data_with_urbanity_state$a <= exposure5.95[2], ])
+# to do: save in results/sensitivity_analyses/gee_associational_model/
+cat("GEE associational model, estimated odds:", round(exp(state.5.95_gee["w",]["Estimate"]), 4))
+cat("GEE associational model, 95% CI lower bound:", round(exp(state.5.95_gee["w",]["Estimate"] - 1.96 * state.5.95_gee["w",]["Robust S.E."]), 4))
+cat("GEE associational model, 95% CI upper bound:", round(exp(state.5.95_gee["w",]["Estimate"] + 1.96 * state.5.95_gee["w",]["Robust S.E."]), 4))

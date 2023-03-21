@@ -8,10 +8,25 @@
 
 **Overview**: Causal inference to estimate causal and associative effects of average firearm-dealer-to-school proximity on occurrence of a school gun incident within a school-containing census tract in the United States.
 
-**Code**:
+**Analysis**: To run all the analysis and regenerate the results found in [results](./results)
+
+* Request the `data_input_private.zip` to the authors. Unzip in this location [data/input/private](./data/input/private/).
+* Install [CausalGPS package](https://github.com/cran/CausalGPS) R package
+* Run:
+
+```
+cd code
+Rscript --vanilla make_datasets.R
+bash associational_analyses.sh
+bash continuous_treatment_causal_analyses.sh
+cd sensitivity_analysis
+bash matching_without_covariates_for_evalue.sh
+```
+
+**Code Description**:
 1. [code/make_datasets.R](./code/make_datasets.R): combines our various data sources, excludes certain outlier rows, and creates one csv for our analyses: `data/intermediate/all_tracts_2020_subset_vars_revised.csv`.
 2. [lib/functions_to_load_data.R](./lib/functions_to_load_data.R): contains multiple functions, such as a function to read in the columns we want from `all_tracts_2020_subset_vars_revised.csv`, which are used by most of the following files.
-3. [code/distributions_of_variables.R](./code/distributions_of_variables.R): creates Table 1 in our manuscript, i.e., summary statistics of our variables.
+3. [notebooks/distributions_of_variables.R](./code/distributions_of_variables.R): creates Table 1 in our manuscript, i.e., summary statistics of our variables.
 4.  [lib/functions_to_get_associational_models.R](./lib/functions_to_get_associational_models.R): contains 1 function (glm), to run our associational logistic and binomial regressions; called by [code/associational_analyses.R](./code/associational_analyses.R)
 5. [code/associational_analyses.R](./code/associational_analyses.R): performs our associational analyses, i.e., logistic and binomial regression.
 6. [code/associational_analyses.sh](./code/associational_analyses.sh): bash script used to run [code/associational_analyses.R].

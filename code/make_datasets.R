@@ -1,27 +1,25 @@
 
-#Load packages
+print("## Load packages ----")
 library(readxl)
 library(data.table)
 
-### Import raw data
+print("## Read data ----")
 
 dir <- "../" # run code in the script location
 
-#tracts_2020_all_data <- read_excel(paste0(dir, "data/input/private/tracts_2020_all_data_revised.xlsx"))
-tracts_2020_all_data <- read.csv(paste0(dir, "data/input/private/tracts_2020_all_data_revised.csv"))
+tracts_2020_all_data <- read.csv(paste0(dir, "data/input/private/data_input_private/tracts_2020_all_data_revised.csv"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
 
 census_divisions_data <- fread(paste0(dir, "data/input/open/census_regions_divisions.csv"))
 
-mental_health_data <- fread(paste0(dir, "data/input/private/interpolated_mental_health.csv"))
+mental_health_data <- fread(paste0(dir, "data/input/private/data_input_private/interpolated_mental_health.csv"))
 
 urbanity_data <- fread(paste0(dir, "data/input/open/NCHSURCodes2013.csv"))
 urbanity_data <- as.data.table(urbanity_data)
 
-#codebook <- read_excel(paste0(dir, "data/input/private/codebook_all.xlsx"))
-codebook <- read.csv(paste0(dir, "data/input/private/codebook_all.csv"))
+codebook <- read.csv(paste0(dir, "data/input/private/data_input_private/codebook_all.csv"))
 
-### Merge Datasets 
+print("## Merge Datasets ----")
 
 census_divisions_data <- subset(census_divisions_data, select = c("state_fips", "census_division_number"))
 census_divisions_data[, state_fips := ifelse(nchar(state_fips) == 1, paste0("0", state_fips), state_fips)] # add leading 0 if necessary, convert state_fips to character
@@ -44,7 +42,7 @@ urbanity_data[, county_fips := ifelse(nchar(county_fips) == 4, paste0("0", count
 
 tracts_2020_all_data <- merge(tracts_2020_all_data, urbanity_data, by = "county_fips", all.x = T, all.y = F)
 
-### Remove rows
+print("## Remove rows ----")
 
 tracts_2020_subset <- tracts_2020_all_data[!startsWith(GEOID, "72")] # remove Puerto Rico because school shooting dataset (https://www.chds.us/ssdb) doesn't cover PR
 
@@ -54,14 +52,14 @@ tracts_2020_subset <- tracts_2020_subset[P0010001 != 0] # remove 18 Census tract
 
 tracts_2020_subset <- tracts_2020_subset[MEAN_Total_Miles_1 <= 500] # there are 136 tracts with MEAN_Total_Miles_1 >= 500; all other tracts have MEAN_Total_Miles_1 <= 100.21; removes Alaska
 
-### Subset columns (aka variables) 
+print("## Subset columns (aka variables) ----")
 
 all_vars <- setDT(data.frame(var_name = codebook$FieldName, include = as.logical(codebook[[7]])))
 include_vars <- all_vars[include == TRUE, var_name]
 
 tracts_2020_subset <- subset(tracts_2020_subset, select = include_vars)
 
-### Rename Variables
+print("## Rename Variables ----")
 
 setnames(tracts_2020_subset, old = c("MEAN_Total_Miles_1", "Shape_Area",
                                      "PCT_P0030001", "PCT_P0020005", "PCT_P0020006", "PCT_P0020007", "PCT_P0020008", "PCT_P0020009", "PCT_P0020011", "PCT_P0020002", 
@@ -74,7 +72,7 @@ setnames(tracts_2020_subset, old = c("MEAN_Total_Miles_1", "Shape_Area",
                  "median_household_inc_2021", "median_household_inc_15to24_2021",
                  "total_population_2020", "pop18plus", "daytime_pop_2021", "total_housing_units", "total_crime_2021"))
 
-### Extract, transform, scale variables
+print("## Extract, transform, scale variables ----")
 
 tracts_2020_transformed <- copy(tracts_2020_subset)
 tracts_2020_transformed[, state_fips := substr(GEOID, 1, 2)]
@@ -116,6 +114,6 @@ tracts_2020_transformed <- tracts_2020_transformed[, `:=`(Tract_Area_sq_meters =
                                                           employmentunemployment_unemprt_cy = NULL, employmentunemployment_unage16cy_p = NULL,
                                                           total_housing_units = NULL, institutional_group_pop = NULL, noninstitutional_group_pop = NULL)]
 
-##### Save dataset for all Census tracts containing a school #####
+print("## Save dataset for all Census tracts containing a school ----")
 
 fwrite(tracts_2020_transformed, paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))

@@ -21,7 +21,8 @@ args = parser$parse_args()
 ## Load functions ----
 dir <- "../" # run code in the script location
 
-source(paste0(dir, "lib/helper_functions.R"))
+source(paste0(dir, "lib/functions_to_load_data.R"))
+source(paste0(dir, "lib/functions_to_measure_covariate_balance.R"))
 source(paste0(dir, "lib/functions_using_gps.R"))
 
 ## Load datasets ----

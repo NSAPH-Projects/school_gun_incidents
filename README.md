@@ -8,7 +8,7 @@
 
 **Overview**: Causal inference to estimate causal and associative effects of average firearm-dealer-to-school proximity on occurrence of a school gun incident within a school-containing census tract in the United States.
 
-**Analysis**: To run all the analysis and regenerate the results found in [results](./results)
+**Analysis**: To run all the analysis and regenerate the results,
 
 * Request the `data_input_private.zip` to the authors. Unzip in this location [data/input/private](./data/input/private/).
 * Install [CausalGPS package](https://github.com/cran/CausalGPS) R package

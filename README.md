@@ -1,4 +1,4 @@
-**Project**: Firearm-dealer-to-school proximity and school gun incidents
+**Project**: Distance Between Schools and Gun Retailers and Risk of School Gun Incidents in the United States
 
 **Authors**: Falco Bargagli Stoffi, Michelle Qin
 

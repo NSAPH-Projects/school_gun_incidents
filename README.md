@@ -11,7 +11,7 @@
 **Analysis**: To run all the analyses and regenerate the results,
 
 * Request the `data_input_private.zip` to the authors. Unzip in this location [data/input/private](./data/input/private/).
-* Install [CausalGPS package](https://github.com/cran/CausalGPS) R package
+* Install [CausalGPS package](https://github.com/cran/CausalGPS) R package (use version 0.2.8.9 or higher)
 * Run:
 
 ```

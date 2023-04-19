@@ -82,7 +82,7 @@ results_match[["cov_bal.capped0.99"]] <- NULL
 results_match[["cov_bal.capped1"]] <- NULL
 
 # save results as txt file
-lapply(1:length(results),
+lapply(1:length(results_match),
        function(i) cat(paste(names(results_match)[i], results_match[[i]], collapse = ": "),
                        sep = "\n",
                        file=paste0(dir, "results/causal_analyses/", var_arg_a_p_match,".txt"),
@@ -118,7 +118,7 @@ results_weight[["cov_bal.capped0.99"]] <- NULL
 results_weight[["cov_bal.capped1"]] <- NULL
 
 # save results as txt file
-lapply(1:length(results),
+lapply(1:length(results_weight),
        function(i) cat(paste(names(results_weight)[i], results_weight[[i]], collapse = ": "),
                        sep = "\n",
                        file=paste0(dir, "results/causal_analyses/", var_arg_a_p_weight,".txt"),

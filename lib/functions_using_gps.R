@@ -16,7 +16,7 @@ all_matching_results_1model <- function(seed,
                                         data,
                                         trim,
                                         cat_covariate_names,
-                                        run_gee_model = F, # GEE model requires a lot of memory to run, some computers may not be able to
+                                        run_gee_model = F, # GEE model requires a lot of memory to run (48-72 GB), some computers may not be able to
                                         quant_covariates = quantitative_covariates){
   set.seed(seed)
   results_list <- list()

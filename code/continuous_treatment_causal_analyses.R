@@ -55,34 +55,35 @@ trim_ = list("95"=c(0.05, 0.95), "99"=c(0.01, 0.99))[[args$trim_quantiles]]
 data_ = data[[args$sensitivity_analysis]]
 covars_ = list("state"="State_Name", "state.urbanity"=c("State_Name", "urban_rural"))[[args$sensitivity_analysis]]
 
-results <- all_matching_results_1model(
+results_match <- all_matching_results_1model(
   seed_,
   data_,
   trim_,
-  covars_
+  covars_,
+  run_gee_model = T # requires 48-72 GB to run
 )
 
 var_arg_a_p_match = paste0(args$sensitivity_analysis, ".", args$percentiles,"_match")
 
 # save covariate balance plot as png
 ggsave(paste0(dir, "results/causal_analyses/", var_arg_a_p_match, "_correlation_plot.png"),
-       make_correlation_plot(results$cov_bal.capped0.99))
+       make_correlation_plot(results_match$cov_bal.capped0.99))
 
 # get mean AC of matched (number of matches capped at 99th percentile) and unadjusted pseudopopulation
-results$mean_AC_matched <- mean(
-  results$cov_bal.capped0.99[Dataset == "Matched", `Absolute Correlation`]
+results_match$mean_AC_matched <- mean(
+  results_match$cov_bal.capped0.99[Dataset == "Matched", `Absolute Correlation`]
 )
-results$mean_AC_unadjusted <- mean(
-  results$cov_bal.capped0.99[Dataset == "Unmatched", `Absolute Correlation`]
+results_match$mean_AC_unadjusted <- mean(
+  results_match$cov_bal.capped0.99[Dataset == "Unmatched", `Absolute Correlation`]
 )
-results[["cov_bal.capped0.99"]] <- NULL
+results_match[["cov_bal.capped0.99"]] <- NULL
 
 # remove results from uncapped pseudopopulation (not used)
-results[["cov_bal.capped1"]] <- NULL
+results_match[["cov_bal.capped1"]] <- NULL
 
 # save results as txt file
 lapply(1:length(results),
-       function(i) cat(paste(names(results)[i], results[[i]], collapse = ": "),
+       function(i) cat(paste(names(results_match)[i], results_match[[i]], collapse = ": "),
                        sep = "\n",
                        file=paste0(dir, "results/causal_analyses/", var_arg_a_p_match,".txt"),
                        append=TRUE))
@@ -97,7 +98,7 @@ results_weight <- all_weighting_results_1model(
   seed_,
   data_,
   trim_,
-  "State_Name"
+  covars_
 )
 
 # save covariate balance plot as png
@@ -105,20 +106,20 @@ ggsave(paste0(dir, "results/causal_analyses/", var_arg_a_p_weight, "_correlation
        make_correlation_plot(results_weight$cov_bal.capped0.99))
 
 # get mean AC of weighted (capped at 99th percentile) and unadjusted pseudopopulation
-results$mean_AC_weighted <- mean(
-  results$cov_bal.capped0.99[Dataset == "Weighted", `Absolute Correlation`]
+results_weight$mean_AC_weighted <- mean(
+  results_weight$cov_bal.capped0.99[Dataset == "Weighted", `Absolute Correlation`]
 )
-results$mean_AC_unadjusted <- mean(
-  results$cov_bal.capped0.99[Dataset == "Unweighted", `Absolute Correlation`]
+results_weight$mean_AC_unadjusted <- mean(
+  results_weight$cov_bal.capped0.99[Dataset == "Unweighted", `Absolute Correlation`]
 )
-results[["cov_bal.capped0.99"]] <- NULL
+results_weight[["cov_bal.capped0.99"]] <- NULL
 
 # remove results from uncapped pseudopopulation (not used)
-results[["cov_bal.capped1"]] <- NULL
+results_weight[["cov_bal.capped1"]] <- NULL
 
 # save results as txt file
 lapply(1:length(results),
-       function(i) cat(paste(names(results)[i], results[[i]], collapse = ": "),
+       function(i) cat(paste(names(results_weight)[i], results_weight[[i]], collapse = ": "),
                        sep = "\n",
-                       file=paste0(dir, "results/causal_analyses/", var_arg_a_p_match,".txt"),
+                       file=paste0(dir, "results/causal_analyses/", var_arg_a_p_weight,".txt"),
                        append=TRUE))

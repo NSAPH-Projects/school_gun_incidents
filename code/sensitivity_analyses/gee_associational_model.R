@@ -1,4 +1,4 @@
-##### Note: GEE model may take more memory to run than is available on some computers #####
+##### Note: GEE model may take more memory to run (<96 GB though) than is available on some computers #####
 
 
 ## Load packages ----
@@ -44,9 +44,11 @@ state.5.95_gee <- gee_model(
 )
 
 ### get logistic regression results from GPS-matched pseudopopulations and save results as txt file
-cat(paste("GEE associational model, estimated odds:", round(exp(state.5.95_gee["w",]["Estimate"]), 4)),
-    paste("GEE associational model, 95% CI lower bound:", round(exp(state.5.95_gee["w",]["Estimate"] - 1.96 * state.5.95_gee["w",]["Robust S.E."]), 4)),
-    paste("GEE associational model, 95% CI upper bound:", round(exp(state.5.95_gee["w",]["Estimate"] + 1.96 * state.5.95_gee["w",]["Robust S.E."]), 4)),
+cat(paste("GEE associational model, estimated odds:", round(exp(state.5.95_gee["a",]["Estimate"]), 4)),
+    paste("GEE associational model, 95% CI lower bound:", round(exp(state.5.95_gee["a",]["Estimate"] - 1.96 * state.5.95_gee["a",]["Robust S.E."]), 4)),
+    paste("GEE associational model, 95% CI upper bound:", round(exp(state.5.95_gee["a",]["Estimate"] + 1.96 * state.5.95_gee["a",]["Robust S.E."]), 4)),
+    paste("GEE associational model, 90% CI lower bound:", round(exp(state.5.95_gee["a",]["Estimate"] - 1.645 * state.5.95_gee["a",]["Robust S.E."]), 4)),
+    paste("GEE associational model, 90% CI upper bound:", round(exp(state.5.95_gee["a",]["Estimate"] + 1.645 * state.5.95_gee["a",]["Robust S.E."]), 4)),
     sep = "\n",
     file=paste0(dir, "results/sensitivity_analyses/gee_associational_model/gee_associational_model.txt"),
     append=TRUE)

@@ -1,0 +1,2 @@
+Excluded covariate: gun_affinity 
+ Logistic regression estimated odds: 0.9996

@@ -1,0 +1,2 @@
+Excluded covariate: demographic 
+ Logistic regression estimated odds: 0.9485

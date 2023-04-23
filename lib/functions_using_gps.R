@@ -16,7 +16,7 @@ all_matching_results_1model <- function(seed,
                                         data,
                                         trim,
                                         cat_covariate_names,
-                                        run_gee_model = F, # GEE model requires a lot of memory to run, some computers may not be able to
+                                        run_gee_model = F,
                                         quant_covariates = quantitative_covariates){
   set.seed(seed)
   results_list <- list()
@@ -67,7 +67,7 @@ all_matching_results_1model <- function(seed,
     # Fit GEE model
     outcome <- gee(formula = Y ~ w,
                    family = "binomial",
-                   data = pseudopop_long, 
+                   data = pseudopop_long[, c("Y", "w", "row_index")], 
                    id = pseudopop_long$row_index,
                    corstr = "exchangeable") # allows same correlation coefficient between states
     

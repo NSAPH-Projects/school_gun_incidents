@@ -1,0 +1,15 @@
+num_obs_matched 50574
+counter_max 39828
+counter99 501.22 (99th percentile)
+logistic_regression_estimated_odds 0.9763
+cl_sd_lb_95ci 0.9335
+cl_sd_ub_95ci 1.0211
+cl_sd_lb_90ci 0.9403
+cl_sd_ub_90ci 1.0138
+GEE_estimated_odds 0.9564
+GEE_lb_95ci 0.9313
+GEE_ub_95ci 0.9822
+GEE_lb_90ci 0.9353
+GEE_ub_90ci 0.978
+mean_AC_matched 0.038125856014567
+mean_AC_unadjusted 0.0879285411264257

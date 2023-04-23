@@ -1,4 +1,4 @@
-##### Note: GEE model may take more memory to run (up to 96 GB) than is available on some computers #####
+##### Note: GEE model may take up to 96 GB to run #####
 
 
 ## Load packages ----

@@ -1,4 +1,4 @@
-##### Note: GEE model (line 65) may take more memory to run (up to 96 GB for trim 5/95, or up to 250 GB for trim 1/99) than is available on some computers #####
+##### Note: GEE model (line 65) may take up to 96 GB for trim 5/95, or up to 250 GB for trim 1/99, to run #####
 
 ## Load packages ----
 library(ggplot2)
@@ -63,7 +63,7 @@ results_match <- all_matching_results_1model(
   data_,
   trim_,
   covars_,
-  run_gee_model = T # if T, requires up to 96 GB (for trim 5/95) or 184 GB (for trim 1/99) to run
+  run_gee_model = T
 )
 
 var_arg_a_p_match = paste0(args$sensitivity_analysis, ".", args$percentiles,"_match")

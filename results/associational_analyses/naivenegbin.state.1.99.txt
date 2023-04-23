@@ -1,0 +1,14 @@
+Baseline model
+naivenegbin
+state
+1.99
+Effect: 
+0.9719
+95% CI lower bound: 
+0.948
+95% CI upper bound: 
+0.9965
+90% CI lower bound: 
+0.9518
+90% CI upper bound: 
+0.9925

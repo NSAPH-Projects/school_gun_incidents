@@ -67,7 +67,7 @@ all_matching_results_1model <- function(seed,
     # Fit GEE model
     outcome <- gee(formula = Y ~ w,
                    family = "binomial",
-                   data = pseudopop_long, 
+                   data = pseudopop_long[, c("Y", "w", "row_index")], 
                    id = pseudopop_long$row_index,
                    corstr = "exchangeable") # allows same correlation coefficient between states
     

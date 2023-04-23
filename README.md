@@ -12,7 +12,7 @@
 
 * Request `data_input_private.zip` from the authors. Unzip in this location [data/input/private](./data/input/private/).
 * Install [CausalGPS package](https://github.com/cran/CausalGPS) R package (use version 0.2.8.9 or higher)
-* Decide whether to run the Generalized Estimating Equations (GEE) models (1 causal analysis and 1 sensitivity analysis). GEE models may take more memory than a typical computer contains.
+* Decide whether to run the Generalized Estimating Equations (GEE) models (1 causal analysis and 1 sensitivity analysis). GEE models may take up to 96 GB to run (and up to 250 GB for the "trim 1/99" sensitivity analysis), which is more memory than a typical computer contains.
 * To run all analyses, including the GEE models:
 
 ```
@@ -25,7 +25,7 @@ bash matching_without_covariates_for_evalue.sh
 bash gee_associational_model.sh
 ```
 
-* To run all analyses _except_ the GEE models, set ```run_gee_model = F``` on line 63 of ```code/continuous_treatment_causal_analyses.sh```. Then run: 
+* To run all analyses _except_ the GEE models, set ```run_gee_model = F``` on line 65 of ```code/continuous_treatment_causal_analyses.sh```. Then run: 
 
 ```
 cd code

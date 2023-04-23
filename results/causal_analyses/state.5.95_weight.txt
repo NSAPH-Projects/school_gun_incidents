@@ -1,0 +1,9 @@
+weight_max 59961.31
+weight99 20.36 (99th percentile)
+logistic_regression_estimated_odds 0.9743
+lb_95ci 0.9561
+ub_95ci 0.9928
+lb_90ci 0.959
+ub_90ci 0.9898
+mean_AC_weighted 0.041404619507926
+mean_AC_unadjusted 0.08831905381155

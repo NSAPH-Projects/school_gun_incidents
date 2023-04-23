@@ -59,7 +59,6 @@ ub_90ci <- round(exp( results["Estimate"] + 1.645 * results["Std. Error"]), 4)
 
 cat("Baseline model", 
     args$m, args$s, args$p, 
-    paste(summary(model), collapse = "\n"), 
     sep = "\n",
     file=paste0(dir, "results/associational_analyses/", 
                 args$m, ".", args$s, ".", args$p, ".txt"), 

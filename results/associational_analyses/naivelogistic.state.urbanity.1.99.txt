@@ -1,0 +1,14 @@
+Baseline model
+naivelogistic
+state.urbanity
+1.99
+Effect: 
+0.971
+95% CI lower bound: 
+0.9468
+95% CI upper bound: 
+0.9959
+90% CI lower bound: 
+0.9507
+90% CI upper bound: 
+0.9919

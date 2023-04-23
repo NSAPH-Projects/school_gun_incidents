@@ -1,0 +1,5 @@
+GEE associational model, estimated odds: 0.9675
+GEE associational model, 95% CI lower bound: 0.9366
+GEE associational model, 95% CI upper bound: 0.9995
+GEE associational model, 90% CI lower bound: 0.9415
+GEE associational model, 90% CI upper bound: 0.9943

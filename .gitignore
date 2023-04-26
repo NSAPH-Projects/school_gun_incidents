@@ -45,3 +45,8 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+####
+# Image files
+####
+*.png

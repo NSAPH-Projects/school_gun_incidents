@@ -1,4 +1,3 @@
-
 print("## Load packages ----")
 library(readxl)
 library(data.table)
@@ -7,17 +6,17 @@ print("## Read data ----")
 
 dir <- "../" # run code in the script location
 
-tracts_2020_all_data <- read.csv(paste0(dir, "data/input/private/data_input_private/tracts_2020_all_data_revised.csv"))
+tracts_2020_all_data <- read.csv(paste0(dir, "data/input/private/tracts_2020_all_data_revised.csv"))
 tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
 
 census_divisions_data <- fread(paste0(dir, "data/input/open/census_regions_divisions.csv"))
 
-mental_health_data <- fread(paste0(dir, "data/input/private/data_input_private/interpolated_mental_health.csv"))
+mental_health_data <- fread(paste0(dir, "data/input/private/interpolated_mental_health.csv"))
 
 urbanity_data <- fread(paste0(dir, "data/input/open/NCHSURCodes2013.csv"))
 urbanity_data <- as.data.table(urbanity_data)
 
-codebook <- read.csv(paste0(dir, "data/input/private/data_input_private/codebook_all.csv"))
+codebook <- read.csv(paste0(dir, "data/input/private/codebook_all.csv"))
 
 print("## Merge Datasets ----")
 

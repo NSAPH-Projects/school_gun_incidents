@@ -2,117 +2,49 @@ print("## Load packages ----")
 library(readxl)
 library(data.table)
 
-print("## Read data ----")
 
+print("## Read data ----")
 dir <- "../" # run code in the script location
 
-tracts_2020_all_data <- read.csv(paste0(dir, "data/input/private/tracts_2020_all_data_revised.xlsx"))
-tracts_2020_all_data <- as.data.table(tracts_2020_all_data)
+tracts_data <- read_excel(paste0(dir, "data/input/private/gun_violence_v2.xlsx"))
+tracts_data <- as.data.table(tracts_data)
+# var_descriptions <- tracts_data[1, ] # save variable descriptions
+tracts_data <- tracts_data[2:nrow(tracts_data), ] # remove row of variable descriptions from dataset
 
-census_divisions_data <- fread(paste0(dir, "data/input/open/census_regions_divisions.csv"))
 
-mental_health_data <- fread(paste0(dir, "data/input/private/interpolated_mental_health.csv"))
+print("## Exclude some rows ----")
 
-urbanity_data <- fread(paste0(dir, "data/input/open/NCHSURCodes2013.csv"))
-urbanity_data <- as.data.table(urbanity_data)
+tracts_data <- tracts_data[!startsWith(GEOID, "72")] # remove Puerto Rico because school shooting dataset (https://www.chds.us/ssdb) doesn't cover PR
+tracts_data <- tracts_data[P0010001 != 0] # remove 18 Census tracts with population 0 since several variables will be NA
 
-codebook <- read.csv(paste0(dir, "data/input/private/codebook_all.csv"))
 
-print("## Merge Datasets ----")
+print("## Subset and transform variables ----")
+tracts_data[, GEOID := NULL]
+tracts_data[, groupquarters_GQNINST20_P := NULL] # collinear with groupquarters_GQINST20_P
+tracts_data[, num_shootings := NULL] # not analyzing this outcome
+tracts_data[, incident_date := NULL] # not analyzing this outcome
+tracts_data[, dist_open_dealer := NULL] # not analyzing this exposure
+tracts_data[, dist_open_commercial := NULL] # not analyzing this exposure
+tracts_data[, duration_weighted_density := NULL] # exclude this variable for simplicity
 
-census_divisions_data <- subset(census_divisions_data, select = c("state_fips", "census_division_number"))
-census_divisions_data[, state_fips := ifelse(nchar(state_fips) == 1, paste0("0", state_fips), state_fips)] # add leading 0 if necessary, convert state_fips to character
+qualitative_confounder_names <- "STATE_ABBR"
 
-tracts_2020_all_data[, state_fips := substr(GEOID, 1, 2)]
-tracts_2020_all_data[, county_fips := substr(GEOID, 1, 5)]
-tracts_2020_all_data <- merge(tracts_2020_all_data, census_divisions_data, by = "state_fips", all.x = T, all.y = F)
+for (var in colnames(tracts_data)){
+  if (!(var %in% qualitative_confounder_names)){ # alternatively, != "STATE_ABBR"
+    tracts_data[[var]] <- as.numeric(tracts_data[[var]])
+  }
+}
 
-mental_health_data <- subset(mental_health_data, select = c("GEOID_TXT", "mental_health_index"))
-setnames(mental_health_data, "GEOID_TXT", "GEOID")
-mental_health_data$GEOID <- as.character(mental_health_data$GEOID)
-mental_health_data[, GEOID := ifelse(nchar(GEOID) == 10, paste0("0", GEOID), GEOID)]
+tracts_data[, population_per_100sqmi := P0010001 / area_sq_mile * 100]
+tracts_data[, daytime_population_per_100sqmi := populationtotals_DPOP_CY / area_sq_mile * 100]
 
-#Need to transform GEOID to character (when using csv)
-tracts_2020_all_data$GEOID <- as.character(tracts_2020_all_data$GEOID)
-tracts_2020_all_data <- merge(tracts_2020_all_data, mental_health_data, by = "GEOID", all.x = T, all.y = F)
 
-urbanity_data <- urbanity_data[, .(county_fips = as.character(`FIPS code`), urban_rural = `2013 code`)]
-urbanity_data[, county_fips := ifelse(nchar(county_fips) == 4, paste0("0", county_fips), county_fips)]
+print("## Remove highly correlated (>= 0.95) confounders ----")
 
-tracts_2020_all_data <- merge(tracts_2020_all_data, urbanity_data, by = "county_fips", all.x = T, all.y = F)
+tracts_data_cleaned <- copy(tracts_data)
+tracts_data_cleaned[, `:=`(hu_per_100_sqmi = NULL,
+                           sports_MP33017a_B_P = NULL)]
 
-print("## Remove rows ----")
-
-tracts_2020_subset <- tracts_2020_all_data[!startsWith(GEOID, "72")] # remove Puerto Rico because school shooting dataset (https://www.chds.us/ssdb) doesn't cover PR
-
-tracts_2020_subset <- tracts_2020_subset[!is.na(MEAN_Total_Miles_1)] # remove 252 NA's in exposure variable; removes Hawaii
-
-tracts_2020_subset <- tracts_2020_subset[P0010001 != 0] # remove 18 Census tracts with total population 0
-
-tracts_2020_subset <- tracts_2020_subset[MEAN_Total_Miles_1 <= 500] # there are 136 tracts with MEAN_Total_Miles_1 >= 500; all other tracts have MEAN_Total_Miles_1 <= 100.21; removes Alaska
-
-print("## Subset columns (aka variables) ----")
-
-all_vars <- setDT(data.frame(var_name = codebook$FieldName, include = as.logical(codebook[[7]])))
-include_vars <- all_vars[include == TRUE, var_name]
-
-tracts_2020_subset <- subset(tracts_2020_subset, select = include_vars)
-
-print("## Rename Variables ----")
-
-setnames(tracts_2020_subset, old = c("MEAN_Total_Miles_1", "Shape_Area",
-                                     "PCT_P0030001", "PCT_P0020005", "PCT_P0020006", "PCT_P0020007", "PCT_P0020008", "PCT_P0020009", "PCT_P0020011", "PCT_P0020002", 
-                                     "P0050002", "P0050007",
-                                     "householdincome_medhinc_cy", "incomebyage_media15_cy",
-                                     "P0010001", "P0030001", "daytimepopulation_dpop_cy", "H0010001", "crime_crmcytotc"),
-         new = c("mean_total_miles", "Tract_Area_sq_meters",
-                 "pct_18plus", "white_only_pct", "black_only_pct", "american_indian_alaskan_native_only_pct", "asian_only_pct", "native_hawaiian_pacific_islander_only_pct", "multiracial_pct", "hispanic_latino_pct",
-                 "institutional_group_pop", "noninstitutional_group_pop",
-                 "median_household_inc_2021", "median_household_inc_15to24_2021",
-                 "total_population_2020", "pop18plus", "daytime_pop_2021", "total_housing_units", "total_crime_2021"))
-
-print("## Extract, transform, scale variables ----")
-
-tracts_2020_transformed <- copy(tracts_2020_subset)
-tracts_2020_transformed[, state_fips := substr(GEOID, 1, 2)]
-tracts_2020_transformed[, county_fips := substr(GEOID, 1, 5)]
-tracts_2020_transformed[, area_sq_miles := Tract_Area_sq_meters / 1.60934^2]
-tracts_2020_transformed[, log_median_hh_income := log(median_household_inc_2021 + 0.01)]
-tracts_2020_transformed[, log_median_hh_income_15to24 := log(median_household_inc_15to24_2021 + 0.01)]
-tracts_2020_transformed[, `:=`(dealers_per_100_sq_miles = count_gun_dealers/area_sq_miles*100,
-                          schools_per_100_sq_miles = count_schools/area_sq_miles*100)]
-
-tracts_2020_transformed[, `:=`(prop_18plus = pct_18plus/100,
-                          prop_white_only = white_only_pct/100,
-                               prop_black_only = black_only_pct/100,
-                               prop_american_indian_alaskan_native_only = american_indian_alaskan_native_only_pct/100,
-                               prop_asian_only = asian_only_pct/100,
-                               prop_native_hawaiian_pacific_islander_only = native_hawaiian_pacific_islander_only_pct/100,
-                               prop_multiracial = multiracial_pct/100,
-                               prop_hispanic_latino = hispanic_latino_pct/100)]
-tracts_2020_transformed[, `:=`(prop_food_stamps_2019 = foodstampssnap_acssnap_p/100,
-                               prop_public_assist_income_2019 = households_acspubai_p/100,
-                               prop_below_poverty_2019 = households_acshhbpov_p/100,
-                               prop_without_vehicles_2019 = vehiclesavailable_acsoveh0_p/100,
-                               prop_hunted_with_shotgun_2021 = sports_mp33018a_b_p/100,
-                               prop_bachelor_deg_25plus_2021 = educationalattainment_bachdeg_cy_p/100,
-                               prop_grad_deg_25plus_2021 = educationalattainment_graddeg_cy_p/100,
-                               prop_unemployed_2021 = employmentunemployment_unemprt_cy/100,
-                               prop_unemployed_16to24_2021 = employmentunemployment_unage16cy_p/100)]
-
-tracts_2020_transformed[, `:=`(housing_units_per_100_sq_miles = total_housing_units/area_sq_miles*100,
-                               prop_institutional_group = institutional_group_pop/total_population_2020, 
-                               prop_noninstitutional_group = noninstitutional_group_pop/total_population_2020)]
-
-tracts_2020_transformed <- tracts_2020_transformed[, `:=`(Tract_Area_sq_meters = NULL, median_household_inc_2021 = NULL, median_household_inc_15to24_2021 = NULL,
-                                                          pct_18plus = NULL, white_only_pct = NULL, black_only_pct = NULL, american_indian_alaskan_native_only_pct = NULL,
-                                                          asian_only_pct = NULL, native_hawaiian_pacific_islander_only_pct = NULL, multiracial_pct = NULL,
-                                                          hispanic_latino_pct = NULL, foodstampssnap_acssnap_p = NULL, households_acspubai_p = NULL,
-                                                          households_acshhbpov_p = NULL, vehiclesavailable_acsoveh0_p = NULL, sports_mp33018a_b_p = NULL,
-                                                          educationalattainment_bachdeg_cy_p = NULL, educationalattainment_graddeg_cy_p = NULL,
-                                                          employmentunemployment_unemprt_cy = NULL, employmentunemployment_unage16cy_p = NULL,
-                                                          total_housing_units = NULL, institutional_group_pop = NULL, noninstitutional_group_pop = NULL)]
-
-print("## Save dataset for all Census tracts containing a school ----")
-
-fwrite(tracts_2020_transformed, paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))
+print("## Save intermediate and final datasets ----")
+fwrite(tracts_data, paste0(dir, "data/intermediate/intermediate_cleaned_data_aug2023.csv"))
+fwrite(tracts_data_cleaned, paste0(dir, "data/intermediate/cleaned_data_aug2023.csv"))

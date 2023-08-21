@@ -68,13 +68,21 @@ cor_matrix_final_plot
 print("## Plot distribution of dist_closest_dealer ----")
 
 summary(tracts_data_final$dist_closest_dealer)
-hist(tracts_data_final$dist_closest_dealer)
+mean(tracts_data_final$dist_closest_dealer, na.rm = T)
+sd(tracts_data_final$dist_closest_dealer, na.rm = T)
+hist(tracts_data_final$dist_closest_dealer,
+     main = "Average Distance from Schools to Closest Firearms Dealer",
+     xlab = "Miles")
 
 
 print("## Plot distribution of dist_closest_commercial ----")
 
 summary(tracts_data_final$dist_closest_commercial)
-hist(tracts_data_final$dist_closest_commercial)
+mean(tracts_data_final$dist_closest_commercial, na.rm = T)
+sd(tracts_data_final$dist_closest_commercial, na.rm = T)
+hist(tracts_data_final$dist_closest_commercial,
+     main = "Average Distance from Schools to Closest Commercial Firearms Dealer",
+     xlab = "Miles")
 
 
 print("## Plot distribution of quantitative confounders ----")

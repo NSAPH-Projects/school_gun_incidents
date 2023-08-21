@@ -1,17 +1,19 @@
 ##### Functions to set up analysis #####
 
-quantitative_covariates <- c("total_population_2020", "housing_units_per_100_sq_miles", "area_sq_miles",
-                          "log_median_hh_income", "schools_per_100_sq_miles",
-                          "log_median_hh_income_15to24", "total_crime_2021", 
-                          "dealers_per_100_sq_miles", "mental_health_index",
-                          "daytime_pop_2021", "prop_white_only", "prop_black_only", 
-                          "prop_asian_only", "prop_multiracial", "prop_hispanic_latino", 
-                          "prop_food_stamps_2019", "prop_public_assist_income_2019",
-                          "prop_below_poverty_2019", "prop_without_vehicles_2019",
-                          "prop_hunted_with_shotgun_2021", "prop_bachelor_deg_25plus_2021", 
-                          "prop_grad_deg_25plus_2021", "prop_unemployed_2021",
-                          "prop_unemployed_16to24_2021", "prop_institutional_group",
-                          "prop_noninstitutional_group", "prop_18plus")
+quantitative_covariates <- c("P0010001",                           "populationtotals_DPOP_CY",
+                             "hu_per_100_sqmi",                    "schools_per_100_sqmi",
+                             "area_sq_mile",                       "groupquarters_GQINST20_P",
+                             "prop_adult",                         "householdincome_ACSSNAP_P",
+                             "households_ACSPUBAI_P",              "households_ACSHHBPOV_P",
+                             "EmploymentUnemployment_UNEMPRT_CY",  "EmploymentUnemployment_UNEMRT16CY",
+                             "vehiclesavailable_ACSOVEH0_P",       "crime_CRMCYTOTC",
+                             "MHLTH_CrudePrev",                    "DEPRESSION_CrudePrev",
+                             "educationalattainment_BACHDEG_CY_P", "educationalattainment_GRADDEG_CY_P",
+                             "firearm_retailers_per_100sqmi",      "sports_MP33018a_B_P",
+                             "prop_white",                         "prop_black",
+                             "prop_asian",                         "prop_multiracial",
+                             "prop_hispanic",                      "log_med_HH_income",
+                             "log_avg_HH_income_15to24")
 
 factorize_cat_vars <- function(data){
   if ("census_division" %in% colnames(data)){
@@ -29,6 +31,9 @@ factorize_cat_vars <- function(data){
   if ("State_Name" %in% colnames(data)){
     data$State_Name <- as.factor(data$State_Name)
   }
+  if ("STATE_ABBR" %in% colnames(data)){
+    data$STATE_ABBR <- as.factor(data$STATE_ABBR)
+  }
   if ("County_Name" %in% colnames(data)){
     data$County_Name <- as.factor(data$County_Name)
   }
@@ -44,9 +49,9 @@ factorize_cat_vars <- function(data){
   return(data)
 }
 
-get_analysis_df <- function(data, exposure = "mean_total_miles", covariate_names){
+get_analysis_df <- function(data, exposure, covariate_names){
   data <- as.data.frame(data)
-  y <- data[, "binary_shooting_incident"]
+  y <- data[, "binary_shooting"]
   a <- data[, exposure]
   x <- factorize_cat_vars(data[, covariate_names])
   a <- a / 0.5 # convert exposure to half-miles

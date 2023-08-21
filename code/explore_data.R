@@ -10,7 +10,7 @@ dir <- "../" # run code in the script location
 
 tracts_data <- fread(paste0(dir, "data/intermediate/intermediate_data_aug2023.csv"))
 
-qualitative_confounder_names <- c("census_division_number", "urban_rural")
+qualitative_confounder_names <- c("census_division_number", "STATE_ABBR", "urban_rural")
 exposure_names <- c("dist_closest_dealer", "dist_closest_commercial")
 outcome_name <- "binary_shooting"
 quantitative_confounder_names <- colnames(tracts_data)[!(colnames(tracts_data) %in% c(qualitative_confounder_names,
@@ -80,89 +80,115 @@ hist(tracts_data_final$dist_closest_commercial)
 print("## Plot distribution of quantitative confounders ----")
 
 for (var in quantitative_confounder_names_final){
-  print(var)
-  print(mean(tracts_data_final[[var]]))
-  print(sd(tracts_data_final[[var]]))
+  cat(var, "\n")
+  cat("Mean:", mean(tracts_data_final[[var]]), "\n")
+  cat("SD:", sd(tracts_data_final[[var]]), "\n\n")
 }
 
-# [1] "P0010001"
-# [1] 4210.206
-# [1] 1693.987
-# [1] "populationtotals_DPOP_CY"
-# [1] 4280.126
-# [1] 3526.212
-# [1] "hu_per_100_sqmi" ### different from previous result
-# [1] 191284.7
-# [1] 481055.6
-# [1] "schools_per_100_sqmi" ### different from previous result
-# [1] 0.02124115
-# [1] 0.05373203
-# [1] "area_sq_mile" ### different from previous result
-# [1] 43.15273
-# [1] 227.4726
-# [1] "groupquarters_GQINST20_P" ### different from previous result
-# [1] 25.13192
-# [1] 39.85418
-# [1] "prop_adult"
-# [1] 0.7783094
-# [1] 0.05433586
-# [1] "householdincome_ACSSNAP_P"
-# [1] 12.35961
-# [1] 11.41292
-# [1] "households_ACSPUBAI_P"
-# [1] 2.728706
-# [1] 3.167255
-# [1] "households_ACSHHBPOV_P"
-# [1] 13.16409
-# [1] 10.27064
-# [1] "EmploymentUnemployment_UNEMPRT_CY"
-# [1] 4.600719
-# [1] 3.699306
-# [1] "EmploymentUnemployment_UNEMRT16CY"
-# [1] 9.742484
-# [1] 11.93386
-# [1] "vehiclesavailable_ACSOVEH0_P"
-# [1] 3.852289
-# [1] 7.341542
-# [1] "crime_CRMCYTOTC"
-# [1] 103.7511
-# [1] 68.02357
-# [1] "MHLTH_CrudePrev"
-# [1] 15.13786
-# [1] 2.686491
-# [1] "DEPRESSION_CrudePrev"
-# [1] 20.60004
-# [1] 3.550804
-# [1] "educationalattainment_BACHDEG_CY_P"
-# [1] 20.99193
-# [1] 10.99163
-# [1] "educationalattainment_GRADDEG_CY_P"
-# [1] 13.02408
-# [1] 10.69426
-# [1] "firearm_retailers_per_100sqmi" ### different from previous result
-# [1] 48.97875
-# [1] 107.4379
-# [1] "sports_MP33018a_B_P"
-# [1] 2.600491
-# [1] 1.390328
-# [1] "prop_white"
-# [1] 0.628158
-# [1] 0.2654937
-# [1] "prop_black"
-# [1] 0.1280754
-# [1] 0.2008618
-# [1] "prop_asian"
-# [1] 0.05059295
-# [1] 0.08978894
-# [1] "prop_multiracial"
-# [1] 0.09862712
-# [1] 0.07031812
-# [1] "prop_hispanic"
-# [1] 0.1797497
-# [1] 0.2167559
-# [1] "log_med_HH_income"
-# [1] 11.12088
-# [1] 0.7344127
-# [1] "log_avg_HH_income_15to24"
-# [1] 10.88946
-# [1] 0.95539
+# P0010001 
+# Mean: 4210.206 
+# SD: 1693.987 
+# 
+# populationtotals_DPOP_CY 
+# Mean: 4280.126 
+# SD: 3526.212 
+# 
+# hu_per_100_sqmi ### different from previous Table 1
+# Mean: 191284.7 
+# SD: 481055.6 
+# 
+# schools_per_100_sqmi ### different from previous Table 1
+# Mean: 0.02124115 
+# SD: 0.05373203 
+# 
+# area_sq_mile ### different from previous Table 1
+# Mean: 43.15273 
+# SD: 227.4726 
+# 
+# groupquarters_GQINST20_P ### different from previous Table 1
+# Mean: 25.13192 
+# SD: 39.85418 
+# 
+# prop_adult 
+# Mean: 0.7783094 
+# SD: 0.05433586 
+# 
+# householdincome_ACSSNAP_P 
+# Mean: 12.35961 
+# SD: 11.41292 
+# 
+# households_ACSPUBAI_P 
+# Mean: 2.728706 
+# SD: 3.167255 
+# 
+# households_ACSHHBPOV_P 
+# Mean: 13.16409 
+# SD: 10.27064 
+# 
+# EmploymentUnemployment_UNEMPRT_CY 
+# Mean: 4.600719 
+# SD: 3.699306 
+# 
+# EmploymentUnemployment_UNEMRT16CY 
+# Mean: 9.742484 
+# SD: 11.93386 
+# 
+# vehiclesavailable_ACSOVEH0_P 
+# Mean: 3.852289 
+# SD: 7.341542 
+# 
+# crime_CRMCYTOTC 
+# Mean: 103.7511 
+# SD: 68.02357 
+# 
+# MHLTH_CrudePrev 
+# Mean: 15.13786 
+# SD: 2.686491 
+# 
+# DEPRESSION_CrudePrev 
+# Mean: 20.60004 
+# SD: 3.550804 
+# 
+# educationalattainment_BACHDEG_CY_P 
+# Mean: 20.99193 
+# SD: 10.99163 
+# 
+# educationalattainment_GRADDEG_CY_P 
+# Mean: 13.02408 
+# SD: 10.69426 
+# 
+# firearm_retailers_per_100sqmi ### different from previous Table 1
+# Mean: 48.97875 
+# SD: 107.4379 
+# 
+# sports_MP33018a_B_P 
+# Mean: 2.600491 
+# SD: 1.390328 
+# 
+# prop_white 
+# Mean: 0.628158 
+# SD: 0.2654937 
+# 
+# prop_black 
+# Mean: 0.1280754 
+# SD: 0.2008618 
+# 
+# prop_asian 
+# Mean: 0.05059295 
+# SD: 0.08978894 
+# 
+# prop_multiracial 
+# Mean: 0.09862712 
+# SD: 0.07031812 
+# 
+# prop_hispanic 
+# Mean: 0.1797497 
+# SD: 0.2167559 
+# 
+# log_med_HH_income 
+# Mean: 11.12088 
+# SD: 0.7344127 
+# 
+# log_avg_HH_income_15to24 
+# Mean: 10.88946 
+# SD: 0.95539 

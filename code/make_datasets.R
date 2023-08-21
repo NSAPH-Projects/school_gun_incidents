@@ -43,7 +43,6 @@ print("## Subset and transform variables ----")
 tracts_data[, GEOID := NULL]
 tracts_data[, state_fips := NULL]
 tracts_data[, county_fips := NULL]
-tracts_data[, STATE_ABBR := NULL]
 tracts_data[, groupquarters_GQNINST20_P := NULL] # collinear with groupquarters_GQINST20_P
 tracts_data[, num_dealers := NULL] # already including firearm_retailers_per_100sqmi
 tracts_data[, num_schools := NULL] # already including schools_per_100_sqmi
@@ -53,7 +52,7 @@ tracts_data[, incident_date := NULL] # not analyzing this outcome
 tracts_data[, dist_open_dealer := NULL] # not analyzing this exposure
 tracts_data[, dist_open_commercial := NULL] # not analyzing this exposure
 
-qualitative_confounder_names <- c("census_division_number", "urban_rural")
+qualitative_confounder_names <- c("census_division_number", "STATE_ABBR", "urban_rural")
 
 for (var in colnames(tracts_data)){
   if (var %in% qualitative_confounder_names){

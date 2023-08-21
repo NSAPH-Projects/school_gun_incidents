@@ -3,7 +3,7 @@ library(MASS)
 library(data.table)
 library(argparse)
 
-# define parser arguments ----
+# Define parser arguments ----
 parser <- ArgumentParser()
 parser$add_argument("-e", "--exposure", default="dist_closest_dealer",
                     help="Exposure variable 'dist_closest_dealer' or 'dist_closest_commercial'", type="character")
@@ -24,29 +24,39 @@ source(paste0(dir, "lib/functions_to_get_associational_models.R"))
 ## Load datasets ----
 df <- fread(paste0(dir, "data/intermediate/final_data_aug2023.csv"))
 
-## prepare datasets for main analysis ----
-data <- list()
-data[["dealer"]] <- list()
-data[["dealer"]][["state"]] <- get_analysis_df(df, "dist_closest_dealer", c("STATE_ABBR", quantitative_covariates))
-data[["dealer"]][["state.urbanity"]] <- get_analysis_df(df, "dist_closest_dealer", c("STATE_ABBR", "urban_rural", quantitative_covariates))
-data[["commercial"]] <- list()
-data[["commercial"]][["state"]] <- get_analysis_df(df, "dist_closest_commercial", c("STATE_ABBR", quantitative_covariates))
-data[["commercial"]][["state.urbanity"]] <- get_analysis_df(df, "dist_closest_commercial", c("STATE_ABBR", "urban_rural", quantitative_covariates))
+## Get datasets for main analysis ----
+data <- vector("list", 2)
+names(data) <- c("dist_closest_dealer", "dist_closest_commercial")
+data[["dist_closest_dealer"]] <- vector("list", 2)
+data[["dist_closest_commercial"]] <- vector("list", 2)
+names(data[["dist_closest_dealer"]]) <- c("state", "state.urbanity")
+names(data[["dist_closest_commercial"]]) <- c("state", "state.urbanity")
 
-## get 95th and 99th percentiles of exposure ----
-percentile_exposure <- list()
-percentile_exposure[["dealer.1.99"]] <- quantile(data[["dealer.state"]]$a, c(0.01, 0.99))
-percentile_exposure[["dealer.5.95"]] <- quantile(data[["dealer.state"]]$a, c(0.05, 0.95))
-percentile_exposure[["commercial.1.99"]] <- quantile(data[["commercial.state"]]$a, c(0.01, 0.99))
-percentile_exposure[["commercial.5.95"]] <- quantile(data[["commercial.state"]]$a, c(0.05, 0.95))
+data[["dist_closest_dealer"]][["state"]] <- get_analysis_df(df, "dist_closest_dealer", c("STATE_ABBR", quantitative_covariates))
+data[["dist_closest_dealer"]][["state.urbanity"]] <- get_analysis_df(df, "dist_closest_dealer", c("STATE_ABBR", "urban_rural", quantitative_covariates))
+data[["dist_closest_commercial"]][["state"]] <- get_analysis_df(df, "dist_closest_commercial", c("STATE_ABBR", quantitative_covariates))
+data[["dist_closest_commercial"]][["state.urbanity"]] <- get_analysis_df(df, "dist_closest_commercial", c("STATE_ABBR", "urban_rural", quantitative_covariates))
+
+## Get 95th and 99th percentiles of exposure ----
+percentile_exposure <- vector("list", 2)
+names(percentile_exposure) <- c("dist_closest_dealer", "dist_closest_commercial")
+percentile_exposure[["dist_closest_dealer"]] <- vector("list", 2)
+percentile_exposure[["dist_closest_commercial"]] <- vector("list", 2)
+names(percentile_exposure[["dist_closest_dealer"]]) <- c("5.95", "1.99")
+names(percentile_exposure[["dist_closest_commercial"]]) <- c("5.95", "1.99")
+
+percentile_exposure[["dist_closest_dealer"]][["5.95"]] <- quantile(data[["dist_closest_dealer"]][["state"]]$a, c(0.05, 0.95))
+percentile_exposure[["dist_closest_dealer"]][["1.99"]] <- quantile(data[["dist_closest_dealer"]][["state"]]$a, c(0.01, 0.99))
+percentile_exposure[["dist_closest_commercial"]][["5.95"]] <- quantile(data[["dist_closest_commercial"]][["state"]]$a, c(0.05, 0.95))
+percentile_exposure[["dist_closest_commercial"]][["1.99"]] <- quantile(data[["dist_closest_commercial"]][["state"]]$a, c(0.01, 0.99))
 
 #### #### ####
 ## Run baseline models
 #### #### ####
 
 m_ = c("naivelogistic" = "logistic", "naivenegbin" = "negbin")[args$m]
-data_ = data[[args$s]][data[[args$s]]$a >= percentile_exposure[[args$p]][1] & 
-                        data[[args$s]]$a <= percentile_exposure[[args$p]][2], ]
+data_ = data[[args$e]][[args$s]][data[[args$e]][[args$s]]$a >= percentile_exposure[[args$e]][[args$p]][1] & 
+                        data[[args$e]][[args$s]]$a <= percentile_exposure[[args$e]][[args$p]][2], ]
 covars_ = list(
   "state" = c("STATE_ABBR", quantitative_covariates),
   "state.urbanity" = c("STATE_ABBR", "urban_rural", quantitative_covariates)

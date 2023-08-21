@@ -3,12 +3,26 @@ naivelogistic
 state
 5.95
 Effect: 
-0.9687
+0.9399
 95% CI lower bound: 
-0.9367
+0.8934
 95% CI upper bound: 
-1.0019
+0.9888
 90% CI lower bound: 
-0.9418
+0.9007
 90% CI upper bound: 
-0.9965
+0.9808
+Baseline model
+naivelogistic
+state
+5.95
+Effect: 
+0.9575
+95% CI lower bound: 
+0.9319
+95% CI upper bound: 
+0.9837
+90% CI lower bound: 
+0.9359
+90% CI upper bound: 
+0.9795

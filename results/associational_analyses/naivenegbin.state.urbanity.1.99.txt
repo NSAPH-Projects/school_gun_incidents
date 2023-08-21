@@ -3,12 +3,26 @@ naivenegbin
 state.urbanity
 1.99
 Effect: 
-0.9716
+0.952
 95% CI lower bound: 
-0.9476
+0.918
 95% CI upper bound: 
-0.9961
+0.9873
 90% CI lower bound: 
-0.9514
+0.9234
 90% CI upper bound: 
-0.9921
+0.9816
+Baseline model
+naivenegbin
+state.urbanity
+1.99
+Effect: 
+0.9483
+95% CI lower bound: 
+0.9283
+95% CI upper bound: 
+0.9687
+90% CI lower bound: 
+0.9315
+90% CI upper bound: 
+0.9653

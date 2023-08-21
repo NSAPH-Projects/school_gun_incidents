@@ -75,39 +75,38 @@ ub_95ci <- round(exp( results["Estimate"] + 1.96 * results["Std. Error"]), 4)
 lb_90ci <- round(exp( results["Estimate"] - 1.645 * results["Std. Error"]), 4)
 ub_90ci <- round(exp( results["Estimate"] + 1.645 * results["Std. Error"]), 4)
 
-cat("Baseline model", 
-    args$m, args$s, args$p, 
+cat(args$e, args$m, args$s, args$p, 
     sep = "\n",
     file=paste0(dir, "results/associational_analyses/", 
-                args$m, ".", args$s, ".", args$p, ".txt"), 
+                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"), 
     append=TRUE)
 cat("Effect: ", 
     effect, 
     sep = "\n",
     file=paste0(dir, "results/associational_analyses/", 
-                args$m, ".", args$s, ".", args$p, ".txt"),
+                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
     append=TRUE)
 cat("95% CI lower bound: ", 
     lb_95ci, 
     sep = "\n",
     file=paste0(dir, "results/associational_analyses/", 
-                args$m, ".", args$s, ".", args$p, ".txt"),
+                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
     append=TRUE)
 cat("95% CI upper bound: ", 
     ub_95ci, 
     sep = "\n",
     file=paste0(dir, "results/associational_analyses/", 
-                args$m, ".", args$s, ".", args$p, ".txt"),
+                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
     append=TRUE)
 cat("90% CI lower bound: ", 
     lb_90ci, 
     sep = "\n",
     file=paste0(dir, "results/associational_analyses/", 
-                args$m, ".", args$s, ".", args$p, ".txt"),
+                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
     append=TRUE)
 cat("90% CI upper bound: ", 
     ub_90ci, 
     sep = "\n",
     file=paste0(dir, "results/associational_analyses/", 
-                args$m, ".", args$s, ".", args$p, ".txt"),
+                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
     append=TRUE)

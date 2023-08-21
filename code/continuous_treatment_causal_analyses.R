@@ -6,18 +6,16 @@ library(tidyr)
 library(data.table)
 library(argparse)
 
-# define parser arguments ----
+# Define parser arguments ----
 parser <- ArgumentParser()
-
-# note: the -p and -t arguments are redundant
+parser$add_argument("-e", "--exposure", default="dist_closest_dealer",
+                    help="Exposure variable 'dist_closest_dealer' or 'dist_closest_commercial'", type="character")
 parser$add_argument("-s", "--seed", default=100,
                     help="seed value", type="integer")
 parser$add_argument("-sa", "--sensitivity_analysis", default="state",
                     help="Sensitivity analysis 'state' or 'state.urbanity'", type="character")
 parser$add_argument("-p", "--percentiles", default="5.95",
                     help="Percentiles of exposure '5.95' or '1.99'", type="character") 
-parser$add_argument("-t", "--trim_quantiles", default="95",
-                    help="trim quantiles '95' or '99'", type="character") 
 args = parser$parse_args()
 
 
@@ -29,24 +27,20 @@ source(paste0(dir, "lib/functions_to_measure_covariate_balance.R"))
 source(paste0(dir, "lib/functions_using_gps.R"))
 
 ## Load datasets ----
-df <- fread(paste0(dir, "data/intermediate/all_tracts_2020_subset_vars_revised.csv"))
+df <- fread(paste0(dir, "data/intermediate/final_data_aug2023.csv"))
 
-## Prepare dataset for main analysis ----
+## Get datasets for main analysis ----
+data <- vector("list", 2)
+names(data) <- c("dist_closest_dealer", "dist_closest_commercial")
+data[["dist_closest_dealer"]] <- vector("list", 2)
+data[["dist_closest_commercial"]] <- vector("list", 2)
+names(data[["dist_closest_dealer"]]) <- c("state", "state.urbanity")
+names(data[["dist_closest_commercial"]]) <- c("state", "state.urbanity")
 
-data <- list()
-
-data[["state"]] <- get_analysis_df(
-  df,
-  "mean_total_miles",
-  c("State_Name", quantitative_covariates)
-)
-
-## for sensitivity analysis: get data including urban_rural variable
-
-data[["state.urbanity"]] <- get_analysis_df(
-  df,
-  "mean_total_miles",
-  c("State_Name", quantitative_covariates, "urban_rural"))
+data[["dist_closest_dealer"]][["state"]] <- get_analysis_df(df, "dist_closest_dealer", c("STATE_ABBR", quantitative_covariates))
+data[["dist_closest_dealer"]][["state.urbanity"]] <- get_analysis_df(df, "dist_closest_dealer", c("STATE_ABBR", "urban_rural", quantitative_covariates))
+data[["dist_closest_commercial"]][["state"]] <- get_analysis_df(df, "dist_closest_commercial", c("STATE_ABBR", quantitative_covariates))
+data[["dist_closest_commercial"]][["state.urbanity"]] <- get_analysis_df(df, "dist_closest_commercial", c("STATE_ABBR", "urban_rural", quantitative_covariates))
 
 
 ## Perform causal analysis
@@ -54,9 +48,9 @@ data[["state.urbanity"]] <- get_analysis_df(
 ## Matching CausalGPS  ----
 
 seed_ = args$seed
-trim_ = list("95"=c(0.05, 0.95), "99"=c(0.01, 0.99))[[args$trim_quantiles]]
-data_ = data[[args$sensitivity_analysis]]
-covars_ = list("state"="State_Name", "state.urbanity"=c("State_Name", "urban_rural"))[[args$sensitivity_analysis]]
+trim_ = list("5.95"=c(0.05, 0.95), "1.99"=c(0.01, 0.99))[[args$percentiles]]
+data_ = data[[args$exposure]][[args$sensitivity_analysis]]
+covars_ = list("state"="STATE_ABBR", "state.urbanity"=c("STATE_ABBR", "urban_rural"))[[args$sensitivity_analysis]]
 
 results_match <- all_matching_results_1model(
   seed_,
@@ -66,7 +60,7 @@ results_match <- all_matching_results_1model(
   run_gee_model = T
 )
 
-var_arg_a_p_match = paste0(args$sensitivity_analysis, ".", args$percentiles,"_match")
+var_arg_a_p_match = paste0(args$exposure, ".", args$sensitivity_analysis, ".", args$percentiles,"_match")
 
 # save covariate balance plot as png
 ggsave(paste0(dir, "results/causal_analyses/", var_arg_a_p_match, "_correlation_plot.png"),
@@ -94,7 +88,7 @@ lapply(1:length(results_match),
 ## Weighted CausalGPS ----
 
 
-var_arg_a_p_weight = paste0(args$sensitivity_analysis, ".", args$percentiles,"_weight")
+var_arg_a_p_weight = paste0(args$exposure, ".", args$sensitivity_analysis, ".", args$percentiles,"_weight")
 
 
 results_weight <- all_weighting_results_1model(

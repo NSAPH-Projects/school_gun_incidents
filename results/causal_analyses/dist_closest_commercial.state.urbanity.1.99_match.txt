@@ -1,0 +1,13 @@
+dist_closest_commercial
+1.99
+match
+num_obs_matched 54936
+counter_max 54717
+counter99 1442.76 (99th percentile)
+logistic_regression_estimated_odds 0.9063
+cl_sd_lb_95ci 0.8878
+cl_sd_ub_95ci 0.9253
+cl_sd_lb_90ci 0.8907
+cl_sd_ub_90ci 0.9222
+mean_AC_matched 0.107533468741442
+mean_AC_unadjusted 0.156614964812989

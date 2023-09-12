@@ -69,7 +69,7 @@ all_matching_results_1model <- function(seed,
                    family = "binomial",
                    data = pseudopop_long[, c("Y", "w", "row_index")], 
                    id = pseudopop_long$row_index,
-                   corstr = "exchangeable") # allows same correlation coefficient between states
+                   corstr = "exchangeable") # allows same correlation coefficient for the same row index
     
     # Store GEE model results
     results_list[["GEE_estimated_odds"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"]), 4)

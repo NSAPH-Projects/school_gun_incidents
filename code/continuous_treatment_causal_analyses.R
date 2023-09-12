@@ -8,8 +8,8 @@ library(argparse)
 
 # Define parser arguments ----
 parser <- ArgumentParser()
-parser$add_argument("-e", "--exposure", default="dist_closest_dealer",
-                    help="Exposure variable 'dist_closest_dealer' or 'dist_closest_commercial'", type="character")
+parser$add_argument("-e", "--exposure", default="mean_distance_all_persistent_dealers",
+                    help="Exposure variable 'mean_distance_all_persistent_dealers' or 'mean_dist_commercial_dealers'", type="character")
 parser$add_argument("-s", "--seed", default=100,
                     help="seed value", type="integer")
 parser$add_argument("-sa", "--sensitivity_analysis", default="state",
@@ -31,16 +31,16 @@ df <- fread(paste0(dir, "data/intermediate/final_data_aug2023.csv"))
 
 ## Get datasets for main analysis ----
 data <- vector("list", 2)
-names(data) <- c("dist_closest_dealer", "dist_closest_commercial")
-data[["dist_closest_dealer"]] <- vector("list", 2)
-data[["dist_closest_commercial"]] <- vector("list", 2)
-names(data[["dist_closest_dealer"]]) <- c("state", "state.urbanity")
-names(data[["dist_closest_commercial"]]) <- c("state", "state.urbanity")
+names(data) <- c("mean_distance_all_persistent_dealers", "mean_dist_commercial_dealers")
+data[["mean_distance_all_persistent_dealers"]] <- vector("list", 2)
+data[["mean_dist_commercial_dealers"]] <- vector("list", 2)
+names(data[["mean_distance_all_persistent_dealers"]]) <- c("state", "state.urbanity")
+names(data[["mean_dist_commercial_dealers"]]) <- c("state", "state.urbanity")
 
-data[["dist_closest_dealer"]][["state"]] <- get_analysis_df(df, "dist_closest_dealer", c("STATE_ABBR", quantitative_covariates))
-data[["dist_closest_dealer"]][["state.urbanity"]] <- get_analysis_df(df, "dist_closest_dealer", c("STATE_ABBR", "urban_rural", quantitative_covariates))
-data[["dist_closest_commercial"]][["state"]] <- get_analysis_df(df, "dist_closest_commercial", c("STATE_ABBR", quantitative_covariates))
-data[["dist_closest_commercial"]][["state.urbanity"]] <- get_analysis_df(df, "dist_closest_commercial", c("STATE_ABBR", "urban_rural", quantitative_covariates))
+data[["mean_distance_all_persistent_dealers"]][["state"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("STATE_ABBR", quantitative_covariates))
+data[["mean_distance_all_persistent_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("STATE_ABBR", "urban_rural", quantitative_covariates))
+data[["mean_dist_commercial_dealers"]][["state"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("STATE_ABBR", quantitative_covariates))
+data[["mean_dist_commercial_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("STATE_ABBR", "urban_rural", quantitative_covariates))
 
 
 ## Perform causal analysis
@@ -57,7 +57,7 @@ results_match <- all_matching_results_1model(
   data_,
   trim_,
   covars_,
-  run_gee_model = T
+  run_gee_model = F
 )
 
 var_arg_a_p_match = paste0(args$exposure, ".", args$sensitivity_analysis, ".", args$percentiles,"_match")

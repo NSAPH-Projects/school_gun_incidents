@@ -1,19 +1,19 @@
 ##### Functions to set up analysis #####
 
-quantitative_covariates <- c("P0010001",                           "populationtotals_DPOP_CY",
-                             "hu_per_100_sqmi",                    "schools_per_100_sqmi",
+quantitative_covariates <- c("populationtotals_TOTPOP20",          "populationtotals_DPOP_CY",
+                             "housing_per_100sqmi",                "schools_per_100sqmi",
                              "area_sq_mile",                       "groupquarters_GQINST20_P",
-                             "prop_adult",                         "householdincome_ACSSNAP_P",
+                             "population_adult",                   "householdincome_ACSSNAP_P",
                              "households_ACSPUBAI_P",              "households_ACSHHBPOV_P",
-                             "EmploymentUnemployment_UNEMPRT_CY",  "EmploymentUnemployment_UNEMRT16CY",
+                             "EmploymentUnemployment_UNEMP_CY_P",  "EmploymentUnemployment_UNAGE16CY_P",
                              "vehiclesavailable_ACSOVEH0_P",       "crime_CRMCYTOTC",
-                             "MHLTH_CrudePrev",                    "DEPRESSION_CrudePrev",
-                             "educationalattainment_BACHDEG_CY_P", "educationalattainment_GRADDEG_CY_P",
+                             "mean_depression",                    "mean_distress",
+                             "educationalattainment_ACSBACHDEG_P", "educationalattainment_ACSMASTDEG_P",
                              "firearm_retailers_per_100sqmi",      "sports_MP33018a_B_P",
-                             "prop_white",                         "prop_black",
-                             "prop_asian",                         "prop_multiracial",
-                             "prop_hispanic",                      "log_med_HH_income",
-                             "log_avg_HH_income_15to24")
+                             "raceandhispanicorigin_WHITE20_P",    "raceandhispanicorigin_BLACK20_P",
+                             "raceandhispanicorigin_ASIAN20_P",    "raceandhispanicorigin_RACE2UP20_P",
+                             "hispanicorigin_HISPPOP20_P",         "log_med_HH_income",
+                             "log_med_HH_income_15to24",           "vehiclesavailable_ACSRVEH0_P")
 
 factorize_cat_vars <- function(data){
   if ("census_division" %in% colnames(data)){
@@ -39,6 +39,9 @@ factorize_cat_vars <- function(data){
   }
   if ("urban_rural" %in% colnames(data)){
     data$urban_rural <- as.factor(data$urban_rural)
+  }
+  if ("urbanity" %in% colnames(data)){
+    data$urbanity <- as.factor(data$urbanity)
   }
   if ("state_fips" %in% colnames(data)){
     data$state_fips <- ifelse(nchar(data$state_fips) == 1, paste0("0", data$state_fips), data$state_fips)

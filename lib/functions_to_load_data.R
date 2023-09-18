@@ -2,8 +2,8 @@
 
 quantitative_covariates <- c("populationtotals_TOTPOP20",          "populationtotals_DPOP_CY",
                              "housing_per_100sqmi",                "schools_per_100sqmi",
-                             "area_sq_mile",                       "groupquarters_GQINST20_P",
-                             "population_adult",                   "householdincome_ACSSNAP_P",
+                             "area_sq_mile",                       "pop_institutionalized_groupquarters",
+                             "percent_adult",                      "householdincome_ACSSNAP_P",
                              "households_ACSPUBAI_P",              "households_ACSHHBPOV_P",
                              "EmploymentUnemployment_UNEMP_CY_P",  "EmploymentUnemployment_UNAGE16CY_P",
                              "vehiclesavailable_ACSOVEH0_P",       "crime_CRMCYTOTC",
@@ -13,7 +13,7 @@ quantitative_covariates <- c("populationtotals_TOTPOP20",          "populationto
                              "raceandhispanicorigin_WHITE20_P",    "raceandhispanicorigin_BLACK20_P",
                              "raceandhispanicorigin_ASIAN20_P",    "raceandhispanicorigin_RACE2UP20_P",
                              "hispanicorigin_HISPPOP20_P",         "log_med_HH_income",
-                             "log_med_HH_income_15to24",           "vehiclesavailable_ACSRVEH0_P")
+                             "log_med_HH_income_15to24",           "CompositeIndex2014to2021")
 
 factorize_cat_vars <- function(data){
   if ("census_division" %in% colnames(data)){

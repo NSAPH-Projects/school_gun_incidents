@@ -49,8 +49,8 @@ hist(tracts_data$mean_distance_all_persistent_dealers,
      xlab = "Miles")
 
 # > summary(tracts_data$mean_distance_all_persistent_dealers)
-# Min.  1st Qu.   Median     Mean  3rd Qu.     Max.     NA's 
-#   0.0000   0.7855   1.3527   2.0987   2.3769 100.2164       47 
+# Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+# 0.0000   0.7855   1.3527   2.0987   2.3770 100.2164 
 # > mean(tracts_data$mean_distance_all_persistent_dealers, na.rm = T)
 # [1] 2.09868
 # > sd(tracts_data$mean_distance_all_persistent_dealers, na.rm = T)
@@ -71,8 +71,8 @@ hist(tracts_data$mean_dist_commercial_dealers,
      xlab = "Miles")
 
 # > summary(tracts_data$mean_dist_commercial_dealers)
-# Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-#   0.000   1.085   2.018   3.717   3.993 119.540      49 
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.000   1.085   2.018   3.717   3.993 119.540 
 # > mean(tracts_data$mean_dist_commercial_dealers, na.rm = T)
 # [1] 3.716745
 # > sd(tracts_data$mean_dist_commercial_dealers, na.rm = T)
@@ -91,113 +91,81 @@ for (var in quantitative_confounder_names){
 }
 
 # populationtotals_TOTPOP20 
-# Mean: 4212.885 
-# SD: 1694.07 
+# Mean: 4212.992 
+# SD: 1694.153 
 # 
 # populationtotals_DPOP_CY 
-# Mean: 4282.519 
-# SD: 3520.787 
-# 
-# groupquarters_GQINST20_P 
-# Mean: 25.12312 
-# SD: 39.85036 
+# Mean: 4283.304 
+# SD: 3521.841 
 # 
 # householdincome_ACSSNAP_P 
-# Mean: 12.33508 
-# SD: 11.39345 
+# Mean: 12.33794 
+# SD: 11.39585 
 # 
 # householdincome_ACSPUBAI_P 
-# Mean: 2.725975 
-# SD: 3.164656 
+# Mean: 2.726669 
+# SD: 3.165389 
 # 
 # households_ACSHHBPOV_P 
-# Mean: 13.1396 
-# SD: 10.24804 
+# Mean: 13.14116 
+# SD: 10.24911 
 # 
 # EmploymentUnemployment_UNEMP_CY_P 
-# Mean: 4.596308 
-# SD: 3.695939 
+# Mean: 4.597362 
+# SD: 3.696481 
 # 
 # EmploymentUnemployment_UNAGE16CY_P 
-# Mean: 1.352279 
-# SD: 1.778503 
+# Mean: 1.352452 
+# SD: 1.778859 
 # 
 # vehiclesavailable_ACSOVEH0_P 
-# Mean: 3.84418 
-# SD: 7.353378 
-# 
-# vehiclesavailable_ACSRVEH0_P 
-# Mean: 13.79859 
-# SD: 15.30456 
+# Mean: 3.846128 
+# SD: 7.355989 
 # 
 # crime_CRMCYTOTC 
-# Mean: 103.7272 
-# SD: 68.08008 
+# Mean: 103.7414 
+# SD: 68.08332 
 # 
 # educationalattainment_ACSBACHDEG_P 
-# Mean: 19.53411 
-# SD: 10.65795 
+# Mean: 19.53447 
+# SD: 10.6577 
 # 
 # educationalattainment_ACSMASTDEG_P 
-# Mean: 8.845186 
-# SD: 6.905343 
+# Mean: 8.844534 
+# SD: 6.904798 
 # 
 # sports_MP33018a_B_P 
-# Mean: 2.60036 
-# SD: 1.389531 
+# Mean: 2.60044 
+# SD: 1.389605 
 # 
 # raceandhispanicorigin_WHITE20_P 
-# Mean: 62.82788 
-# SD: 26.52726 
+# Mean: 62.82134 
+# SD: 26.53019 
 # 
 # raceandhispanicorigin_BLACK20_P 
-# Mean: 12.77639 
-# SD: 20.03504 
+# Mean: 12.78005 
+# SD: 20.04002 
 # 
 # raceandhispanicorigin_ASIAN20_P 
-# Mean: 5.068195 
-# SD: 8.993349 
+# Mean: 5.068915 
+# SD: 8.994996 
 # 
 # raceandhispanicorigin_RACE2UP20_P 
-# Mean: 9.867802 
-# SD: 7.028816 
+# Mean: 9.868876 
+# SD: 7.030839 
 # 
 # hispanicorigin_HISPPOP20_P 
-# Mean: 17.98622 
-# SD: 21.6697 
+# Mean: 17.98938 
+# SD: 21.67549 
 # 
-# population_adult 
-# Mean: 77.82567 
-# SD: 5.427749 
+# percent_adult 
+# Mean: 77.82323 
+# SD: 5.425681 
 # 
 # area_sq_miles 
-# Mean: 43.1599 
-# SD: 227.5018 
+# Mean: 43.16498 
+# SD: 227.5799 
 # 
 # mean_depression 
-# Mean: 21.38128 
-# SD: 3.618051 
-# 
-# mean_distress 
-# Mean: 15.90269 
-# SD: 3.344148 
-# 
-# housing_per_100sqmi 
-# Mean: 191052.5 
-# SD: 479962.8 
-# 
-# schools_per_100sqmi 
-# Mean: 212.6955 
-# SD: 534.9909 
-# 
-# firearm_retailers_per_100sqmi 
-# Mean: 30.47063 
-# SD: 75.99728 
-# 
-# log_med_HH_income 
-# Mean: 11.0791 
-# SD: 0.7506252 
-# 
-# log_med_HH_income_15to24 
-# Mean: 7.298514 
-# SD: 6.27241 
+# Mean: 21.38104 
+# SD: 3.617652 

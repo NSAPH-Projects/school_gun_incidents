@@ -56,7 +56,7 @@ get_analysis_df <- function(data, exposure, covariate_names){
   data <- as.data.frame(data)
   y <- data[, "SGI"]
   a <- data[, exposure]
-  x <- factorize_cat_vars(data[, covariate_names])
+  x <- factorize_cat_vars(subset(data, select = covariate_names))
   a <- a / 0.5 # convert exposure to half-miles
   new_df <- cbind(y, a, x)
   new_df <- na.omit(new_df)

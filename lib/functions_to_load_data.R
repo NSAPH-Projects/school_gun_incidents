@@ -2,9 +2,9 @@
 
 quantitative_covariates <- c("populationtotals_TOTPOP20",          "populationtotals_DPOP_CY",
                              "housing_per_100sqmi",                "schools_per_100sqmi",
-                             "area_sq_mile",                       "pop_institutionalized_groupquarters",
+                             "area_sq_miles",                      "pop_institutionalized_groupquarters",
                              "percent_adult",                      "householdincome_ACSSNAP_P",
-                             "households_ACSPUBAI_P",              "households_ACSHHBPOV_P",
+                             "householdincome_ACSPUBAI_P",         "households_ACSHHBPOV_P",
                              "EmploymentUnemployment_UNEMP_CY_P",  "EmploymentUnemployment_UNAGE16CY_P",
                              "vehiclesavailable_ACSOVEH0_P",       "crime_CRMCYTOTC",
                              "mean_depression",                    "mean_distress",
@@ -54,7 +54,7 @@ factorize_cat_vars <- function(data){
 
 get_analysis_df <- function(data, exposure, covariate_names){
   data <- as.data.frame(data)
-  y <- data[, "binary_shooting"]
+  y <- data[, "SGI"]
   a <- data[, exposure]
   x <- factorize_cat_vars(data[, covariate_names])
   a <- a / 0.5 # convert exposure to half-miles

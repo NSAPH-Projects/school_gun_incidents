@@ -27,7 +27,7 @@ source(paste0(dir, "lib/functions_to_measure_covariate_balance.R"))
 source(paste0(dir, "lib/functions_using_gps.R"))
 
 ## Load datasets ----
-df <- fread(paste0(dir, "data/intermediate/final_data_aug2023.csv"))
+df <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
 
 ## Get datasets for main analysis ----
 data <- vector("list", 2)

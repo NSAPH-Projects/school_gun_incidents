@@ -22,7 +22,7 @@ source(paste0(dir, "lib/functions_to_load_data.R"))
 source(paste0(dir, "lib/functions_to_get_associational_models.R"))
 
 ## Load datasets ----
-df <- fread(paste0(dir, "data/intermediate/final_data_aug2023.csv"))
+df <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
 
 ## Get datasets for main analysis ----
 data <- vector("list", 2)

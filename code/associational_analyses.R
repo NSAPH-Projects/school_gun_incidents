@@ -33,9 +33,9 @@ names(data[["mean_distance_all_persistent_dealers"]]) <- c("state", "state.urban
 names(data[["mean_dist_commercial_dealers"]]) <- c("state", "state.urbanity")
 
 data[["mean_distance_all_persistent_dealers"]][["state"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", quantitative_covariates))
-data[["mean_distance_all_persistent_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", "urbanity", quantitative_covariates))
+data[["mean_distance_all_persistent_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", "urbanicity", quantitative_covariates))
 data[["mean_dist_commercial_dealers"]][["state"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", quantitative_covariates))
-data[["mean_dist_commercial_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanity", quantitative_covariates))
+data[["mean_dist_commercial_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanicity", quantitative_covariates))
 
 ## Get 95th and 99th percentiles of exposure ----
 percentile_exposure <- vector("list", 2)
@@ -59,7 +59,7 @@ data_ = data[[args$e]][[args$s]][data[[args$e]][[args$s]]$a >= percentile_exposu
                         data[[args$e]][[args$s]]$a <= percentile_exposure[[args$e]][[args$p]][2], ]
 covars_ = list(
   "state" = c("State_Name", quantitative_covariates),
-  "state.urbanity" = c("State_Name", "urbanity", quantitative_covariates)
+  "state.urbanity" = c("State_Name", "urbanicity", quantitative_covariates)
 )[[args$s]]
 
 model <- get_models(

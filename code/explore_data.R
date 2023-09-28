@@ -10,7 +10,7 @@ dir <- "../" # run code in the script location
 
 tracts_data <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
 
-qualitative_confounder_names <- c("census_division_number", "State_Name", "urbanity")
+qualitative_confounder_names <- c("census_division_number", "State_Name", "urbanicity")
 exposure_names <- c("mean_distance_all_persistent_dealers", "mean_dist_commercial_dealers")
 outcome_name <- "SGI"
 quantitative_confounder_names <- colnames(tracts_data)[!(colnames(tracts_data) %in% c(qualitative_confounder_names,
@@ -45,7 +45,7 @@ mean(tracts_data$mean_distance_all_persistent_dealers, na.rm = T)
 sd(tracts_data$mean_distance_all_persistent_dealers, na.rm = T)
 quantile(tracts_data$mean_distance_all_persistent_dealers, c(0.01, 0.05, 0.95, 0.99), na.rm = T)
 hist(tracts_data$mean_distance_all_persistent_dealers,
-     main = "Average Distance from Schools to Closest Persistent Firearms Dealer",
+     main = "Average Distance from Schools to\nClosest Persistent Firearms Dealer",
      xlab = "Miles")
 
 # > summary(tracts_data$mean_distance_all_persistent_dealers)
@@ -67,7 +67,7 @@ mean(tracts_data$mean_dist_commercial_dealers, na.rm = T)
 sd(tracts_data$mean_dist_commercial_dealers, na.rm = T)
 quantile(tracts_data$mean_dist_commercial_dealers, c(0.01, 0.05, 0.95, 0.99), na.rm = T)
 hist(tracts_data$mean_dist_commercial_dealers,
-     main = "Average Distance from Schools to Closest Persistent Commercial Firearms Dealer",
+     main = "Average Distance from Schools to\nClosest Persistent Commercial Firearms Dealer",
      xlab = "Miles")
 
 # > summary(tracts_data$mean_dist_commercial_dealers)

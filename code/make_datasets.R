@@ -16,7 +16,7 @@ laws_data <- as.data.table(laws_data)
 
 census_divisions_data <- fread(paste0(dir, "data/input/open/census_regions_divisions.csv"))
 
-urbanity_data <- fread(paste0(dir, "data/input/open/NCHSURCodes2013.csv"))
+urbanicity_data <- fread(paste0(dir, "data/input/open/NCHSURCodes2013.csv"))
 
 codebook <- read_excel(paste0(dir, "data/input/private/data_dictionary_v3.xlsx"))
 
@@ -28,14 +28,14 @@ laws_data <- laws_data[, .(State_Name = State, CompositeIndex2014to2021)]
 census_divisions_data <- subset(census_divisions_data, select = c("state_fips", "census_division_number"))
 census_divisions_data[, state_fips := ifelse(nchar(state_fips) == 1, paste0("0", state_fips), state_fips)] # add leading 0 if necessary, convert state_fips to character
 
-urbanity_data <- urbanity_data[, .(county_fips = as.character(`FIPS code`), urbanity = `2013 code`)]
-urbanity_data[, county_fips := ifelse(nchar(county_fips) == 4, paste0("0", county_fips), county_fips)] # add leading 0 if necessary, convert state_fips to character
+urbanicity_data <- urbanicity_data[, .(county_fips = as.character(`FIPS code`), urbanicity = `2013 code`)]
+urbanicity_data[, county_fips := ifelse(nchar(county_fips) == 4, paste0("0", county_fips), county_fips)] # add leading 0 if necessary, convert state_fips to character
 
 tracts_data[, state_fips := substr(GEOID, 1, 2)]
 tracts_data[, county_fips := substr(GEOID, 1, 5)]
 tracts_data <- merge(tracts_data, laws_data, by = "State_Name", all.x = T, all.y = F)
 tracts_data <- merge(tracts_data, census_divisions_data, by = "state_fips", all.x = T, all.y = F)
-tracts_data <- merge(tracts_data, urbanity_data, by = "county_fips", all.x = T, all.y = F)
+tracts_data <- merge(tracts_data, urbanicity_data, by = "county_fips", all.x = T, all.y = F)
 
 
 print("## Exclude some rows ----")
@@ -74,7 +74,7 @@ tracts_data[, groupquarters_GQINST20_P := NULL]
 tracts_data[, householdincome_ACSMEDHINC := NULL]
 tracts_data[, incomebyage_ACSMEDIA15 := NULL]
 
-qualitative_confounder_names <- c("census_division_number", "State_Name", "urbanity")
+qualitative_confounder_names <- c("census_division_number", "State_Name", "urbanicity")
 
 for (var in colnames(tracts_data)){
   if (var %in% qualitative_confounder_names){

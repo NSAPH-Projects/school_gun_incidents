@@ -38,9 +38,9 @@ names(data[["mean_distance_all_persistent_dealers"]]) <- c("state", "state.urban
 names(data[["mean_dist_commercial_dealers"]]) <- c("state", "state.urbanity")
 
 data[["mean_distance_all_persistent_dealers"]][["state"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", quantitative_covariates))
-data[["mean_distance_all_persistent_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", "urbanity", quantitative_covariates))
+data[["mean_distance_all_persistent_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", "urbanicity", quantitative_covariates))
 data[["mean_dist_commercial_dealers"]][["state"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", quantitative_covariates))
-data[["mean_dist_commercial_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanity", quantitative_covariates))
+data[["mean_dist_commercial_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanicity", quantitative_covariates))
 
 
 ## Perform causal analysis
@@ -50,7 +50,7 @@ data[["mean_dist_commercial_dealers"]][["state.urbanity"]] <- get_analysis_df(df
 seed_ = args$seed
 trim_ = list("5.95"=c(0.05, 0.95), "1.99"=c(0.01, 0.99))[[args$percentiles]]
 data_ = data[[args$exposure]][[args$sensitivity_analysis]]
-covars_ = list("state"="State_Name", "state.urbanity"=c("State_Name", "urbanity"))[[args$sensitivity_analysis]]
+covars_ = list("state"="State_Name", "state.urbanity"=c("State_Name", "urbanicity"))[[args$sensitivity_analysis]]
 
 results_match <- all_matching_results_1model(
   seed_,

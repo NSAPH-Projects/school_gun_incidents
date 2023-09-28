@@ -43,6 +43,9 @@ factorize_cat_vars <- function(data){
   if ("urbanity" %in% colnames(data)){
     data$urbanity <- as.factor(data$urbanity)
   }
+  if ("urbanicity" %in% colnames(data)){
+    data$urbanicity <- as.factor(data$urbanicity)
+  }
   if ("state_fips" %in% colnames(data)){
     data$state_fips <- ifelse(nchar(data$state_fips) == 1, paste0("0", data$state_fips), data$state_fips)
   }

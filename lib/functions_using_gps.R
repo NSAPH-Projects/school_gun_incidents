@@ -150,11 +150,12 @@ get_matched_correlation_plot <- function(matched_pop, cat_covariate_names, w_ori
   cor_matched <- cor_matched[!is.na(cor_matched)]
   
   abs_cor <- data.frame(Covariate = covariate_names,
-                        Unmatched = cor_unmatched,
+                        Unadjusted = cor_unmatched,
                         Matched = cor_matched)
-  abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unmatched)
-  abs_cor <- abs_cor %>% gather(c(Unmatched, Matched), key = 'Dataset', value = 'Absolute Correlation')
+  abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unadjusted)
+  abs_cor <- abs_cor %>% gather(c(Unadjusted, Matched), key = 'Dataset', value = 'Absolute Correlation')
   abs_cor <- as.data.table(abs_cor)
+  abs_cor[, Dataset := factor(Dataset, levels = c("Unadjusted", "Matched"))]
   return(abs_cor)
 }
 
@@ -269,11 +270,12 @@ get_weighted_correlation_plot <- function(weighted_pop, cat_covariate_names, w_o
   cor_weighted <- cor_weighted[!is.na(cor_weighted)]
   
   abs_cor <- data.frame(Covariate = covariate_names,
-                        Unweighted = cor_unweighted,
+                        Unadjusted = cor_unweighted,
                         Weighted = cor_weighted)
-  abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unweighted)
-  abs_cor <- abs_cor %>% gather(c(Unweighted, Weighted), key = 'Dataset', value = 'Absolute Correlation')
+  abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unadjusted)
+  abs_cor <- abs_cor %>% gather(c(Unadjusted, Weighted), key = 'Dataset', value = 'Absolute Correlation')
   abs_cor <- as.data.table(abs_cor)
+  abs_cor[, Dataset := factor(Dataset, levels = c("Unadjusted", "Weighted"))]
   return(abs_cor)
 }
 

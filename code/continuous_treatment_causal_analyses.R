@@ -62,7 +62,8 @@ results_match <- all_matching_results_1model(
 
 var_arg_a_p_match = paste0(args$exposure, ".", args$sensitivity_analysis, ".", args$percentiles,"_match")
 
-# save covariate balance plot as png
+# save covariate balance as csv and plot as png
+fwrite(results_match$cov_bal.capped0.99, paste0(dir, "results/causal_analyses/", var_arg_a_p_match, "_correlation.csv"))
 ggsave(paste0(dir, "results/causal_analyses/", var_arg_a_p_match, "_correlation_plot.png"),
        make_correlation_plot(results_match$cov_bal.capped0.99))
 
@@ -102,7 +103,8 @@ results_weight <- all_weighting_results_1model(
   covars_
 )
 
-# save covariate balance plot as png
+# save covariate balance as csv and plot as png
+fwrite(results_weight$cov_bal.capped0.99, paste0(dir, "results/causal_analyses/", var_arg_a_p_weight, "_correlation.csv"))
 ggsave(paste0(dir, "results/causal_analyses/", var_arg_a_p_weight, "_correlation_plot.png"),
        make_correlation_plot(results_weight$cov_bal.capped0.99))
 

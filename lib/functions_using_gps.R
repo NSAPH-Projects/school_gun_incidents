@@ -33,23 +33,17 @@ all_matching_results_1model <- function(seed,
   
   # Store key counter quantiles
   results_list[["counter_max"]] <- round(max(matched_pop$pseudo_pop$counter_weight), 2)
-  cap99 <- round(quantile(matched_pop$pseudo_pop$counter_weight, 0.99), 2)
-  results_list[["counter99"]] <- cap99
+  results_list[["counter99"]] <- round(quantile(matched_pop$pseudo_pop$counter_weight, 0.99), 2)
   
-  # Create alternate pseudopopulation where counter is capped
-  matched_pop_capped99 <- copy(matched_pop)
-  matched_pop_capped99$pseudo_pop$counter_weight[which(matched_pop_capped99$pseudo_pop$counter_weight >= cap99)] <- cap99
-  
-  # Fit logistic regression outcome model on capped matched population, since covariate balance is good (AC < 0.1)
-  # (do not proceed to logistic regression on uncapped matched population since covariate balance is poor)
-  matching_results <- get_gps_matched_logistic_results(matched_pop_capped99)$coefficients["w", ]
+  # Fit logistic regression outcome model on matched population
+  matching_results <- get_gps_matched_logistic_results(matched_pop)$coefficients["w", ]
   
   # Store point estimate for odds (exponentiated log odds)
   results_list[["logistic_regression_estimated_odds"]] <- round(exp(matching_results["Estimate"]), 4)
   
   # Before getting clustered robust standard errors (CRSE) and GEE model with clusters,
   # convert data to long format (to make clustering explicit)
-  pseudopop_long <- matched_pop_capped99$pseudo_pop[, lapply(.SD, function(x) rep(x, counter_weight)), by = row_index]
+  pseudopop_long <- matched_pop$pseudo_pop[, lapply(.SD, function(x) rep(x, counter_weight)), by = row_index]
   
   # Store clustered robust standard errors (CRSE) for logistic model
   logit_model <- glm(Y ~ w,
@@ -81,36 +75,13 @@ all_matching_results_1model <- function(seed,
     results_list[["GEE_ub_90ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] + 1.645 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
   }
   
-  # Save covariate balance plots
-  for (capped in c(1, .99)){ # 1 is uncapped counter_weight, .99 is counter_weight capped at 99th percentile
-    if (capped == 1){
-      pseudo_pop <- matched_pop
-    } else if (capped == .99){
-      pseudo_pop <- matched_pop_capped99
-    }
-    
-    # for capped pseudopopulations, recalculate covariate balance
-    if (capped < 1){
-      adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
-                                               c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
-                                               ci_appr = "matching",
-                                               counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
-                                               nthread = 1,
-                                               covar_bl_method = "absolute",
-                                               covar_bl_trs = 0.1,
-                                               covar_bl_trs_type = "mean",
-                                               optimized_compile=TRUE)
-      pseudo_pop$adjusted_corr_results <- adjusted_corr_obj$corr_results
-    }
-    
-    # save covariate balance plot
-    results_list[[paste0("cov_bal.capped", capped)]] <- 
-      get_matched_correlations(pseudo_pop, 
+  # Save covariate balance plot
+  results_list[["cov_bal.uncapped"]] <- 
+      get_matched_correlations(matched_pop, 
                                    cat_covariate_names, 
                                    data$a, 
                                    subset(data, select = cat_covariate_names), 
                                    quant_covariates)
-  }
   
   return(results_list) # numerical output, to be stored in results table
 }

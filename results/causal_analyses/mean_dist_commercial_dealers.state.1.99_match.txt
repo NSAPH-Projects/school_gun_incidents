@@ -1,0 +1,24 @@
+mean_dist_commercial_dealers
+match
+state
+1.99
+num_obs_matched
+55429
+counter_max
+55696
+counter99
+1982.35 (99th percentile)
+logistic_regression_estimated_odds
+0.9402
+cl_sd_lb_95ci
+0.916
+cl_sd_ub_95ci
+0.965
+cl_sd_lb_90ci
+0.9198
+cl_sd_ub_90ci
+0.961
+mean_AC_matched
+0.119167405653131
+mean_AC_unadjusted
+0.150877470594768

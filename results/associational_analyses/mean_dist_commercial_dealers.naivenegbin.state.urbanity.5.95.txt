@@ -1,0 +1,14 @@
+mean_dist_commercial_dealers
+naivenegbin
+state.urbanity
+5.95
+Effect: 
+0.9626
+95% CI lower bound: 
+0.9456
+95% CI upper bound: 
+0.9799
+90% CI lower bound: 
+0.9483
+90% CI upper bound: 
+0.9771

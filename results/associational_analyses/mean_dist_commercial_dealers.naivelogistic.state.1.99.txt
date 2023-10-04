@@ -1,0 +1,14 @@
+mean_dist_commercial_dealers
+naivelogistic
+state
+1.99
+Effect: 
+0.9603
+95% CI lower bound: 
+0.9465
+95% CI upper bound: 
+0.9744
+90% CI lower bound: 
+0.9487
+90% CI upper bound: 
+0.9721

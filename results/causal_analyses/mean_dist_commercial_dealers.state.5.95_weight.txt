@@ -1,0 +1,22 @@
+mean_dist_commercial_dealers
+weight
+state
+5.95
+weight_max
+164542866.83
+weight99
+56.17 (99th percentile)
+logistic_regression_estimated_odds
+0.9243
+lb_95ci
+0.9151
+ub_95ci
+0.9335
+lb_90ci
+0.9166
+ub_90ci
+0.932
+mean_AC_weighted
+0.028135460403713
+mean_AC_unadjusted
+0.1385803791828

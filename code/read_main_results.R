@@ -2,7 +2,7 @@
 library(data.table)
 library(readr)
 # library(ggplot2)
-# library(xtable)
+library(xtable)
 
 ## Load filepaths for results ----
 dir <- "../" # run code in the script location
@@ -58,7 +58,15 @@ read_one_causal_txt <- function(path){
 associational_results <- rbindlist(lapply(associational_results_paths, read_one_associational_txt))
 colnames(associational_results) <- c("Exposure", "Trim", "Cat_Confounder", "Model", "Effect", "CI_lower", "CI_upper")
 setorder(associational_results, Exposure, Trim, Cat_Confounder, Model)
+rownames(associational_results) <- rep("", nrow(associational_results))
 
 causal_results <- rbindlist(lapply(causal_results_paths, read_one_causal_txt))
 colnames(causal_results) <- c("Exposure", "Trim", "Cat_Confounder", "Model", "Effect", "CI_lower", "CI_upper", "Count/Weight_Max", "Count/Weight_Cap")
 setorder(causal_results, Exposure, Trim, Cat_Confounder, Model)
+rownames(causal_results) <- rep("", nrow(causal_results))
+
+
+## Create LaTeX table ----
+
+xtable(associational_results)
+xtable(causal_results)

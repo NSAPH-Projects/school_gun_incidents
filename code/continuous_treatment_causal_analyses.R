@@ -67,12 +67,18 @@ fwrite(results_match$cov_bal.capped0.99, paste0(dir, "results/causal_analyses/",
 ggsave(paste0(dir, "results/causal_analyses/", var_arg_a_p_match, "_correlation_plot.png"),
        make_correlation_plot(results_match$cov_bal.capped0.99))
 
-# get mean AC of matched (number of matches capped at 99th percentile) and unadjusted pseudopopulation
+# get mean and max AC of matched (number of matches capped at 99th percentile) and unadjusted pseudopopulation
 results_match$mean_AC_matched <- mean(
   results_match$cov_bal.capped0.99[Dataset == "Matched", `Absolute Correlation`]
 )
 results_match$mean_AC_unadjusted <- mean(
-  results_match$cov_bal.capped0.99[Dataset == "Unmatched", `Absolute Correlation`]
+  results_match$cov_bal.capped0.99[Dataset == "Unadjusted", `Absolute Correlation`]
+)
+results_match$max_AC_matched <- max(
+  results_match$cov_bal.capped0.99[Dataset == "Matched", `Absolute Correlation`]
+)
+results_match$max_AC_unadjusted <- max(
+  results_match$cov_bal.capped0.99[Dataset == "Unadjusted", `Absolute Correlation`]
 )
 results_match[["cov_bal.capped0.99"]] <- NULL
 
@@ -108,12 +114,18 @@ fwrite(results_weight$cov_bal.capped0.99, paste0(dir, "results/causal_analyses/"
 ggsave(paste0(dir, "results/causal_analyses/", var_arg_a_p_weight, "_correlation_plot.png"),
        make_correlation_plot(results_weight$cov_bal.capped0.99))
 
-# get mean AC of weighted (capped at 99th percentile) and unadjusted pseudopopulation
+# get mean and max AC of weighted (capped at 99th percentile) and unadjusted pseudopopulation
 results_weight$mean_AC_weighted <- mean(
   results_weight$cov_bal.capped0.99[Dataset == "Weighted", `Absolute Correlation`]
 )
 results_weight$mean_AC_unadjusted <- mean(
-  results_weight$cov_bal.capped0.99[Dataset == "Unweighted", `Absolute Correlation`]
+  results_weight$cov_bal.capped0.99[Dataset == "Unadjusted", `Absolute Correlation`]
+)
+results_weight$max_AC_weighted <- max(
+  results_weight$cov_bal.capped0.99[Dataset == "Weighted", `Absolute Correlation`]
+)
+results_weight$max_AC_unadjusted <- max(
+  results_weight$cov_bal.capped0.99[Dataset == "Unadjusted", `Absolute Correlation`]
 )
 results_weight[["cov_bal.capped0.99"]] <- NULL
 

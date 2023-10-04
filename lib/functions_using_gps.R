@@ -16,8 +16,9 @@ all_matching_results_1model <- function(seed,
                                         data,
                                         trim,
                                         cat_covariate_names,
+                                        quant_covariates = quantitative_covariates,
                                         run_gee_model = F,
-                                        quant_covariates = quantitative_covariates){
+                                        caliper = 0.2){
   set.seed(seed)
   results_list <- list()
   
@@ -25,14 +26,15 @@ all_matching_results_1model <- function(seed,
   matched_pop <- get_gps_matched_pseudo_pop(data$y,
                                             data$a,
                                             data[, c(cat_covariate_names, quant_covariates)],
-                                            trim)
+                                            trim,
+                                            caliper)
   # Store how many observations were matched
   results_list[["num_obs_matched"]] <- sum(matched_pop$pseudo_pop$counter_weight > 0)
   
   # Store key counter quantiles
   results_list[["counter_max"]] <- round(max(matched_pop$pseudo_pop$counter_weight), 2)
   cap99 <- round(quantile(matched_pop$pseudo_pop$counter_weight, 0.99), 2)
-  results_list[["counter99"]] <- paste(cap99, "(99th percentile)")
+  results_list[["counter99"]] <- cap99
   
   # Create alternate pseudopopulation where counter is capped
   matched_pop_capped99 <- copy(matched_pop)
@@ -103,7 +105,7 @@ all_matching_results_1model <- function(seed,
     
     # save covariate balance plot
     results_list[[paste0("cov_bal.capped", capped)]] <- 
-      get_matched_correlation_plot(pseudo_pop, 
+      get_matched_correlations(pseudo_pop, 
                                    cat_covariate_names, 
                                    data$a, 
                                    subset(data, select = cat_covariate_names), 
@@ -113,7 +115,7 @@ all_matching_results_1model <- function(seed,
   return(results_list) # numerical output, to be stored in results table
 }
 
-get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95)){
+get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95), caliper = 0.2){
   return(generate_pseudo_pop(Y = outcome,
                              w = exposure,
                              c = as.data.frame(covariates),
@@ -132,11 +134,11 @@ get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quant
                              optimized_compile = TRUE, 
                              max_attempt = 5,
                              matching_fun = "matching_l1",
-                             delta_n = 0.2,
+                             delta_n = caliper,
                              scale = 1.0))
 }
 
-get_matched_correlation_plot <- function(matched_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
+get_matched_correlations <- function(matched_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
   covariate_names <- c(cat_covariate_names, quant_covariates)
   cor_unmatched <- matched_pop$original_corr_results$absolute_corr[covariate_names]
   cor_matched <- matched_pop$adjusted_corr_results$absolute_corr[covariate_names]
@@ -186,7 +188,7 @@ all_weighting_results_1model <- function(seed,
   # Store key counter quantiles
   results_list[["weight_max"]] <- round(max(weighted_pop$pseudo_pop$counter_weight), 2)
   cap99 <- round(quantile(weighted_pop$pseudo_pop$counter_weight, 0.99), 2)
-  results_list[["weight99"]] <- paste(cap99, "(99th percentile)")
+  results_list[["weight99"]] <- cap99
   
   # Create alternate pseudopopulation where counter is capped
   weighted_pop_capped99 <- copy(weighted_pop)
@@ -226,7 +228,7 @@ all_weighting_results_1model <- function(seed,
     }
     
     # save covariate balance plot
-    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlation_plot(pseudo_pop, cat_covariate_names, data$a, subset(data, select = cat_covariate_names), quant_covariates)
+    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlations(pseudo_pop, cat_covariate_names, data$a, subset(data, select = cat_covariate_names), quant_covariates)
     # cov_bal <- make_correlation_plot(pseudo_pop, "weighting", cat_covariate_names, data$a, subset(data, select = cat_covariate_names))
   }
   
@@ -256,7 +258,7 @@ get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quan
                              scale = 1.0))
 }
 
-get_weighted_correlation_plot <- function(weighted_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
+get_weighted_correlations <- function(weighted_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
   covariate_names <- c(cat_covariate_names, quant_covariates)
   cor_unweighted <- weighted_pop$original_corr_results$absolute_corr[covariate_names]
   cor_weighted <- weighted_pop$adjusted_corr_results$absolute_corr[covariate_names]

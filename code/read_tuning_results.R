@@ -9,7 +9,11 @@ library(data.table)
 
 dir <- "../" # run code in the script location
 
-tuning_results_paths <- list.files(paste0(dir, "results/causal_analyses/tune_matching/"),
+capped_tuning_results_paths <- list.files(paste0(dir, "results/causal_analyses/tune_matching/"),
+                                   pattern = ".*.txt",
+                                   full.names = T)
+
+uncapped_tuning_results_paths <- list.files(paste0(dir, "results/causal_analyses/tune_matching/uncapped_matching/"),
                                    pattern = ".*.txt",
                                    full.names = T)
 
@@ -25,7 +29,7 @@ read_one_tuning_txt <- function(path){
                                   "CI_lower" = results[15, 1],
                                   "CI_upper" = results[17, 1],
                                   "Count_Max" = signif(as.numeric(results[9, 1]), digits = 4),
-                                  "Count_Cap" = results[11, 1])
+                                  "Count_99th" = results[11, 1])
   # "Exposure" = results[1, 1],
   # "Trim" = results[4, 1],
   # "Cat_Confounder" = results[3, 1],
@@ -33,5 +37,8 @@ read_one_tuning_txt <- function(path){
   return(results_formatted)
 }
 
-tuning_results <- rbindlist(lapply(tuning_results_paths, read_one_tuning_txt))
-colnames(tuning_results) <- c("Caliper", "Mean_AC", "Max_AC", "Effect", "CI_lower", "CI_upper", "Count_Max", "Count_Cap")
+capped_tuning_results <- rbindlist(lapply(capped_tuning_results_paths, read_one_tuning_txt))
+colnames(capped_tuning_results) <- c("Caliper", "Mean_AC", "Max_AC", "Effect", "CI_lower", "CI_upper", "Count_Max", "Count_99th")
+
+uncapped_tuning_results <- rbindlist(lapply(uncapped_tuning_results_paths, read_one_tuning_txt))
+colnames(uncapped_tuning_results) <- c("Caliper", "Mean_AC", "Max_AC", "Effect", "CI_lower", "CI_upper", "Count_Max", "Count_99th")

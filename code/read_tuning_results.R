@@ -1,7 +1,6 @@
 ## Load packages ----
 
 library(data.table)
-library(readr)
 # library(ggplot2)
 # library(xtable)
 

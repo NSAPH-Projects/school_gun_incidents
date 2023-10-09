@@ -103,7 +103,7 @@ all_matching_results_1model <- function(seed,
     
     # save covariate balance plot
     results_list[[paste0("cov_bal.capped", capped)]] <- 
-      get_matched_correlation_plot(pseudo_pop, 
+      get_matched_correlations(pseudo_pop, 
                                    cat_covariate_names, 
                                    data$a, 
                                    subset(data, select = cat_covariate_names), 
@@ -300,8 +300,11 @@ all_weighting_results_1model <- function(seed,
     }
     
     # save covariate balance plot
-    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlation_plot(pseudo_pop, cat_covariate_names, data$a, subset(data, select = cat_covariate_names), quant_covariates)
-    # cov_bal <- make_correlation_plot(pseudo_pop, "weighting", cat_covariate_names, data$a, subset(data, select = cat_covariate_names))
+    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlations(pseudo_pop,
+                                                                                  cat_covariate_names,
+                                                                                  data$a,
+                                                                                  subset(data, select = cat_covariate_names),
+                                                                                  quant_covariates)
   }
   
   return(results_list) # numerical output, to be stored in results table

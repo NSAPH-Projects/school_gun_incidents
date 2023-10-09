@@ -16,6 +16,107 @@ all_matching_results_1model <- function(seed,
                                         data,
                                         trim,
                                         cat_covariate_names,
+                                        run_gee_model = F,
+                                        quant_covariates = quantitative_covariates){
+  set.seed(seed)
+  results_list <- list()
+  
+  # GPS matching
+  matched_pop <- get_gps_matched_pseudo_pop(data$y,
+                                            data$a,
+                                            data[, c(cat_covariate_names, quant_covariates)],
+                                            trim)
+  # Store how many observations were matched
+  results_list[["num_obs_matched"]] <- sum(matched_pop$pseudo_pop$counter_weight > 0)
+  
+  # Store key counter quantiles
+  results_list[["counter_max"]] <- round(max(matched_pop$pseudo_pop$counter_weight), 2)
+  cap99 <- round(quantile(matched_pop$pseudo_pop$counter_weight, 0.99), 2)
+  results_list[["counter99"]] <- paste(cap99, "(99th percentile)")
+  
+  # Create alternate pseudopopulation where counter is capped
+  matched_pop_capped99 <- copy(matched_pop)
+  matched_pop_capped99$pseudo_pop$counter_weight[which(matched_pop_capped99$pseudo_pop$counter_weight >= cap99)] <- cap99
+  
+  # Fit logistic regression outcome model on capped matched population, since covariate balance is good (AC < 0.1)
+  # (do not proceed to logistic regression on uncapped matched population since covariate balance is poor)
+  matching_results <- get_gps_matched_logistic_results(matched_pop_capped99)$coefficients["w", ]
+  
+  # Store point estimate for odds (exponentiated log odds)
+  results_list[["logistic_regression_estimated_odds"]] <- round(exp(matching_results["Estimate"]), 4)
+  
+  # Before getting clustered robust standard errors (CRSE) and GEE model with clusters,
+  # convert data to long format (to make clustering explicit)
+  pseudopop_long <- matched_pop_capped99$pseudo_pop[, lapply(.SD, function(x) rep(x, counter_weight)), by = row_index]
+  
+  # Store clustered robust standard errors (CRSE) for logistic model
+  logit_model <- glm(Y ~ w,
+                     family = binomial(link = "logit"),
+                     data = pseudopop_long[, c("Y", "w", "row_index")])
+  cl_sd_results <- coeftest(logit_model,
+                            vcov. = vcovCL(logit_model,
+                                           cluster = pseudopop_long$row_index,
+                                           type = "HC0"))
+  results_list[["cl_sd_lb_95ci"]] <- round(exp(cl_sd_results[2,1] - 1.96 * cl_sd_results[2,2]), 4)
+  results_list[["cl_sd_ub_95ci"]] <- round(exp(cl_sd_results[2,1] + 1.96 * cl_sd_results[2,2]), 4)
+  results_list[["cl_sd_lb_90ci"]] <- round(exp(cl_sd_results[2,1] - 1.645 * cl_sd_results[2,2]), 4)
+  results_list[["cl_sd_ub_90ci"]] <- round(exp(cl_sd_results[2,1] + 1.645 * cl_sd_results[2,2]), 4)
+  
+  if (run_gee_model){
+    
+    # Fit GEE model
+    outcome <- gee(formula = Y ~ w,
+                   family = "binomial",
+                   data = pseudopop_long[, c("Y", "w", "row_index")], 
+                   id = pseudopop_long$row_index,
+                   corstr = "exchangeable") # allows same correlation coefficient for the same row index
+    
+    # Store GEE model results
+    results_list[["GEE_estimated_odds"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"]), 4)
+    results_list[["GEE_lb_95ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] - 1.96 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+    results_list[["GEE_ub_95ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] + 1.96 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+    results_list[["GEE_lb_90ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] - 1.645 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+    results_list[["GEE_ub_90ci"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"] + 1.645 * summary(outcome)$coefficients["w",]["Robust S.E."]), 4)
+  }
+  
+  # Save covariate balance plots
+  for (capped in c(1, .99)){ # 1 is uncapped counter_weight, .99 is counter_weight capped at 99th percentile
+    if (capped == 1){
+      pseudo_pop <- matched_pop
+    } else if (capped == .99){
+      pseudo_pop <- matched_pop_capped99
+    }
+    
+    # for capped pseudopopulations, recalculate covariate balance
+    if (capped < 1){
+      adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
+                                               c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
+                                               ci_appr = "matching",
+                                               counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
+                                               nthread = 1,
+                                               covar_bl_method = "absolute",
+                                               covar_bl_trs = 0.1,
+                                               covar_bl_trs_type = "mean",
+                                               optimized_compile=TRUE)
+      pseudo_pop$adjusted_corr_results <- adjusted_corr_obj$corr_results
+    }
+    
+    # save covariate balance plot
+    results_list[[paste0("cov_bal.capped", capped)]] <- 
+      get_matched_correlation_plot(pseudo_pop, 
+                                   cat_covariate_names, 
+                                   data$a, 
+                                   subset(data, select = cat_covariate_names), 
+                                   quant_covariates)
+  }
+  
+  return(results_list) # numerical output, to be stored in results table
+}
+
+all_matching_results_1model_uncapped <- function(seed,
+                                        data,
+                                        trim,
+                                        cat_covariate_names,
                                         quant_covariates = quantitative_covariates,
                                         run_gee_model = F,
                                         caliper = 0.2){
@@ -144,6 +245,69 @@ get_gps_matched_logistic_results <- function(matched_pop){
 #### GPS weighting ####
 
 all_weighting_results_1model <- function(seed,
+                                         data,
+                                         trim,
+                                         cat_covariate_names,
+                                         quant_covariates = quantitative_covariates){
+  set.seed(seed)
+  results_list <- list()
+  
+  # GPS weighting
+  weighted_pop <- get_gps_weighted_pseudo_pop(data$y,
+                                              data$a,
+                                              data[, c(cat_covariate_names, quant_covariates)],
+                                              trim)
+  # Store key counter quantiles
+  results_list[["weight_max"]] <- round(max(weighted_pop$pseudo_pop$counter_weight), 2)
+  cap99 <- round(quantile(weighted_pop$pseudo_pop$counter_weight, 0.99), 2)
+  results_list[["weight99"]] <- paste(cap99, "(99th percentile)")
+  
+  # Create alternate pseudopopulation where counter is capped
+  weighted_pop_capped99 <- copy(weighted_pop)
+  weighted_pop_capped99$pseudo_pop$counter_weight[which(weighted_pop_capped99$pseudo_pop$counter_weight >= cap99)] <- cap99
+  
+  # Fit logistic regression outcome model on capped weighted population, since covariate balance is good (AC < 0.1)
+  # (do not proceed to logistic regression on uncapped weighted population since covariate balance is poor)
+  weighting_results <- get_gps_matched_logistic_results(weighted_pop_capped99)$coefficients["w", ]
+  
+  # Save point estimate, 95%, and 90% confidence intervals for odds (exponentiated log odds)
+  results_list[["logistic_regression_estimated_odds"]] <- round(exp(weighting_results["Estimate"]), 4)
+  results_list[["lb_95ci"]] <- round(exp( weighting_results["Estimate"] - 1.96 * weighting_results["Std. Error"]), 4)
+  results_list[["ub_95ci"]] <- round(exp( weighting_results["Estimate"] + 1.96 * weighting_results["Std. Error"]), 4)
+  results_list[["lb_90ci"]] <- round(exp( weighting_results["Estimate"] - 1.645 * weighting_results["Std. Error"]), 4)
+  results_list[["ub_90ci"]] <- round(exp( weighting_results["Estimate"] + 1.645 * weighting_results["Std. Error"]), 4)
+  
+  # Save covariate balance plots
+  for (capped in c(1, .99)){ # quantiles of counter # c(1, .99, .95)
+    if (capped == 1){
+      pseudo_pop <- weighted_pop
+    } else if (capped == .99){
+      pseudo_pop <- weighted_pop_capped99
+    }
+    
+    # for capped pseudopopulations, recalculate covariate balance
+    if (capped < 1){
+      adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
+                                               c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
+                                               ci_appr = "matching",
+                                               counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
+                                               nthread = 1,
+                                               covar_bl_method = "absolute",
+                                               covar_bl_trs = 0.1,
+                                               covar_bl_trs_type = "mean",
+                                               optimized_compile=TRUE)
+      pseudo_pop$adjusted_corr_results <- adjusted_corr_obj$corr_results
+    }
+    
+    # save covariate balance plot
+    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlation_plot(pseudo_pop, cat_covariate_names, data$a, subset(data, select = cat_covariate_names), quant_covariates)
+    # cov_bal <- make_correlation_plot(pseudo_pop, "weighting", cat_covariate_names, data$a, subset(data, select = cat_covariate_names))
+  }
+  
+  return(results_list) # numerical output, to be stored in results table
+}
+
+all_weighting_results_1model_uncapped <- function(seed,
                                          data,
                                          trim,
                                          cat_covariate_names,

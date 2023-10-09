@@ -23,49 +23,49 @@ commercial_ffl <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_N
 
 ## GPS matching  ----
 
-uncapped_matching <- function(data, exposure_name){
+capped_matching <- function(data, exposure_name){
   # get GPS-matched pseudopopulation
-  results_match <- all_matching_results_1model_uncapped(seed = 100,
+  results_match <- all_matching_results_1model(seed = 100,
                                                data = data,
                                                trim = c(0.05, 0.95),
                                                cat_covariate_names = c("State_Name", "urbanicity"),
-                                               run_gee_model = F,
-                                               caliper = 0.2)
+                                               run_gee_model = F)
   
   # filename for results
   var_arg_a_p_match <- paste0(exposure_name, ".", "state.urbanity", ".", "5.95", ".", "match")
   
   # save covariate balance as csv and plot as png
-  fwrite(results_match$cov_bal.uncapped, paste0(dir, "results/causal_analyses/uncapped_matching/", var_arg_a_p_match, "_correlation.csv"))
-  ggsave(paste0(dir, "results/causal_analyses/uncapped_matching/", var_arg_a_p_match, "_correlation_plot.png"),
-         make_correlation_plot(results_match$cov_bal.uncapped))
+  fwrite(results_match$cov_bal.capped0.99, paste0(dir, "results/causal_analyses/capped_matching/", var_arg_a_p_match, "_correlation.csv"))
+  ggsave(paste0(dir, "results/causal_analyses/capped_matching/", var_arg_a_p_match, "_correlation_plot.png"),
+         make_correlation_plot(results_match$cov_bal.capped0.99))
   
   # get mean and max AC of matched and unadjusted pseudopopulation
   results_match$mean_AC_matched <- mean(
-    results_match$cov_bal.uncapped[Dataset == "Matched", `Absolute Correlation`]
+    results_match$cov_bal.capped0.99[Dataset == "Matched", `Absolute Correlation`]
   )
   results_match$mean_AC_unadjusted <- mean(
-    results_match$cov_bal.uncapped[Dataset == "Unadjusted", `Absolute Correlation`]
+    results_match$cov_bal.capped0.99[Dataset == "Unadjusted", `Absolute Correlation`]
   )
   results_match$max_AC_matched <- max(
-    results_match$cov_bal.uncapped[Dataset == "Matched", `Absolute Correlation`]
+    results_match$cov_bal.capped0.99[Dataset == "Matched", `Absolute Correlation`]
   )
   results_match$max_AC_unadjusted <- max(
-    results_match$cov_bal.uncapped[Dataset == "Unadjusted", `Absolute Correlation`]
+    results_match$cov_bal.capped0.99[Dataset == "Unadjusted", `Absolute Correlation`]
   )
-  results_match[["cov_bal.uncapped"]] <- NULL
+  results_match[["cov_bal.capped0.99"]] <- NULL
+  results_match[["cov_bal.capped1"]] <- NULL
   
   # save results as txt file
   cat(exposure_name, "match", "state.urbanity", "5.95",
       sep = "\n",
-      file=paste0(dir, "results/causal_analyses/uncapped_matching/", var_arg_a_p_match, ".txt"), 
+      file=paste0(dir, "results/causal_analyses/capped_matching/", var_arg_a_p_match, ".txt"), 
       append=TRUE)
   lapply(1:length(results_match),
          function(i) cat(paste(names(results_match)[i], results_match[[i]], sep = "\n"),
                          sep = "\n",
-                         file=paste0(dir, "results/causal_analyses/uncapped_matching/", var_arg_a_p_match,".txt"),
+                         file=paste0(dir, "results/causal_analyses/capped_matching/", var_arg_a_p_match,".txt"),
                          append=TRUE))
 }
 
-uncapped_matching(any_ffl, exposure_name = "mean_distance_all_persistent_dealers")
-uncapped_matching(commercial_ffl, exposure_name = "mean_dist_commercial_dealers")
+capped_matching(any_ffl, exposure_name = "mean_distance_all_persistent_dealers")
+capped_matching(commercial_ffl, exposure_name = "mean_dist_commercial_dealers")

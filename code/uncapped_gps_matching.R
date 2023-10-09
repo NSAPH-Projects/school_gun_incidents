@@ -17,35 +17,30 @@ source(paste0(dir, "lib/functions_using_gps.R"))
 ## Load datasets ----
 
 df <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
-data <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", quantitative_covariates))
-
-
-## Matching calipers to test  ----
-
-caliper_candidates <- (quantile(data$a, 0.75) - quantile(data$a, 0.25)) / 1:10 # try calipers that make sense based on IQR of exposure (in half-miles)
-# caliper_candidates <- 1:5/10
+any_ffl <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", "urbanicity", quantitative_covariates))
+commercial_ffl <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanicity", quantitative_covariates))
 
 
 ## GPS matching  ----
 
-save_tuning_results <- function(caliper){
+uncapped_matching <- function(data, exposure_name){
   # get GPS-matched pseudopopulation
   results_match <- all_matching_results_1model(seed = 100,
                                                data = data,
                                                trim = c(0.05, 0.95),
-                                               cat_covariate_names = "State_Name",
+                                               cat_covariate_names = c("State_Name", "urbanicity"),
                                                run_gee_model = F,
-                                               caliper = caliper)
+                                               caliper = 0.2)
   
   # filename for results
-  var_arg_a_p_match <- paste0("mean_dist_commercial_dealers", ".", "state", ".", "5.95", ".", "matching_caliper_", round(caliper, 2))
+  var_arg_a_p_match <- paste0(exposure_name, ".", "state.urbanity", ".", "5.95", ".", "match")
   
   # save covariate balance as csv and plot as png
-  fwrite(results_match$cov_bal.uncapped, paste0(dir, "results/causal_analyses/tune_commercial_matching/uncapped_matching/", var_arg_a_p_match, "_correlation.csv"))
-  ggsave(paste0(dir, "results/causal_analyses/tune_commercial_matching/uncapped_matching/", var_arg_a_p_match, "_correlation_plot.png"),
+  fwrite(results_match$cov_bal.uncapped, paste0(dir, "results/causal_analyses/uncapped_matching/", var_arg_a_p_match, "_correlation.csv"))
+  ggsave(paste0(dir, "results/causal_analyses/uncapped_matching/", var_arg_a_p_match, "_correlation_plot.png"),
          make_correlation_plot(results_match$cov_bal.uncapped))
   
-  # get mean and max AC of matched (number of matches capped at 99th percentile) and unadjusted pseudopopulation
+  # get mean and max AC of matched and unadjusted pseudopopulation
   results_match$mean_AC_matched <- mean(
     results_match$cov_bal.uncapped[Dataset == "Matched", `Absolute Correlation`]
   )
@@ -61,14 +56,16 @@ save_tuning_results <- function(caliper){
   results_match[["cov_bal.uncapped"]] <- NULL
   
   # save results as txt file
-  cat("mean_dist_commercial_dealers", "match", "state", "5.95", caliper,
+  cat(exposure_name, "match", "state.urbanity", "5.95",
       sep = "\n",
-      file=paste0(dir, "results/causal_analyses/tune_commercial_matching/uncapped_matching/", var_arg_a_p_match, ".txt"), 
+      file=paste0(dir, "results/causal_analyses/uncapped_matching/", var_arg_a_p_match, ".txt"), 
       append=TRUE)
   lapply(1:length(results_match),
          function(i) cat(paste(names(results_match)[i], results_match[[i]], sep = "\n"),
                          sep = "\n",
-                         file=paste0(dir, "results/causal_analyses/tune_commercial_matching/uncapped_matching/", var_arg_a_p_match,".txt"),
+                         file=paste0(dir, "results/causal_analyses/uncapped_matching/", var_arg_a_p_match,".txt"),
                          append=TRUE))
 }
-sapply(caliper_candidates, save_tuning_results)
+
+uncapped_matching(any_ffl, exposure_name = "mean_distance_all_persistent_dealers")
+uncapped_matching(commercial_ffl, exposure_name = "mean_dist_commercial_dealers")

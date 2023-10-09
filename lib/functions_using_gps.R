@@ -158,16 +158,11 @@ all_weighting_results_1model <- function(seed,
                                               trim)
   # Store key counter quantiles
   results_list[["weight_max"]] <- round(max(weighted_pop$pseudo_pop$counter_weight), 2)
-  cap99 <- round(quantile(weighted_pop$pseudo_pop$counter_weight, 0.99), 2)
-  results_list[["weight99"]] <- cap99
-  
-  # Create alternate pseudopopulation where counter is capped
-  weighted_pop_capped99 <- copy(weighted_pop)
-  weighted_pop_capped99$pseudo_pop$counter_weight[which(weighted_pop_capped99$pseudo_pop$counter_weight >= cap99)] <- cap99
+  results_list[["weight99"]] <- round(quantile(weighted_pop$pseudo_pop$counter_weight, 0.99), 2)
   
   # Fit logistic regression outcome model on capped weighted population, since covariate balance is good (AC < 0.1)
   # (do not proceed to logistic regression on uncapped weighted population since covariate balance is poor)
-  weighting_results <- get_gps_matched_logistic_results(weighted_pop_capped99)$coefficients["w", ]
+  weighting_results <- get_gps_matched_logistic_results(weighted_pop)$coefficients["w", ]
   
   # Save point estimate, 95%, and 90% confidence intervals for odds (exponentiated log odds)
   results_list[["logistic_regression_estimated_odds"]] <- round(exp(weighting_results["Estimate"]), 4)
@@ -176,32 +171,12 @@ all_weighting_results_1model <- function(seed,
   results_list[["lb_90ci"]] <- round(exp( weighting_results["Estimate"] - 1.645 * weighting_results["Std. Error"]), 4)
   results_list[["ub_90ci"]] <- round(exp( weighting_results["Estimate"] + 1.645 * weighting_results["Std. Error"]), 4)
   
-  # Save covariate balance plots
-  for (capped in c(1, .99)){ # quantiles of counter # c(1, .99, .95)
-    if (capped == 1){
-      pseudo_pop <- weighted_pop
-    } else if (capped == .99){
-      pseudo_pop <- weighted_pop_capped99
-    }
-    
-    # for capped pseudopopulations, recalculate covariate balance
-    if (capped < 1){
-      adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
-                                               c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
-                                               ci_appr = "matching",
-                                               counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
-                                               nthread = 1,
-                                               covar_bl_method = "absolute",
-                                               covar_bl_trs = 0.1,
-                                               covar_bl_trs_type = "mean",
-                                               optimized_compile=TRUE)
-      pseudo_pop$adjusted_corr_results <- adjusted_corr_obj$corr_results
-    }
-    
-    # save covariate balance plot
-    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlations(pseudo_pop, cat_covariate_names, data$a, subset(data, select = cat_covariate_names), quant_covariates)
-    # cov_bal <- make_correlation_plot(pseudo_pop, "weighting", cat_covariate_names, data$a, subset(data, select = cat_covariate_names))
-  }
+  # Save covariate balance plot
+  results_list[["cov_bal.uncapped"]] <- get_weighted_correlations(weighted_pop,
+                                                                  cat_covariate_names,
+                                                                  data$a,
+                                                                  subset(data, select = cat_covariate_names),
+                                                                  quant_covariates)
   
   return(results_list) # numerical output, to be stored in results table
 }

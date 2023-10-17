@@ -13,7 +13,7 @@ parser$add_argument("-e", "--exposure", default="mean_distance_all_persistent_de
 parser$add_argument("-s", "--seed", default=100,
                     help="seed value", type="integer")
 parser$add_argument("-sa", "--sensitivity_analysis", default="state",
-                    help="Sensitivity analysis 'state' or 'state.urbanity'", type="character")
+                    help="Sensitivity analysis 'state' or 'state.urbanicity'", type="character")
 parser$add_argument("-p", "--percentiles", default="5.95",
                     help="Percentiles of exposure '5.95' or '1.99'", type="character") 
 args = parser$parse_args()
@@ -34,13 +34,13 @@ data <- vector("list", 2)
 names(data) <- c("mean_distance_all_persistent_dealers", "mean_dist_commercial_dealers")
 data[["mean_distance_all_persistent_dealers"]] <- vector("list", 2)
 data[["mean_dist_commercial_dealers"]] <- vector("list", 2)
-names(data[["mean_distance_all_persistent_dealers"]]) <- c("state", "state.urbanity")
-names(data[["mean_dist_commercial_dealers"]]) <- c("state", "state.urbanity")
+names(data[["mean_distance_all_persistent_dealers"]]) <- c("state", "state.urbanicity")
+names(data[["mean_dist_commercial_dealers"]]) <- c("state", "state.urbanicity")
 
 data[["mean_distance_all_persistent_dealers"]][["state"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", quantitative_covariates))
-data[["mean_distance_all_persistent_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", "urbanicity", quantitative_covariates))
+data[["mean_distance_all_persistent_dealers"]][["state.urbanicity"]] <- get_analysis_df(df, "mean_distance_all_persistent_dealers", c("State_Name", "urbanicity", quantitative_covariates))
 data[["mean_dist_commercial_dealers"]][["state"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", quantitative_covariates))
-data[["mean_dist_commercial_dealers"]][["state.urbanity"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanicity", quantitative_covariates))
+data[["mean_dist_commercial_dealers"]][["state.urbanicity"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanicity", quantitative_covariates))
 
 
 ## Perform causal analysis
@@ -50,7 +50,7 @@ data[["mean_dist_commercial_dealers"]][["state.urbanity"]] <- get_analysis_df(df
 seed_ = args$seed
 trim_ = list("5.95"=c(0.05, 0.95), "1.99"=c(0.01, 0.99))[[args$percentiles]]
 data_ = data[[args$exposure]][[args$sensitivity_analysis]]
-covars_ = list("state"="State_Name", "state.urbanity"=c("State_Name", "urbanicity"))[[args$sensitivity_analysis]]
+covars_ = list("state"="State_Name", "state.urbanicity"=c("State_Name", "urbanicity"))[[args$sensitivity_analysis]]
 
 results_match <- all_matching_results_1model(
   seed_,

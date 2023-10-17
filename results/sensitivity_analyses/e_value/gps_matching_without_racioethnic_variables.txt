@@ -1,2 +1,0 @@
-Excluded covariate: racioethnic 
- Logistic regression estimated odds: 0.976

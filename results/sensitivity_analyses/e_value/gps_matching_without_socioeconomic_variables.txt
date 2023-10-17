@@ -1,2 +1,0 @@
-Excluded covariate: socioeconomic 
- Logistic regression estimated odds: 0.9915

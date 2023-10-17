@@ -29,7 +29,7 @@ capped_matching <- function(data, exposure_name){
                                                data = data,
                                                trim = c(0.05, 0.95),
                                                cat_covariate_names = c("State_Name", "urbanicity"),
-                                               run_gee_model = F)
+                                               run_gee_model = T)
   
   # filename for results
   var_arg_a_p_match <- paste0(exposure_name, ".", "state.urbanity", ".", "5.95", ".", "match")

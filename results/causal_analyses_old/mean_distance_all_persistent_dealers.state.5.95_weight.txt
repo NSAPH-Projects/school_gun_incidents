@@ -1,0 +1,22 @@
+mean_distance_all_persistent_dealers
+weight
+state
+5.95
+weight_max
+430536.14
+weight99
+21.79 (99th percentile)
+logistic_regression_estimated_odds
+0.9642
+lb_95ci
+0.9464
+ub_95ci
+0.9823
+lb_90ci
+0.9492
+ub_90ci
+0.9793
+mean_AC_weighted
+0.041675366226595
+mean_AC_unadjusted
+0.0877812596758252

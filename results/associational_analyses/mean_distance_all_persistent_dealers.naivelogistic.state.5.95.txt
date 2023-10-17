@@ -3,12 +3,12 @@ naivelogistic
 state
 5.95
 Effect: 
-0.9608
+0.9232
 95% CI lower bound: 
-0.9301
+0.865
 95% CI upper bound: 
-0.9926
+0.9852
 90% CI lower bound: 
-0.9349
+0.8741
 90% CI upper bound: 
-0.9874
+0.975

@@ -3,12 +3,12 @@ naivenegbin
 state.urbanity
 5.95
 Effect: 
-0.9613
+0.9242
 95% CI lower bound: 
-0.9312
+0.8671
 95% CI upper bound: 
-0.9925
+0.985
 90% CI lower bound: 
-0.936
+0.876
 90% CI upper bound: 
-0.9874
+0.975

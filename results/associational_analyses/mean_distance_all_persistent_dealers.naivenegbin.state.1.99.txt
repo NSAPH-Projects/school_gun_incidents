@@ -3,12 +3,12 @@ naivenegbin
 state
 1.99
 Effect: 
-0.9682
+0.9374
 95% CI lower bound: 
-0.9455
+0.894
 95% CI upper bound: 
-0.9914
+0.9829
 90% CI lower bound: 
-0.9491
+0.9008
 90% CI upper bound: 
-0.9876
+0.9754

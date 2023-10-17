@@ -3,12 +3,12 @@ naivelogistic
 state.urbanity
 5.95
 Effect: 
-0.9603
+0.9222
 95% CI lower bound: 
-0.9295
+0.8639
 95% CI upper bound: 
-0.9922
+0.9845
 90% CI lower bound: 
-0.9344
+0.8731
 90% CI upper bound: 
-0.987
+0.9742

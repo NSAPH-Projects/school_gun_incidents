@@ -57,7 +57,7 @@ results_match <- all_matching_results_1model(
   data_,
   trim_,
   covars_,
-  run_gee_model = F
+  run_gee_model = T
 )
 
 var_arg_a_p_match = paste0(args$exposure, ".", args$sensitivity_analysis, ".", args$percentiles,"_match")

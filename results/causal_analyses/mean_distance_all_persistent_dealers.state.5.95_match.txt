@@ -3,22 +3,26 @@ match
 state
 5.95
 num_obs_matched
-50483
+49188
 counter_max
-37364
+32668
 counter99
-421.51 (99th percentile)
+198.51 (99th percentile)
 logistic_regression_estimated_odds
-0.9663
+0.8689
 cl_sd_lb_95ci
-0.9236
+0.8046
 cl_sd_ub_95ci
-1.011
+0.9387
 cl_sd_lb_90ci
-0.9304
+0.8146
 cl_sd_ub_90ci
-1.0037
+0.9271
 mean_AC_matched
-0.038131597080304
+0.0404267181632492
 mean_AC_unadjusted
 0.0877812596758252
+max_AC_matched
+0.144562354261197
+max_AC_unadjusted
+0.416805030812499

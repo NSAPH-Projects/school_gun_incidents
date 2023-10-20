@@ -54,6 +54,7 @@ percentile_exposure[["mean_dist_commercial_dealers"]][["1.99"]] <- quantile(data
 ## Run baseline models
 #### #### ####
 
+# get data
 m_ = c("naivelogistic" = "logistic", "naivenegbin" = "negbin")[args$m]
 data_ = data[[args$e]][[args$s]][data[[args$e]][[args$s]]$a >= percentile_exposure[[args$e]][[args$p]][1] & 
                         data[[args$e]][[args$s]]$a <= percentile_exposure[[args$e]][[args$p]][2], ]
@@ -62,12 +63,14 @@ covars_ = list(
   "state.urbanicity" = c("State_Name", "urbanicity", quantitative_covariates)
 )[[args$s]]
 
+# get model
 model <- get_models(
   data_, 
   model = m_, 
   covariate_names = covars_
   )
 
+# get results
 results <- summary(model)$coefficients["a",]
 effect <- round(exp(results["Estimate"]), 4)
 lb_95ci <- round(exp( results["Estimate"] - 1.96 * results["Std. Error"]), 4)
@@ -75,38 +78,17 @@ ub_95ci <- round(exp( results["Estimate"] + 1.96 * results["Std. Error"]), 4)
 lb_90ci <- round(exp( results["Estimate"] - 1.645 * results["Std. Error"]), 4)
 ub_90ci <- round(exp( results["Estimate"] + 1.645 * results["Std. Error"]), 4)
 
-cat(args$e, args$m, args$s, args$p, 
-    sep = "\n",
-    file=paste0(dir, "results/associational_analyses/", 
-                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"), 
-    append=TRUE)
-cat("Effect: ", 
-    effect, 
-    sep = "\n",
-    file=paste0(dir, "results/associational_analyses/", 
-                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
-    append=TRUE)
-cat("95% CI lower bound: ", 
-    lb_95ci, 
-    sep = "\n",
-    file=paste0(dir, "results/associational_analyses/", 
-                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
-    append=TRUE)
-cat("95% CI upper bound: ", 
-    ub_95ci, 
-    sep = "\n",
-    file=paste0(dir, "results/associational_analyses/", 
-                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
-    append=TRUE)
-cat("90% CI lower bound: ", 
-    lb_90ci, 
-    sep = "\n",
-    file=paste0(dir, "results/associational_analyses/", 
-                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
-    append=TRUE)
-cat("90% CI upper bound: ", 
-    ub_90ci, 
-    sep = "\n",
-    file=paste0(dir, "results/associational_analyses/", 
-                args$e, ".", args$m, ".", args$s, ".", args$p, ".txt"),
-    append=TRUE)
+# save results as csv file
+results_as_table <- data.table(Exposure = args$e,
+                               Model = args$m,
+                               Cat_Confounder = args$s,
+                               Trim = args$p,
+                               Effect = effect,
+                               CI_95ct_lower = lb_95ci,
+                               CI_95ct_upper = ub_95ci,
+                               CI_90ct_lower = lb_90ci,
+                               CI_90ct_upper = ub_90ci,
+                               Exposure_Unit = "Mile",
+                               Effect_Unit = "Odds")
+fwrite(results_as_table, file = paste0(dir, "results/associational_analyses/",
+                                       args$e, ".", args$m, ".", args$s, ".", args$p, ".csv"))

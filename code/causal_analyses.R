@@ -10,9 +10,9 @@ library(argparse)
 parser <- ArgumentParser()
 parser$add_argument("-e", "--exposure", default="mean_distance_all_persistent_dealers",
                     help="Exposure variable 'mean_distance_all_persistent_dealers' or 'mean_dist_commercial_dealers'", type="character")
-parser$add_argument("-s", "--seed", default=100,
+parser$add_argument("-sd", "--seed", default=100,
                     help="seed value", type="integer")
-parser$add_argument("-sa", "--sensitivity_analysis", default="state",
+parser$add_argument("-s", "--sensitivity_analysis", default="state",
                     help="Sensitivity analysis 'state' or 'state.urbanicity'", type="character")
 parser$add_argument("-p", "--percentiles", default="5.95",
                     help="Percentiles of exposure '5.95' or '1.99'", type="character") 
@@ -45,12 +45,13 @@ data[["mean_dist_commercial_dealers"]][["state.urbanicity"]] <- get_analysis_df(
 
 ## Perform causal analysis
 
-## Matching CausalGPS  ----
-
 seed_ = args$seed
 trim_ = list("5.95"=c(0.05, 0.95), "1.99"=c(0.01, 0.99))[[args$percentiles]]
 data_ = data[[args$exposure]][[args$sensitivity_analysis]]
 covars_ = list("state"="State_Name", "state.urbanicity"=c("State_Name", "urbanicity"))[[args$sensitivity_analysis]]
+
+
+## Matching CausalGPS  ----
 
 results_match <- all_matching_results_1model(
   seed_,
@@ -85,22 +86,20 @@ results_match[["cov_bal.capped0.99"]] <- NULL
 # remove results from uncapped pseudopopulation (not used)
 results_match[["cov_bal.capped1"]] <- NULL
 
-# save results as txt file
-cat(args$e, "match", args$sensitivity_analysis, args$p,
-    sep = "\n",
-    file=paste0(dir, "results/causal_analyses/", var_arg_a_p_match, ".txt"), 
-    append=TRUE)
-lapply(1:length(results_match),
-       function(i) cat(paste(names(results_match)[i], results_match[[i]], sep = "\n"),
-                       sep = "\n",
-                       file=paste0(dir, "results/causal_analyses/", var_arg_a_p_match,".txt"),
-                       append=TRUE))
+# save results as csv file
+results_as_table <- data.table(Exposure = args$e,
+                               Model = "Match",
+                               Cat_Confounder = args$s,
+                               Trim = args$p,
+                               Exposure_Unit = "Mile",
+                               Effect_Unit = "Odds")
+results_as_table <- cbind(results_as_table, as.data.table(results_match))
+fwrite(results_as_table, paste0(dir, "results/causal_analyses/", var_arg_a_p_match, ".csv"))
+
 
 ## Weighted CausalGPS ----
 
-
 var_arg_a_p_weight = paste0(args$exposure, ".", args$sensitivity_analysis, ".", args$percentiles,"_weight")
-
 
 results_weight <- all_weighting_results_1model(
   seed_,
@@ -132,13 +131,12 @@ results_weight[["cov_bal.capped0.99"]] <- NULL
 # remove results from uncapped pseudopopulation (not used)
 results_weight[["cov_bal.capped1"]] <- NULL
 
-# save results as txt file
-cat(args$e, "weight", args$sensitivity_analysis, args$p,
-    sep = "\n",
-    file=paste0(dir, "results/causal_analyses/", var_arg_a_p_weight, ".txt"), 
-    append=TRUE)
-lapply(1:length(results_weight),
-       function(i) cat(paste(names(results_weight)[i], results_weight[[i]], sep = "\n"),
-                       sep = "\n",
-                       file=paste0(dir, "results/causal_analyses/", var_arg_a_p_weight,".txt"),
-                       append=TRUE))
+# save results as csv file
+results_as_table <- data.table(Exposure = args$e,
+                               Model = "Weight",
+                               Cat_Confounder = args$s,
+                               Trim = args$p,
+                               Exposure_Unit = "Mile",
+                               Effect_Unit = "Odds")
+results_as_table <- cbind(results_as_table, as.data.table(results_weight))
+fwrite(results_as_table, paste0(dir, "results/causal_analyses/", var_arg_a_p_weight, ".csv"))

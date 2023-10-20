@@ -17,7 +17,8 @@ all_matching_results_1model <- function(seed,
                                         trim,
                                         cat_covariate_names,
                                         run_gee_model = F,
-                                        quant_covariates = quantitative_covariates){
+                                        quant_covariates = quantitative_covariates,
+                                        caliper = 0.2){
   set.seed(seed)
   results_list <- list()
   
@@ -25,7 +26,8 @@ all_matching_results_1model <- function(seed,
   matched_pop <- get_gps_matched_pseudo_pop(data$y,
                                             data$a,
                                             data[, c(cat_covariate_names, quant_covariates)],
-                                            trim)
+                                            trim,
+                                            caliper = caliper)
   # Store how many observations were matched
   results_list[["num_obs_matched"]] <- sum(matched_pop$pseudo_pop$counter_weight > 0)
   

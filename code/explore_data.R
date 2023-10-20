@@ -2,6 +2,7 @@ print("## Load packages ----")
 
 library(data.table)
 library(ggplot2)
+library(xtable)
 
 
 print("## Read data ----")
@@ -83,6 +84,12 @@ hist(tracts_data$mean_dist_commercial_dealers,
 
 
 print("## Plot distribution of quantitative confounders ----")
+
+table1 <- data.table(Variable = quantitative_confounder_names)
+table1[, `:=`(Mean = mean(tracts_data[[Variable]]),
+              SD = sd(tracts_data[[Variable]]))]
+rownames(table1) <- rep("", nrow(associational_results))
+xtable(table1)
 
 for (var in quantitative_confounder_names){
   cat(var, "\n")

@@ -1,72 +1,90 @@
 ## Load packages ----
+
 library(data.table)
 library(readr)
 # library(ggplot2)
 library(xtable)
 
+
 ## Load filepaths for results ----
+
 dir <- "../" # run code in the script location
 
 associational_results_paths <- list.files(paste0(dir, "results/associational_analyses/"),
-                                          pattern = ".*.txt",
+                                          pattern = ".*.csv",
                                           full.names = T)
 causal_results_paths <- list.files(paste0(dir, "results/causal_analyses/"),
-                                   pattern = ".*.txt",
+                                   pattern = ".*.csv",
                                    full.names = T)
 
 
 ## Read in results ----
 
 read_one_associational_txt <- function(path){
-  results <- fread(path, header = F)
-  results_formatted <- data.table("Exposure" = results[1, 1],
-                                  "Trim" = results[4, 1],
-                                  "Cat_Confounder" = results[3, 1],
-                                  "Model" = results[2, 1],
-                                  "Effect" = results[6, 1],
-                                  "CI_lower" = results[8, 1],
-                                  "CI_upper" = results[10, 1])
-  return(results_formatted)
+  results <- fread(path)
+  results <- results[, .(Exposure,
+                         Trim,
+                         Cat_Confounder,
+                         Model,
+                         Effect,
+                         CI_95ct_lower,
+                         CI_95ct_upper)]
+  return(results)
 }
 
 read_one_causal_txt <- function(path){
-  results <- fread(path, header = F, sep = " ", fill = T)
-  if (results[2, 1] == "match"){ # if model is GPS matching with CRSE
-    results_formatted <- data.table("Exposure" = results[1, 1],
-                                    "Trim" = results[4, 1],
-                                    "Cat_Confounder" = results[3, 1],
-                                    "Model" = results[2, 1],
-                                    "Effect" = results[12, 1],
-                                    "CI_lower" = results[14, 1],
-                                    "CI_upper" = results[16, 1],
-                                    "Count/Weight_Max" = signif(as.numeric(results[8, 1]), digits = 4),
-                                    "Count/Weight_Cap" = parse_number(as.character(results[10, 1])))
+  results <- fread(path)
+  if (results$Model == "Match"){
+    results <- results[, .(Exposure,
+                           Trim,
+                           Cat_Confounder,
+                           Model,
+                           CR_Effect = logistic_regression_estimated_odds,
+                           CR_CI_95ct_lower = cl_sd_lb_95ci,
+                           CR_CI_95ct_upper = cl_sd_ub_95ci,
+                           GEE_Effect = GEE_estimated_odds,
+                           GEE_CI_95ct_lower = GEE_lb_95ci,
+                           GEE_CI_95ct_upper = GEE_ub_95ci)]
+    results_CRSE <- results[, .(Exposure,
+                                Trim,
+                                Cat_Confounder,
+                                Model = "GPS Matching (CRSE)",
+                                Effect = CR_Effect,
+                                CI_95ct_lower = CR_CI_95ct_lower,
+                                CI_95ct_upper = CR_CI_95ct_upper)]
+    results_GEE_SE <- results[, .(Exposure,
+                                  Trim,
+                                  Cat_Confounder,
+                                  Model = "GPS Matching (GEE)",
+                                  Effect = GEE_Effect,
+                                  CI_95ct_lower = GEE_CI_95ct_lower,
+                                  CI_95ct_upper = GEE_CI_95ct_upper)]
+    results <- rbind(results_CRSE, results_GEE_SE)
   } else{
-    results_formatted <- data.table("Exposure" = results[1, 1],
-                                    "Trim" = results[4, 1],
-                                    "Cat_Confounder" = results[3, 1],
-                                    "Model" = results[2, 1],
-                                    "Effect" = results[10, 1],
-                                    "CI_lower" = results[12, 1],
-                                    "CI_upper" = results[14, 1],
-                                    "Count/Weight_Max" = signif(as.numeric(results[6, 1]), digits = 4),
-                                    "Count/Weight_Cap" = parse_number(as.character(results[8, 1])))
+    results <- results[, .(Exposure,
+                           Trim,
+                           Cat_Confounder,
+                           Model,
+                           Effect = logistic_regression_estimated_odds,
+                           CI_95ct_lower = lb_95ci,
+                           CI_95ct_upper = ub_95ci)]
   }
-  return(results_formatted)
+  return(results)
 }
 
+# compile all results into one table
 associational_results <- rbindlist(lapply(associational_results_paths, read_one_associational_txt))
-colnames(associational_results) <- c("Exposure", "Trim", "Cat_Confounder", "Model", "Effect", "CI_lower", "CI_upper")
-setorder(associational_results, Exposure, Trim, Cat_Confounder, Model)
-rownames(associational_results) <- rep("", nrow(associational_results))
-
 causal_results <- rbindlist(lapply(causal_results_paths, read_one_causal_txt))
-colnames(causal_results) <- c("Exposure", "Trim", "Cat_Confounder", "Model", "Effect", "CI_lower", "CI_upper", "Count/Weight_Max", "Count/Weight_Cap")
-setorder(causal_results, Exposure, Trim, Cat_Confounder, Model)
-rownames(causal_results) <- rep("", nrow(causal_results))
+all_results <- rbind(associational_results, causal_results)
+
+# order and split the table
+setorder(all_results, Exposure, Trim, Cat_Confounder, Model) 
+all_dealers_table <- all_results[Exposure == "mean_distance_all_persistent_dealers"]
+commercial_dealers_table <- all_results[Exposure == "mean_dist_commercial_dealers"]
+rownames(causal_results) <- rep("", nrow(causal_results)) # for xtable later
 
 
 ## Create LaTeX table ----
 
-xtable(associational_results)
-xtable(causal_results)
+xtable(all_dealers_table)
+xtable(commercial_dealers_table)

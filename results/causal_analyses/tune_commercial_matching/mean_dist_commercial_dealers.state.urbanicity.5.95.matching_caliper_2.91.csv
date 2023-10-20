@@ -1,0 +1,2 @@
+Exposure,Model,Cat_Confounder,Trim,Exposure_Unit,Effect_Unit,num_obs_matched,counter_max,counter99,logistic_regression_estimated_odds,cl_sd_lb_95ci,cl_sd_ub_95ci,cl_sd_lb_90ci,cl_sd_ub_90ci,mean_AC_matched,mean_AC_unadjusted,max_AC_matched,max_AC_unadjusted
+mean_dist_commercial_dealers,Match,state.urbanicity,5.95,Mile,Odds,34459,3632,43 (99th percentile),0.8477,0.8121,0.8848,0.8177,0.8788,0.0837390255493077,0.138015063695389,0.252304884233924,0.346915580202829

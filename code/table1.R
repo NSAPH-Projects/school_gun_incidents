@@ -1,0 +1,118 @@
+print("## Load packages ----")
+
+library(data.table)
+library(xtable)
+
+
+print("## Get data and variable names ----")
+
+dir <- "../" # run code in the script location
+
+full_data <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
+
+source(paste0(dir, "lib/functions_to_load_data.R"))
+# qualitative_confounder_names <- c("census_division_number", "State_Name", "urbanicity")
+# exposure_names <- c("mean_distance_all_persistent_dealers", "mean_dist_commercial_dealers")
+# outcome_name <- "SGI"
+# quantitative_confounder_names <- colnames(tracts_data)[!(colnames(tracts_data) %in% c(qualitative_confounder_names, exposure_names, outcome_name))]
+
+trim_quantiles <- quantile(full_data$mean_dist_commercial_dealers, c(0.05, 0.95))
+trimmed_data <- full_data[mean_dist_commercial_dealers >= trim_quantiles[1] &
+                            mean_dist_commercial_dealers <= trim_quantiles[2]]
+
+
+print("## Set up Table 1 ----")
+
+table1 <- data.table(Variable = c("Data size, outcome, and exposure",
+                                  "Number of (school-containing) census tracts",
+                                  "Number of census tracts that had at least one SGI",
+                                  "Median distance to closest commercial dealer (miles)",
+                                  "Demographic variables by census tract",
+                                  covariates_list[["demographic"]],
+                                  "Socio-economic variables by census tract",
+                                  covariates_list[["socioeconomic"]],
+                                  "Gun-affinity variables by census tract",
+                                  covariates_list[["gun_affinity"]],
+                                  "Racial-ethnic variables by census tract",
+                                  covariates_list[["racioethnic"]],
+                                  "Geographic variables",
+                                  "State_Name",
+                                  "urbanicity"),
+                     FullDataMean = 0, # placeholder values
+                     FullDataSD = 0,
+                     TrimmedDataMean = 0,
+                     TrimmedDataSD = 0)
+
+
+
+
+print("## Calculate means and standard deviations for covariates in Table 1 ----")
+
+for (var in quantitative_covariates){
+  table1[Variable == var, `:=`(FullDataMean = mean(full_data[[var]]),
+                               FullDataSD = sd(full_data[[var]]),
+                               TrimmedDataMean = mean(trimmed_data[[var]]),
+                               TrimmedDataSD = sd(trimmed_data[[var]]))]
+}
+
+table1[, `:=`(FullDataMean = ifelse(FullDataMean < 100,
+                                    round(FullDataMean, 2), # if less than 100, round to 2 decimal digits
+                                    prettyNum(FullDataMean, digits = 0, big.mark = ",", scientific = F)), # else, round to integer, formatted with commas
+              FullDataSD = ifelse(FullDataSD < 100,
+                                  round(FullDataSD, 2),
+                                  prettyNum(FullDataSD, digits = 0, big.mark = ",", scientific = F)),
+              TrimmedDataMean = ifelse(TrimmedDataMean < 100,
+                                       round(TrimmedDataMean, 2),
+                                       prettyNum(TrimmedDataMean, digits = 0, big.mark = ",", scientific = F)),
+              TrimmedDataSD = ifelse(TrimmedDataSD < 100,
+                                     round(TrimmedDataSD, 2),
+                                     prettyNum(TrimmedDataSD, digits = 0, big.mark = ",", scientific = F)))]
+
+
+print("## Reformat columns of Table 1 ----")
+
+# combine mean column and SD column into a single column
+table1[, `:=`(`Full Data` = paste0(FullDataMean, " (", FullDataSD, ")"),
+              `Trimmed Data` = paste0(TrimmedDataMean, " (", TrimmedDataSD, ")"))]
+table1[, `:=`(FullDataMean = NULL, FullDataSD = NULL, TrimmedDataMean = NULL, TrimmedDataSD = NULL)]
+
+# put NA in header rows
+table1[Variable %in% c("Data size, outcome, and exposure",
+                       "Demographic variables by census tract",
+                       "Socio-economic variables by census tract",
+                       "Gun-affinity variables by census tract",
+                       "Racial-ethnic variables by census tract",
+                       "Geographic variables"), `:=`(`Full Data` = NA,
+                                                     `Trimmed Data` = NA)]
+
+
+print("## Fill out data size, outcome, and exposure summaries in Table 1 ----")
+
+table1[Variable == "Number of (school-containing) census tracts", `:=`(`Full Data` = prettyNum(nrow(full_data), digits = 0, big.mark = ",", scientific = F),
+                                                                       `Trimmed Data` = prettyNum(nrow(trimmed_data), digits = 0, big.mark = ",", scientific = F))]
+table1[Variable == "Number of census tracts that had at least one SGI", `:=`(`Full Data` = prettyNum(sum(full_data$SGI), digits = 0, big.mark = ",", scientific = F),
+                                                                             `Trimmed Data` = prettyNum(sum(trimmed_data$SGI), digits = 0, big.mark = ",", scientific = F))]
+table1[Variable == "Median distance to closest commercial dealer (miles)", `:=`(`Full Data` = round(median(full_data$mean_dist_commercial_dealers), 2),
+                                                                                `Trimmed Data` = round(median(trimmed_data$mean_dist_commercial_dealers), 2))]
+
+
+print("## Calculate number of unique values for categorical variables in Table 1 ----")
+
+table1[Variable == "State_Name", `:=`(`Full Data` = uniqueN(full_data$State_Name),
+                                      `Trimmed Data` = uniqueN(trimmed_data$State_Name))]
+table1[Variable == "urbanicity", `:=`(`Full Data` = uniqueN(full_data$urbanicity),
+                                      `Trimmed Data` = uniqueN(trimmed_data$urbanicity))]
+
+
+print("## Fill out variable names and sources in Table 1 ----")
+
+for (i in 1:length(quantitative_covariates)){
+  table1[Variable == quantitative_covariates[i], Variable := quant_covars_full_names[i]]
+}
+
+table1[, Source := 0] # placeholder value
+# table1[, Source := 0]
+
+print(xtable(table1), include.rownames = F)
+# finally, in overleaf: add hline, boldface, caption, etc.
+

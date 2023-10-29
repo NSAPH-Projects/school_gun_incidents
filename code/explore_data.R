@@ -176,3 +176,35 @@ for (var in quantitative_confounder_names){
 # mean_depression 
 # Mean: 21.38104 
 # SD: 3.617652 
+
+# mean_distress 
+# Mean: 15.90308 
+# SD: 3.343774 
+# 
+# CompositeIndex2014to2021 
+# Mean: 64.96038 
+# SD: 14.54463 
+# 
+# housing_per_100sqmi 
+# Mean: 191107.4 
+# SD: 480140.2 
+# 
+# schools_per_100sqmi 
+# Mean: 212.8052 
+# SD: 535.2001 
+# 
+# firearm_retailers_per_100sqmi 
+# Mean: 30.46965 
+# SD: 76.01098 
+# 
+# pop_institutionalized_groupquarters 
+# Mean: 45.43203 
+# SD: 195.5018 
+# 
+# log_med_HH_income 
+# Mean: 11.07959 
+# SD: 0.7450872 
+# 
+# log_med_HH_income_15to24 
+# Mean: 7.299097 
+# SD: 6.27193 

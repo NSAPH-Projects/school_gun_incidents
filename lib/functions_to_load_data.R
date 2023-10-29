@@ -14,6 +14,39 @@ quantitative_covariates <- c("populationtotals_TOTPOP20",          "populationto
                              "raceandhispanicorigin_ASIAN20_P",    "raceandhispanicorigin_RACE2UP20_P",
                              "hispanicorigin_HISPPOP20_P",         "log_med_HH_income",
                              "log_med_HH_income_15to24",           "CompositeIndex2014to2021")
+quant_covars_full_names <- c("populationtotals_TOTPOP20",          "populationtotals_DPOP_CY",
+                             "housing_per_100sqmi",                "schools_per_100sqmi",
+                             "area_sq_miles",                      "pop_institutionalized_groupquarters",
+                             "percent_adult",                      "householdincome_ACSSNAP_P",
+                             "householdincome_ACSPUBAI_P",         "households_ACSHHBPOV_P",
+                             "EmploymentUnemployment_UNEMP_CY_P",  "EmploymentUnemployment_UNAGE16CY_P",
+                             "vehiclesavailable_ACSOVEH0_P",       "crime_CRMCYTOTC",
+                             "mean_depression",                    "mean_distress",
+                             "educationalattainment_ACSBACHDEG_P", "educationalattainment_ACSMASTDEG_P",
+                             "firearm_retailers_per_100sqmi",      "sports_MP33018a_B_P",
+                             "raceandhispanicorigin_WHITE20_P",    "raceandhispanicorigin_BLACK20_P",
+                             "raceandhispanicorigin_ASIAN20_P",    "raceandhispanicorigin_RACE2UP20_P",
+                             "hispanicorigin_HISPPOP20_P",         "log_med_HH_income",
+                             "log_med_HH_income_15to24",           "CompositeIndex2014to2021")
+
+covariates_list = list()
+covariates_list[["demographic"]] <- c("populationtotals_TOTPOP20",             "populationtotals_DPOP_CY",
+                                      "housing_per_100sqmi",                   "schools_per_100sqmi",
+                                      "area_sq_miles",                         "pop_institutionalized_groupquarters",
+                                      "percent_adult")
+covariates_list[["socioeconomic"]] <- c("log_med_HH_income",                  "log_med_HH_income_15to24",
+                                        "householdincome_ACSSNAP_P",          "householdincome_ACSPUBAI_P",
+                                        "households_ACSHHBPOV_P",             "EmploymentUnemployment_UNEMP_CY_P",
+                                        "EmploymentUnemployment_UNAGE16CY_P", "vehiclesavailable_ACSOVEH0_P",
+                                        "crime_CRMCYTOTC",                    "mean_depression",
+                                        "mean_distress",                      "educationalattainment_ACSBACHDEG_P",
+                                        "educationalattainment_ACSMASTDEG_P")
+covariates_list[["gun_affinity"]] <- c("firearm_retailers_per_100sqmi",       "sports_MP33018a_B_P",
+                                       "CompositeIndex2014to2021")
+covariates_list[["racioethnic"]] <- c("raceandhispanicorigin_WHITE20_P",      "raceandhispanicorigin_BLACK20_P",
+                                      "raceandhispanicorigin_ASIAN20_P",      "raceandhispanicorigin_RACE2UP20_P",
+                                      "hispanicorigin_HISPPOP20_P")
+
 
 factorize_cat_vars <- function(data){
   if ("census_division" %in% colnames(data)){

@@ -76,15 +76,6 @@ table1[, `:=`(`Full Data` = paste0(FullDataMean, " (", FullDataSD, ")"),
               `Trimmed Data` = paste0(TrimmedDataMean, " (", TrimmedDataSD, ")"))]
 table1[, `:=`(FullDataMean = NULL, FullDataSD = NULL, TrimmedDataMean = NULL, TrimmedDataSD = NULL)]
 
-# put NA in header rows
-table1[Variable %in% c("Data size, outcome, and exposure",
-                       "Demographic variables by census tract",
-                       "Socio-economic variables by census tract",
-                       "Gun-affinity variables by census tract",
-                       "Racial-ethnic variables by census tract",
-                       "Geographic variables"), `:=`(`Full Data` = NA,
-                                                     `Trimmed Data` = NA)]
-
 
 print("## Fill out data size, outcome, and exposure summaries in Table 1 ----")
 
@@ -106,13 +97,27 @@ table1[Variable == "urbanicity", `:=`(`Full Data` = uniqueN(full_data$urbanicity
 
 print("## Fill out variable names and sources in Table 1 ----")
 
+# fill out variable names
 for (i in 1:length(quantitative_covariates)){
   table1[Variable == quantitative_covariates[i], Variable := quant_covars_full_names[i]]
 }
+table1[Variable == "State_Name", Variable := "State"]
+table1[Variable == "urbanicity", Variable := "Urbanicity"]
 
-table1[, Source := 0] # placeholder value
-# table1[, Source := 0]
+# add source of each variable to Table 1
+table1[, Source := NA] # placeholder value
+# to do
+
+# put NA in header rows
+table1[Variable %in% c("Data size, outcome, and exposure",
+                       "Demographic variables by census tract",
+                       "Socio-economic variables by census tract",
+                       "Gun-affinity variables by census tract",
+                       "Racial-ethnic variables by census tract",
+                       "Geographic variables"), `:=`(`Full Data` = NA,
+                                                     `Trimmed Data` = NA,
+                                                     Source = NA)]
 
 print(xtable(table1), include.rownames = F)
-# finally, in overleaf: add hline, boldface, caption, etc.
+# finally, in overleaf: add \textbf{}, \toprule[2pt], \bottomrule[2pt], \midrule, and caption
 

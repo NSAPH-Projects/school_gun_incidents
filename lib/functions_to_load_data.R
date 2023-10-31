@@ -1,8 +1,9 @@
 ##### Functions to set up analysis #####
 
 quantitative_covariates <- c("populationtotals_TOTPOP20",          "populationtotals_DPOP_CY",
+                             "pop_institutionalized_groupquarters",
                              "housing_per_100sqmi",                "schools_per_100sqmi",
-                             "area_sq_miles",                      "pop_institutionalized_groupquarters",
+                             "area_sq_miles",                      
                              "percent_adult",                      "householdincome_ACSSNAP_P",
                              "householdincome_ACSPUBAI_P",         "households_ACSHHBPOV_P",
                              "EmploymentUnemployment_UNEMP_CY_P",  "EmploymentUnemployment_UNAGE16CY_P",
@@ -15,8 +16,9 @@ quantitative_covariates <- c("populationtotals_TOTPOP20",          "populationto
                              "hispanicorigin_HISPPOP20_P",         "log_med_HH_income",
                              "log_med_HH_income_15to24",           "CompositeIndex2014to2021")
 quant_covars_full_names <- c("Total population",                   "Daytime population",
+                             "Population in institutionalized group quarters",
                              "Housing units per 100 square miles", "Schools per 100 square miles",
-                             "Census tract area in square miles",  "Population in institutionalized group quarters",
+                             "Census tract area in square miles",  
                              "Percent aged 18+",                   "Percent of households receiving food stamps/SNAP",
                              "Percent of households with public assistance income", "Percent of households below poverty line",
                              "Percent unemployed",                 "Percent unemployed, ages 16-24",
@@ -31,8 +33,9 @@ quant_covars_full_names <- c("Total population",                   "Daytime popu
 
 covariates_list = list()
 covariates_list[["demographic"]] <- c("populationtotals_TOTPOP20",             "populationtotals_DPOP_CY",
+                                      "pop_institutionalized_groupquarters",
                                       "housing_per_100sqmi",                   "schools_per_100sqmi",
-                                      "area_sq_miles",                         "pop_institutionalized_groupquarters",
+                                      "area_sq_miles",                         
                                       "percent_adult")
 covariates_list[["socioeconomic"]] <- c("log_med_HH_income",                  "log_med_HH_income_15to24",
                                         "householdincome_ACSSNAP_P",          "householdincome_ACSPUBAI_P",

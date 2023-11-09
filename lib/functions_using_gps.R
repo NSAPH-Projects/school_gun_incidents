@@ -116,12 +116,16 @@ all_matching_results_1model <- function(seed,
 }
 
 get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95), caliper = 0.2){
-  return(generate_pseudo_pop(Y = outcome,
-                             w = exposure,
-                             c = as.data.frame(covariates),
-                             ci_appr = "matching",
-                             pred_model = "sl",
-                             gps_model = "parametric",
+  id <- 1:length(exposure)
+  w <- data.frame(w = exposure, id = id)
+  c <- as.data.frame(covariates)
+  c$id <- id
+  outcome <- data.table(Y = outcome, id = id)
+
+  pseudo_pop <- generate_pseudo_pop(w = w,
+                             c = c,
+	                     ci_appr = "matching",
+                             gps_density = "normal",
                              use_cov_transform = TRUE,
                              transformers = list("pow2", "pow3"),
                              sl_lib = c("m_xgboost"),
@@ -130,12 +134,13 @@ get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quant
                              covar_bl_method = "absolute",
                              covar_bl_trs = 0.1,
                              covar_bl_trs_type = "mean",
-                             trim_quantiles = trim_quantiles, 
-                             optimized_compile = TRUE, 
+                             exposure_trim_qtls = trim_quantiles, 
                              max_attempt = 5,
-                             matching_fun = "matching_l1",
+                             dist_measure = "l1",
                              delta_n = caliper,
-                             scale = 1.0))
+                             scale = 1.0)
+  pseudo_pop$pseudo_pop <- merge(pseudo_pop$pseudo_pop, outcome, by = "id")
+  return(pseudo_pop)
 }
 
 get_matched_correlations <- function(matched_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
@@ -239,12 +244,16 @@ all_weighting_results_1model <- function(seed,
 }
 
 get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95)){
-  return(generate_pseudo_pop(Y = outcome,
-                             w = exposure,
-                             c = as.data.frame(covariates),
+  id <- 1:length(exposure)
+  w <- data.frame(w = exposure, id = id)
+  c <- as.data.frame(covariates)
+  c$id <- id
+  outcome <- data.table(Y = outcome, id = id)
+  
+  pseudo_pop <- generate_pseudo_pop(w = w,
+                             c = c,
                              ci_appr = "weighting",
-                             pred_model = "sl",
-                             gps_model = "parametric",
+                             gps_density = "normal",
                              use_cov_transform = TRUE,
                              transformers = list("pow2", "pow3"),
                              sl_lib = c("m_xgboost"),
@@ -253,12 +262,13 @@ get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quan
                              covar_bl_method = "absolute",
                              covar_bl_trs = 0.1,
                              covar_bl_trs_type = "mean",
-                             trim_quantiles = trim_quantiles, 
-                             optimized_compile = TRUE, 
+                             exposure_trim_qtls = trim_quantiles, 
                              max_attempt = 5,
-                             matching_fun = "matching_l1",
+                             dist_measure = "l1",
                              delta_n = 0.2,
-                             scale = 1.0))
+                             scale = 1.0)
+  pseudo_pop$pseudo_pop <- merge(pseudo_pop$pseudo_pop, outcome, by = "id")
+  return(pseudo_pop)
 }
 
 get_weighted_correlations <- function(weighted_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){

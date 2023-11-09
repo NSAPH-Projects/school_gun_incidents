@@ -4,7 +4,16 @@
 library(ggplot2)
 library(tidyr)
 library(data.table)
-library(argparse)
+library(argparse, lib.loc = "../../../R/4.3/")
+
+library(logger, lib.loc = "../../../R/4.3/")
+library(CausalGPS, lib.loc = "../../../R/4.3/")
+library(findpython, lib.loc = "../../../R/4.3/")
+library(wCorr, lib.loc = "../../../R/4.3/")
+library(SuperLearner, lib.loc = "../../../R/4.3/")
+library(gee, lib.loc = "../../../R/4.3/")
+library(Ecume, lib.loc = "../../../R/4.3/")
+library(gnm, lib.loc = "../../../R/4.3/")
 
 # Define parser arguments ----
 parser <- ArgumentParser()

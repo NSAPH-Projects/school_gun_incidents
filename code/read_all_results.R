@@ -84,7 +84,13 @@ commercial_dealers_table <- all_results[Exposure == "mean_dist_commercial_dealer
 rownames(causal_results) <- rep("", nrow(causal_results)) # for xtable later
 
 
-## Create LaTeX table ----
+## Create LaTeX table(s) ----
 
 xtable(all_dealers_table)
 xtable(commercial_dealers_table)
+
+
+## Save table(s) as csv ----
+
+fwrite(x = all_dealers_table, file = paste0(dir, "results/all_dealers_association_and_causal_results.csv"))
+fwrite(x = commercial_dealers_table, file = paste0(dir, "results/commercial_dealers_association_and_causal_results.csv"))

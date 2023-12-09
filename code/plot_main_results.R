@@ -1,14 +1,21 @@
-# Main Plot (5x7 inches)
+## Load packages ----
 
-df <- data.frame(
-  Model = c("GPS Matching (CRSE)", "GPS Matching (GEE)", "GPS Weighting", "Logistic", "Negative Binomial"),
-  Estimate = c(0.9708, 0.9571, 0.9742, 0.9687, 0.9696),
-  Lower_CI = c(0.9283, 0.9321, 0.9561, 0.9367, 0.9380),
-  Upper_CI = c(1.0154, 0.9820, 0.9928, 1.0019, 1.0023)
-)
+library(data.table)
+library(ggplot2) # to do: check if we need ggplot2
+
+
+## Read in main results ----
+
+dir <- "../" # run code in the script location
+df <- fread(file = paste0(dir, "results/commercial_dealers_association_and_causal_results.csv"))
+df <- df[Trim == "5.95" & Cat_Confounder == "state.urbanicity"] # get main models only
+# to do: causal models: c("GPS Matching (CRSE)", "GPS Matching (GEE)", "GPS Weighting")
+
+
+## Main Plot (5x7 inches) ----
 
 # Create the plot
-plot(1:length(df$Model), df$Estimate, ylim = c(0.80, 1.15), 
+plot(1:nrow(df), df$Effect, ylim = c(0.80, 1.15), 
      xlab = "", ylab = "Odds Ratio", main = "",
      xaxt = "n", yaxt = "n", pch = 16, cex = 1.5, col = "steelblue")
 
@@ -16,18 +23,17 @@ plot(1:length(df$Model), df$Estimate, ylim = c(0.80, 1.15),
 grid(lty = "dotted", col = "lightgray")
 
 # Add error bars for the confidence intervals
-arrows(1:length(df$Model), df$Lower_CI, 1:length(df$Model), df$Upper_CI, 
+arrows(1:nrow(df), df$CI_95ct_lower, 1:nrow(df), df$CI_95ct_upper, 
        length = 0.05, angle = 90, code = 3, col = "steelblue")
 
 # Add model names as x-axis labels (horizontal and smaller)
-axis(1, at = c(1, 2, 3, 4, 5), labels = df$Model[c(1, 2, 3, 4, 5)], tick = FALSE, las = 1, cex.axis = 0.7)
-text(x = c(1, 2, 3, 4, 5), y = -0.15, labels = df$Model[c(1, 2, 3, 4, 5)], pos = 1, cex = 0.7, xpd = TRUE, adj = c(0.5, 0), col = "black")
+axis(1, at = 1:nrow(df), labels = df$Model, tick = FALSE, las = 1, cex.axis = 0.7)
+text(x = 1:nrow(df), y = -0.15, labels = df$Model, pos = 1, cex = 0.7, xpd = TRUE, adj = c(0.5, 0), col = "black")
 
-
-# Add horizontal line at the mean value
+# Add horizontal line at the value of a null effect
 abline(h = 1, lty = 2, col = "black")
 
-# Add Vertical line at the mean value
+# Add Vertical line to divide the causal vs associational models
 abline(v = 3.5, lty = 2, col = "red")
 
 # Add labels to the margins
@@ -38,3 +44,8 @@ mtext("(Causal Models)", side = 1, line = 3.5, at = 2, cex = 0.8)
 
 # Make Y axis labels horizontal
 axis(2, las = 1, tcl = -0.5)
+
+
+## Save plot (5x7 inches) ----
+
+# ggsave(paste0(dir, "results/main_results_plot.png")) # to do

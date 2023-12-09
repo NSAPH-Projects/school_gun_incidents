@@ -41,9 +41,9 @@ covariates_list[["socioeconomic"]] <- c("log_med_HH_income",                  "l
                                         "householdincome_ACSSNAP_P",          "householdincome_ACSPUBAI_P",
                                         "households_ACSHHBPOV_P",             "EmploymentUnemployment_UNEMP_CY_P",
                                         "EmploymentUnemployment_UNAGE16CY_P", "vehiclesavailable_ACSOVEH0_P",
-                                        "crime_CRMCYTOTC",                    "mean_depression",
-                                        "mean_distress",                      "educationalattainment_ACSBACHDEG_P",
-                                        "educationalattainment_ACSMASTDEG_P")
+                                        "educationalattainment_ACSBACHDEG_P", "educationalattainment_ACSMASTDEG_P")
+covariates_list[["well-being"]] <- c("crime_CRMCYTOTC",                    "mean_depression",
+                                     "mean_distress")
 covariates_list[["gun_affinity"]] <- c("firearm_retailers_per_100sqmi",       "sports_MP33018a_B_P",
                                        "CompositeIndex2014to2021")
 covariates_list[["racioethnic"]] <- c("raceandhispanicorigin_WHITE20_P",      "raceandhispanicorigin_BLACK20_P",

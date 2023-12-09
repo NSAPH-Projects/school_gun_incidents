@@ -31,6 +31,8 @@ table1 <- data.table(Variable = c("Data size, outcome, and exposure",
                                   covariates_list[["demographic"]],
                                   "Socio-economic variables by census tract",
                                   covariates_list[["socioeconomic"]],
+                                  "Well-being variables by census tract",
+                                  covariates_list[["well-being"]],
                                   "Gun-affinity variables by census tract",
                                   covariates_list[["gun_affinity"]],
                                   "Racial-ethnic variables by census tract",
@@ -57,16 +59,16 @@ for (var in quantitative_covariates){
 
 table1[, `:=`(FullDataMean = ifelse(FullDataMean < 100,
                                     round(FullDataMean, 2), # if less than 100, round to 2 decimal digits
-                                    prettyNum(FullDataMean, digits = 0, big.mark = ",", scientific = F)), # else, round to integer, formatted with commas
+                                    formatC(FullDataMean, digits = 0, big.mark = ",", format = "f")), # else, round to integer, formatted with commas
               FullDataSD = ifelse(FullDataSD < 100,
                                   round(FullDataSD, 2),
-                                  prettyNum(FullDataSD, digits = 0, big.mark = ",", scientific = F)),
+                                  formatC(FullDataSD, digits = 0, big.mark = ",", format = "f")),
               TrimmedDataMean = ifelse(TrimmedDataMean < 100,
                                        round(TrimmedDataMean, 2),
-                                       prettyNum(TrimmedDataMean, digits = 0, big.mark = ",", scientific = F)),
+                                       formatC(TrimmedDataMean, digits = 0, big.mark = ",", format = "f")),
               TrimmedDataSD = ifelse(TrimmedDataSD < 100,
                                      round(TrimmedDataSD, 2),
-                                     prettyNum(TrimmedDataSD, digits = 0, big.mark = ",", scientific = F)))]
+                                     formatC(TrimmedDataSD, digits = 0, big.mark = ",", format = "f")))]
 
 
 print("## Reformat columns of Table 1 ----")
@@ -79,10 +81,10 @@ table1[, `:=`(FullDataMean = NULL, FullDataSD = NULL, TrimmedDataMean = NULL, Tr
 
 print("## Fill out data size, outcome, and exposure summaries in Table 1 ----")
 
-table1[Variable == "Number of (school-containing) census tracts", `:=`(`Full Data` = prettyNum(nrow(full_data), digits = 0, big.mark = ",", scientific = F),
-                                                                       `Trimmed Data` = prettyNum(nrow(trimmed_data), digits = 0, big.mark = ",", scientific = F))]
-table1[Variable == "Number of census tracts that had at least one SGI", `:=`(`Full Data` = prettyNum(sum(full_data$SGI), digits = 0, big.mark = ",", scientific = F),
-                                                                             `Trimmed Data` = prettyNum(sum(trimmed_data$SGI), digits = 0, big.mark = ",", scientific = F))]
+table1[Variable == "Number of (school-containing) census tracts", `:=`(`Full Data` = formatC(nrow(full_data), digits = 0, big.mark = ",", format = "f"),
+                                                                       `Trimmed Data` = formatC(nrow(trimmed_data), digits = 0, big.mark = ",", format = "f"))]
+table1[Variable == "Number of census tracts that had at least one SGI", `:=`(`Full Data` = formatC(sum(full_data$SGI), digits = 0, big.mark = ",", format = "f"),
+                                                                             `Trimmed Data` = formatC(sum(trimmed_data$SGI), digits = 0, big.mark = ",", format = "f"))]
 table1[Variable == "Median distance to closest commercial dealer (miles)", `:=`(`Full Data` = round(median(full_data$mean_dist_commercial_dealers), 2),
                                                                                 `Trimmed Data` = round(median(trimmed_data$mean_dist_commercial_dealers), 2))]
 
@@ -112,6 +114,7 @@ table1[, Source := NA] # placeholder value
 table1[Variable %in% c("Data size, outcome, and exposure",
                        "Demographic variables by census tract",
                        "Socio-economic variables by census tract",
+                       "Well-being variables by census tract",
                        "Gun-affinity variables by census tract",
                        "Racial-ethnic variables by census tract",
                        "Geographic variables"), `:=`(`Full Data` = NA,

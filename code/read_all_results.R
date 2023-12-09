@@ -1,6 +1,7 @@
 ## Load packages ----
 
 library(data.table)
+library(dplyr)
 library(readr)
 # library(ggplot2)
 library(xtable)
@@ -29,6 +30,9 @@ read_one_associational_txt <- function(path){
                          Effect,
                          CI_95ct_lower,
                          CI_95ct_upper)]
+  results[, Model := case_when(Model == "naivelogistic" ~ "Logistic",
+                               Model == "naivenegbin" ~ "Negative Binomial",
+                               .default = Model)]
   return(results)
 }
 

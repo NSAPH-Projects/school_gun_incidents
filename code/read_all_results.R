@@ -74,7 +74,7 @@ read_one_causal_txt <- function(path){
     results <- results[, .(Exposure,
                            Trim,
                            Cat_Confounder,
-                           Model,
+                           Model = "GPS Weighting",
                            Effect = logistic_regression_estimated_odds,
                            CI_95ct_lower = lb_95ci,
                            CI_95ct_upper = ub_95ci)]

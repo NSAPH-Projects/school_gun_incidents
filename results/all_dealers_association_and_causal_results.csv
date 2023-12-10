@@ -1,21 +1,21 @@
 Exposure,Trim,Cat_Confounder,Model,Effect,CI_95ct_lower,CI_95ct_upper
 mean_distance_all_persistent_dealers,1.99,state,GPS Matching (CRSE),0.9011,0.8483,0.9572
 mean_distance_all_persistent_dealers,1.99,state,GPS Matching (GEE),0.9182,0.8851,0.9527
+mean_distance_all_persistent_dealers,1.99,state,GPS Weighting,0.92,0.9048,0.9354
 mean_distance_all_persistent_dealers,1.99,state,Logistic,0.9365,0.8923,0.9828
 mean_distance_all_persistent_dealers,1.99,state,Negative Binomial,0.9374,0.894,0.9829
-mean_distance_all_persistent_dealers,1.99,state,Weight,0.92,0.9048,0.9354
 mean_distance_all_persistent_dealers,1.99,state.urbanicity,GPS Matching (CRSE),0.894,0.838,0.9539
 mean_distance_all_persistent_dealers,1.99,state.urbanicity,GPS Matching (GEE),0.9195,0.8865,0.9536
+mean_distance_all_persistent_dealers,1.99,state.urbanicity,GPS Weighting,0.9225,0.9076,0.9376
 mean_distance_all_persistent_dealers,1.99,state.urbanicity,Logistic,0.9364,0.892,0.9829
 mean_distance_all_persistent_dealers,1.99,state.urbanicity,Negative Binomial,0.9372,0.8937,0.9829
-mean_distance_all_persistent_dealers,1.99,state.urbanicity,Weight,0.9225,0.9076,0.9376
 mean_distance_all_persistent_dealers,5.95,state,GPS Matching (CRSE),0.8689,0.8046,0.9387
 mean_distance_all_persistent_dealers,5.95,state,GPS Matching (GEE),0.9268,0.88,0.9762
+mean_distance_all_persistent_dealers,5.95,state,GPS Weighting,0.9054,0.8701,0.9422
 mean_distance_all_persistent_dealers,5.95,state,Logistic,0.9232,0.865,0.9852
 mean_distance_all_persistent_dealers,5.95,state,Negative Binomial,0.9251,0.8682,0.9857
-mean_distance_all_persistent_dealers,5.95,state,Weight,0.9054,0.8701,0.9422
 mean_distance_all_persistent_dealers,5.95,state.urbanicity,GPS Matching (CRSE),0.9036,0.8354,0.9775
 mean_distance_all_persistent_dealers,5.95,state.urbanicity,GPS Matching (GEE),0.9279,0.881,0.9774
+mean_distance_all_persistent_dealers,5.95,state.urbanicity,GPS Weighting,0.89,0.8548,0.9266
 mean_distance_all_persistent_dealers,5.95,state.urbanicity,Logistic,0.9222,0.8639,0.9845
 mean_distance_all_persistent_dealers,5.95,state.urbanicity,Negative Binomial,0.9242,0.8671,0.985
-mean_distance_all_persistent_dealers,5.95,state.urbanicity,Weight,0.89,0.8548,0.9266

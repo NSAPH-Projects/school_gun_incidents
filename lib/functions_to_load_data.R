@@ -1,4 +1,4 @@
-##### Functions to set up analysis #####
+##### Constants and functions to set up analysis #####
 
 quantitative_covariates <- c("populationtotals_TOTPOP20",          "populationtotals_DPOP_CY",
                              "pop_institutionalized_groupquarters",

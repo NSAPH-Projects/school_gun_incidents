@@ -1,0 +1,2 @@
+Exposure,Model,Trim,Exposure_Unit,Effect_Unit,weight_max,weight99,logistic_regression_estimated_odds,lb_95ci,ub_95ci,lb_90ci,ub_90ci,mean_AC_weighted,mean_AC_unadjusted,max_AC_weighted,max_AC_unadjusted
+mean_distance_all_persistent_dealers,Weight,1.99,Mile,Odds,1190456668609440000,74.38 (99th percentile),0.9225,0.9076,0.9376,0.91,0.9352,0.0378247336540395,0.097809511860821,0.259344616561358,0.444768950583644

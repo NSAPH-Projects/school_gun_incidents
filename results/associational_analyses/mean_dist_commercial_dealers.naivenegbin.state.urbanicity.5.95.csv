@@ -1,0 +1,2 @@
+Exposure,Model,Cat_Confounder,Trim,Effect,CI_95ct_lower,CI_95ct_upper,CI_90ct_lower,CI_90ct_upper,Exposure_Unit,Effect_Unit
+mean_dist_commercial_dealers,naivenegbin,state.urbanicity,5.95,0.9266,0.8942,0.9602,0.8993,0.9547,Mile,Odds

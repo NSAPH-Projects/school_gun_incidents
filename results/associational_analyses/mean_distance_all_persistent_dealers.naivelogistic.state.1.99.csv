@@ -1,0 +1,2 @@
+Exposure,Model,Cat_Confounder,Trim,Effect,CI_95ct_lower,CI_95ct_upper,CI_90ct_lower,CI_90ct_upper,Exposure_Unit,Effect_Unit
+mean_distance_all_persistent_dealers,naivelogistic,state,1.99,0.9365,0.8923,0.9828,0.8993,0.9752,Mile,Odds

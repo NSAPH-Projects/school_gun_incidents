@@ -2,7 +2,6 @@
 
 library(data.table)
 library(readr)
-# library(ggplot2)
 library(xtable)
 
 
@@ -14,7 +13,7 @@ associational_results_paths <- list.files(paste0(dir, "results/associational_ana
                                           pattern = ".*.csv",
                                           full.names = T)
 causal_results_paths <- list.files(paste0(dir, "results/causal_analyses/"),
-                                   pattern = ".*.csv",
+                                   pattern = "(.*match.csv)|(.*weight.csv)", # don't want to get _correlation.csv files
                                    full.names = T)
 
 

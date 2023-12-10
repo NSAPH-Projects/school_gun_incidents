@@ -1,18 +1,21 @@
 ## Load packages ----
 
 library(data.table)
-library(ggplot2) # to do: check if we need ggplot2
 
 
 ## Read in main results ----
 
 dir <- "../" # run code in the script location
+
 df <- fread(file = paste0(dir, "results/commercial_dealers_association_and_causal_results.csv"))
 df <- df[Trim == "5.95" & Cat_Confounder == "state.urbanicity"] # get main models only
-# to do: causal models: c("GPS Matching (CRSE)", "GPS Matching (GEE)", "GPS Weighting")
 
 
-## Main Plot (5x7 inches) ----
+## Main Plot ----
+
+# Prepare to save plot
+png(file = paste0(dir, "results/main_results_plot.png"),
+    width = 7, height = 5, units = "in", res = 1200)
 
 # Create the plot
 plot(1:nrow(df), df$Effect, ylim = c(0.80, 1.15), 
@@ -45,7 +48,5 @@ mtext("(Causal Models)", side = 1, line = 3.5, at = 2, cex = 0.8)
 # Make Y axis labels horizontal
 axis(2, las = 1, tcl = -0.5)
 
-
-## Save plot (5x7 inches) ----
-
-# ggsave(paste0(dir, "results/main_results_plot.png")) # to do
+# Conclude
+dev.off()

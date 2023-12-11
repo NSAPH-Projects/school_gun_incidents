@@ -1,54 +1,63 @@
 ##### Constants and functions to set up analysis #####
 
-quantitative_covariates <- c("populationtotals_TOTPOP20",          "populationtotals_DPOP_CY",
-                             "pop_institutionalized_groupquarters",
-                             "housing_per_100sqmi",                "schools_per_100sqmi",
-                             "area_sq_miles",                      
-                             "percent_adult",                      "householdincome_ACSSNAP_P",
-                             "householdincome_ACSPUBAI_P",         "households_ACSHHBPOV_P",
-                             "EmploymentUnemployment_UNEMP_CY_P",  "EmploymentUnemployment_UNAGE16CY_P",
-                             "vehiclesavailable_ACSOVEH0_P",       "crime_CRMCYTOTC",
-                             "mean_depression",                    "mean_distress",
-                             "educationalattainment_ACSBACHDEG_P", "educationalattainment_ACSMASTDEG_P",
-                             "firearm_retailers_per_100sqmi",      "sports_MP33018a_B_P",
-                             "raceandhispanicorigin_WHITE20_P",    "raceandhispanicorigin_BLACK20_P",
-                             "raceandhispanicorigin_ASIAN20_P",    "raceandhispanicorigin_RACE2UP20_P",
-                             "hispanicorigin_HISPPOP20_P",         "log_med_HH_income",
-                             "log_med_HH_income_15to24",           "CompositeIndex2014to2021")
-quant_covars_full_names <- c("Total population",                   "Daytime population",
-                             "Population in institutionalized group quarters",
-                             "Housing units per 100 square miles", "Schools per 100 square miles",
-                             "Census tract area in square miles",  
-                             "Percent aged 18+",                   "Percent of households receiving food stamps/SNAP",
-                             "Percent of households with public assistance income", "Percent of households below poverty line",
-                             "Percent unemployed",                 "Percent unemployed, ages 16-24",
-                             "Percent without a vehicle",          "Total crime index",
-                             "Depression, crude prevalence (%)",    "Frequent mental health distress, crude prevalence (%)",
-                             "Percent with bachelor's degree, ages 25+", "Percent with master's degree, ages 25+",
-                             "Firearms retailers per 100 square miles", "Percent who hunted with a shotgun",
-                             "Percent white",                      "Percent Black",
-                             "Percent Asian",                      "Percent multiracial",
-                             "Percent Hispanic/Latino",            "Log median household income (log $)",
-                             "Log median household income, ages 16-24 (log $)", "Composite index of state firearms laws")
-
 covariates_list = list()
-covariates_list[["demographic"]] <- c("populationtotals_TOTPOP20",             "populationtotals_DPOP_CY",
+covariates_list[["demographic"]] <- c("populationtotals_TOTPOP20",
+                                      "populationtotals_DPOP_CY",
                                       "pop_institutionalized_groupquarters",
-                                      "housing_per_100sqmi",                   "schools_per_100sqmi",
+                                      "housing_per_100sqmi",
+                                      "schools_per_100sqmi",
                                       "area_sq_miles",                         
                                       "percent_adult")
-covariates_list[["socioeconomic"]] <- c("log_med_HH_income",                  "log_med_HH_income_15to24",
-                                        "householdincome_ACSSNAP_P",          "householdincome_ACSPUBAI_P",
-                                        "households_ACSHHBPOV_P",             "EmploymentUnemployment_UNEMP_CY_P",
-                                        "EmploymentUnemployment_UNAGE16CY_P", "vehiclesavailable_ACSOVEH0_P",
-                                        "educationalattainment_ACSBACHDEG_P", "educationalattainment_ACSMASTDEG_P")
-covariates_list[["well-being"]] <- c("crime_CRMCYTOTC",                    "mean_depression",
+covariates_list[["socioeconomic"]] <- c("log_med_HH_income",
+                                        "log_med_HH_income_15to24",
+                                        "householdincome_ACSSNAP_P",
+                                        "householdincome_ACSPUBAI_P",
+                                        "households_ACSHHBPOV_P",
+                                        "EmploymentUnemployment_UNEMP_CY_P",
+                                        "EmploymentUnemployment_UNAGE16CY_P",
+                                        "vehiclesavailable_ACSOVEH0_P",
+                                        "educationalattainment_ACSBACHDEG_P",
+                                        "educationalattainment_ACSMASTDEG_P")
+covariates_list[["well-being"]] <- c("crime_CRMCYTOTC",
+                                     "mean_depression",
                                      "mean_distress")
-covariates_list[["gun_affinity"]] <- c("firearm_retailers_per_100sqmi",       "sports_MP33018a_B_P",
+covariates_list[["gun_affinity"]] <- c("firearm_retailers_per_100sqmi",
+                                       "sports_MP33018a_B_P",
                                        "CompositeIndex2014to2021")
 covariates_list[["racioethnic"]] <- c("raceandhispanicorigin_WHITE20_P",      "raceandhispanicorigin_BLACK20_P",
                                       "raceandhispanicorigin_ASIAN20_P",      "raceandhispanicorigin_RACE2UP20_P",
                                       "hispanicorigin_HISPPOP20_P")
+
+quant_covars_full_names <- c("Total population",
+                             "Daytime population",
+                             "Population in institutionalized group quarters",
+                             "Housing units per 100 square miles",
+                             "Schools per 100 square miles",
+                             "Census tract area in square miles",  
+                             "Percent aged 18+",
+                             "Log median household income (log $)",
+                             "Log median household income, ages 16-24 (log $)",
+                             "Percent of households receiving food stamps/SNAP",
+                             "Percent of households with public assistance income",
+                             "Percent of households below poverty line",
+                             "Percent unemployed",
+                             "Percent unemployed, ages 16-24",
+                             "Percent without a vehicle",
+                             "Percent with bachelor's degree, ages 25+",
+                             "Percent with master's degree, ages 25+",
+                             "Total crime index",
+                             "Depression, crude prevalence (%)",
+                             "Frequent mental health distress, crude prevalence (%)",
+                             "Firearms retailers per 100 square miles",
+                             "Percent who hunted with a shotgun",
+                             "Composite index of state firearms laws",
+                             "Percent white",
+                             "Percent Black",
+                             "Percent Asian",
+                             "Percent multiracial",
+                             "Percent Hispanic/Latino")
+
+quantitative_covariates <- unlist(covariates_list)
 
 
 factorize_cat_vars <- function(data){

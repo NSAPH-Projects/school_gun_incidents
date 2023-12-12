@@ -91,14 +91,12 @@ all_results <- rbind(associational_results, causal_results)
 setorder(all_results, Exposure, Trim, Cat_Confounder, Model) 
 all_dealers_table <- all_results[Exposure == "mean_distance_all_persistent_dealers"]
 commercial_dealers_table <- all_results[Exposure == "mean_dist_commercial_dealers"]
-# rownames(all_dealers_table) <- rep("", nrow(all_dealers_table)) # for xtable later; hmm throws error because duplicate row names aren't allowed
-# rownames(commercial_dealers_table) <- rep("", nrow(commercial_dealers_table)) # for xtable later; hmm throws error because duplicate row names aren't allowed
 
 
 ## Create LaTeX table(s), if desired ----
 
-# xtable(all_dealers_table)
-# xtable(commercial_dealers_table)
+# xtable(all_dealers_table, include.rownames = F)
+# xtable(commercial_dealers_table, include.rownames = F)
 
 
 ## Save table(s) as csv ----

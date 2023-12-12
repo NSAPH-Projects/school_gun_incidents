@@ -70,9 +70,11 @@ cat_covars_full_names <- c("State", "Urbanicity")
 # 6 = RAND State Firearm Law Database
 # 7 = 2013 National Center for Health Statistics (NCHS) Urban-Rural Classification Scheme for Counties
 data_outcome_and_exposure_sources <- c("1", "3", "1,2")
-quant_covars_sources <- c(rep("4", length(covariates_list[["demographic"]]) +
-                                   length(covariates_list[["socioeconomic"]]) +
-                                   1),
+quant_covars_sources <- c("4", "4", "4", "4",
+                          "1",
+                          rep("4", 2 +
+                                length(covariates_list[["socioeconomic"]]) +
+                                 1),
                           "5", "5",
                           "2", "4", "6",
                           rep("4", length(covariates_list[["racioethnic"]])))

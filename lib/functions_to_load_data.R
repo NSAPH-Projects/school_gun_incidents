@@ -1,6 +1,6 @@
 ##### Constants and functions to set up analysis #####
 
-covariates_list = list()
+covariates_list = list() # to do: should rename this variable to quant_covariates_list
 covariates_list[["demographic"]] <- c("populationtotals_TOTPOP20",
                                       "populationtotals_DPOP_CY",
                                       "pop_institutionalized_groupquarters",
@@ -27,6 +27,7 @@ covariates_list[["gun_affinity"]] <- c("firearm_retailers_per_100sqmi",
 covariates_list[["racioethnic"]] <- c("raceandhispanicorigin_WHITE20_P",      "raceandhispanicorigin_BLACK20_P",
                                       "raceandhispanicorigin_ASIAN20_P",      "raceandhispanicorigin_RACE2UP20_P",
                                       "hispanicorigin_HISPPOP20_P")
+quantitative_covariates <- unlist(covariates_list)
 
 quant_covars_full_names <- c("Total population",
                              "Daytime population",
@@ -57,7 +58,25 @@ quant_covars_full_names <- c("Total population",
                              "Percent multiracial",
                              "Percent Hispanic/Latino")
 
-quantitative_covariates <- unlist(covariates_list)
+categorical_covariates <- c("State_Name", "urbanicity")
+cat_covars_full_names <- c("State", "Urbanicity")
+
+# Data Sources
+# 1 = National Center for Education Statistics (NCES) Education Demographic and Geographic Estimate (EDGE) database
+# 2 = Listing of Federal Firearms Licensees (FFL)
+# 3 = Naval Postgraduate School Center for Homeland Defense and Security (CHDS) K-12 School Shooting Database (K12SSD)
+# 4 = U.S. Public Law 94-171
+# 5 = U.S. Centers for Disease Control and Prevention (CDC) PLACES dataset
+# 6 = RAND State Firearm Law Database
+# 7 = 2013 National Center for Health Statistics (NCHS) Urban-Rural Classification Scheme for Counties
+data_outcome_and_exposure_sources <- c("1", "3", "1,2")
+quant_covars_sources <- c(rep("4", length(covariates_list[["demographic"]]) +
+                                   length(covariates_list[["socioeconomic"]]) +
+                                   1),
+                          "5", "5",
+                          "2", "4", "6",
+                          rep("4", length(covariates_list[["racioethnic"]])))
+cat_covars_sources <- c("", "7")
 
 
 factorize_cat_vars <- function(data){

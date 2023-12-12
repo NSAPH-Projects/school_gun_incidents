@@ -4,17 +4,13 @@ library(data.table)
 library(xtable)
 
 
-print("## Get data and variable names ----")
+print("## Get data ----")
 
 dir <- "../" # run code in the script location
 
 full_data <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
 
 source(paste0(dir, "lib/functions_to_load_data.R"))
-# qualitative_confounder_names <- c("census_division_number", "State_Name", "urbanicity")
-# exposure_names <- c("mean_distance_all_persistent_dealers", "mean_dist_commercial_dealers")
-# outcome_name <- "SGI"
-# quantitative_confounder_names <- colnames(tracts_data)[!(colnames(tracts_data) %in% c(qualitative_confounder_names, exposure_names, outcome_name))]
 
 trim_quantiles <- quantile(full_data$mean_dist_commercial_dealers, c(0.05, 0.95))
 trimmed_data <- full_data[mean_dist_commercial_dealers >= trim_quantiles[1] &
@@ -38,17 +34,17 @@ table1 <- data.table(Variable = c("Data size, outcome, and exposure",
                                   "Racial-ethnic variables by census tract",
                                   covariates_list[["racioethnic"]],
                                   "Geographic variables",
-                                  "State_Name",
-                                  "urbanicity"),
+                                  categorical_covariates),
                      FullDataMean = 0, # placeholder values
                      FullDataSD = 0,
                      TrimmedDataMean = 0,
-                     TrimmedDataSD = 0)
+                     TrimmedDataSD = 0,
+                     `Full Data` = "",
+                     `Trimmed Data` = "",
+                     Source = "")
 
 
-
-
-print("## Calculate means and standard deviations for covariates in Table 1 ----")
+print("## Calculate means and standard deviations for quantitative covariates in Table 1 ----")
 
 for (var in quantitative_covariates){
   table1[Variable == var, `:=`(FullDataMean = mean(full_data[[var]]),
@@ -78,6 +74,17 @@ table1[, `:=`(`Full Data` = paste0(FullDataMean, " (", FullDataSD, ")"),
               `Trimmed Data` = paste0(TrimmedDataMean, " (", TrimmedDataSD, ")"))]
 table1[, `:=`(FullDataMean = NULL, FullDataSD = NULL, TrimmedDataMean = NULL, TrimmedDataSD = NULL)]
 
+# put NA in header rows
+table1[Variable %in% c("Data size, outcome, and exposure",
+                       "Demographic variables by census tract",
+                       "Socio-economic variables by census tract",
+                       "Well-being variables by census tract",
+                       "Gun-affinity variables by census tract",
+                       "Racial-ethnic variables by census tract",
+                       "Geographic variables"), `:=`(`Full Data` = NA,
+                                                     `Trimmed Data` = NA,
+                                                     Source = NA)]
+
 
 print("## Fill out data size, outcome, and exposure summaries in Table 1 ----")
 
@@ -91,35 +98,30 @@ table1[Variable == "Median distance to closest commercial dealer (miles)", `:=`(
 
 print("## Calculate number of unique values for categorical variables in Table 1 ----")
 
-table1[Variable == "State_Name", `:=`(`Full Data` = uniqueN(full_data$State_Name),
-                                      `Trimmed Data` = uniqueN(trimmed_data$State_Name))]
-table1[Variable == "urbanicity", `:=`(`Full Data` = uniqueN(full_data$urbanicity),
-                                      `Trimmed Data` = uniqueN(trimmed_data$urbanicity))]
+for (var in categorical_covariates){
+  table1[Variable == var, `:=`(`Full Data` = uniqueN(full_data[[var]]),
+                               `Trimmed Data` = uniqueN(trimmed_data[[var]]))]
+}
 
 
 print("## Fill out variable names and sources in Table 1 ----")
 
-# fill out variable names
 for (i in 1:length(quantitative_covariates)){
-  table1[Variable == quantitative_covariates[i], Variable := quant_covars_full_names[i]]
+  table1[Variable == quantitative_covariates[i], `:=`(Variable = quant_covars_full_names[i],
+                                                      Source = quant_covars_sources[i])]
 }
-table1[Variable == "State_Name", Variable := "State"]
-table1[Variable == "urbanicity", Variable := "Urbanicity"]
 
-# add source of each variable to Table 1
-table1[, Source := NA] # placeholder value
-# to do
+for (i in 1:length(categorical_covariates)){
+  table1[Variable == categorical_covariates[i], `:=`(Variable = cat_covars_full_names[i],
+                                                     Source = cat_covars_sources[i])]
+}
 
-# put NA in header rows
-table1[Variable %in% c("Data size, outcome, and exposure",
-                       "Demographic variables by census tract",
-                       "Socio-economic variables by census tract",
-                       "Well-being variables by census tract",
-                       "Gun-affinity variables by census tract",
-                       "Racial-ethnic variables by census tract",
-                       "Geographic variables"), `:=`(`Full Data` = NA,
-                                                     `Trimmed Data` = NA,
-                                                     Source = NA)]
+table1[Variable == "Number of (school-containing) census tracts", Source := data_outcome_and_exposure_sources[1]]
+table1[Variable == "Number of census tracts that had at least one SGI", Source := data_outcome_and_exposure_sources[2]]
+table1[Variable == "Median distance to closest commercial dealer (miles)", Source := data_outcome_and_exposure_sources[3]]
+
+
+print("## Print Table 1 as LaTeX table ----")
 
 print(xtable(table1), include.rownames = F)
 # finally, in overleaf: add \textbf{}, \toprule[2pt], \bottomrule[2pt], \midrule, and caption

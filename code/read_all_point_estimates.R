@@ -38,9 +38,9 @@ read_one_causal_txt <- function(path){
   results <- fread(path)
   if (!("Cat_Confounder" %in% colnames(results))){
     if (grepl(pattern = "state.urbanicity", x = path)){
-      results$Cat_Confounder = "state.urbanicity"
+      results$Cat_Confounder <- "state.urbanicity"
     } else{
-      results$Cat_Confounder = "state"
+      results$Cat_Confounder <- "state"
     }
   }
   

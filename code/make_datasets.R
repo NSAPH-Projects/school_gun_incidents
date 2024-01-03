@@ -41,8 +41,8 @@ tracts_data <- merge(tracts_data, urbanicity_data, by = "county_fips", all.x = T
 print("## Exclude some rows ----")
 
 tracts_data <- tracts_data[num_schools > 0] # include only census tracts containing at least one school; now there are 56,883 observations
-# tracts_data <- tracts_data[!startsWith(GEOID, "72")] # remove Puerto Rico because school shooting dataset (https://www.chds.us/ssdb) doesn't cover PR
-# tracts_data <- tracts_data[populationtotals_TOTPOP20 != 0] # remove 18 census tracts with population 0 since several variables will be NA
+# tracts_data <- tracts_data[!startsWith(GEOID, "72")] # already done: remove Puerto Rico because school shooting dataset (https://www.chds.us/ssdb) doesn't cover PR
+# tracts_data <- tracts_data[populationtotals_TOTPOP20 != 0] # already done: remove ? census tracts with population 0 since several variables will be NA
 tracts_data <- tracts_data[!is.na(mean_distance_all_persistent_dealers)] # remove 47 census tracts with NA exposure
 tracts_data <- tracts_data[!is.na(mean_dist_commercial_dealers)] # remove 2 additional census tracts with NA alternate exposure
 

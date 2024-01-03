@@ -27,8 +27,10 @@ table1 <- data.table(Variable = c("Data size, outcome, and exposure",
                                   covariates_list[["demographic"]],
                                   "Socio-economic variables by census tract",
                                   covariates_list[["socioeconomic"]],
-                                  "Well-being variables by census tract",
-                                  covariates_list[["well-being"]],
+                                  "Mental health variables by census tract",
+                                  covariates_list[["mental_health"]],
+                                  "Safety variables by census tract",
+                                  covariates_list[["safety"]],
                                   "Gun-affinity variables by census tract",
                                   covariates_list[["gun_affinity"]],
                                   "Racial-ethnic variables by census tract",
@@ -78,7 +80,8 @@ table1[, `:=`(FullDataMean = NULL, FullDataSD = NULL, TrimmedDataMean = NULL, Tr
 table1[Variable %in% c("Data size, outcome, and exposure",
                        "Demographic variables by census tract",
                        "Socio-economic variables by census tract",
-                       "Well-being variables by census tract",
+                       "Mental health variables by census tract",
+                       "Safety variables by census tract",
                        "Gun-affinity variables by census tract",
                        "Racial-ethnic variables by census tract",
                        "Geographic variables"), `:=`(`Full Data` = NA,
@@ -126,3 +129,7 @@ print("## Print Table 1 as LaTeX table ----")
 print(xtable(table1), include.rownames = F)
 # finally, in overleaf: add \textbf{}, \toprule[2pt], \bottomrule[2pt], \midrule, and caption
 
+
+print("## Save Table 1 as csv ----")
+
+fwrite(table1, paste0(dir, "results/table1.csv"))

@@ -18,9 +18,9 @@ covariates_list[["socioeconomic"]] <- c("log_med_HH_income",
                                         "vehiclesavailable_ACSOVEH0_P",
                                         "educationalattainment_ACSBACHDEG_P",
                                         "educationalattainment_ACSMASTDEG_P")
-covariates_list[["well-being"]] <- c("crime_CRMCYTOTC",
-                                     "mean_depression",
+covariates_list[["mental_health"]] <- c("mean_depression",
                                      "mean_distress")
+covariates_list[["safety"]] <- c("crime_CRMCYTOTC")
 covariates_list[["gun_affinity"]] <- c("firearm_retailers_per_100sqmi",
                                        "sports_MP33018a_B_P",
                                        "CompositeIndex2014to2021")
@@ -64,7 +64,7 @@ cat_covars_full_names <- c("State", "Urbanicity")
 # Data Sources
 # 1 = National Center for Education Statistics (NCES) Education Demographic and Geographic Estimate (EDGE) database
 # 2 = Listing of Federal Firearms Licensees (FFL)
-# 3 = Naval Postgraduate School Center for Homeland Defense and Security (CHDS) K-12 School Shooting Database (K12SSD)
+# 3 = K-12 School Shooting Database
 # 4 = U.S. Public Law 94-171
 # 5 = U.S. Centers for Disease Control and Prevention (CDC) PLACES dataset
 # 6 = RAND State Firearm Law Database

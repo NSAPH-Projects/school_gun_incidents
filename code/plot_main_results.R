@@ -12,9 +12,11 @@ df <- fread(file = paste0(dir, "results/commercial_dealers_association_and_causa
 df <- df[Trim == "5.95" & Cat_Confounder == "state.urbanicity"] # get main models only
 
 # convert odds ratio to change (difference) in odds, as percent
-df[, `:=`(Effect_pct = round((1-Effect)*100, 2),
-          CI_95ct_lower_pct = round((1-CI_95ct_upper)*100, 2),
-          CI_95ct_upper_pct = round((1-CI_95ct_lower)*100, 2))]
+# minus 1 because a difference of 0 corresponds to an odds ratio of 1
+# i.e., odds ratio of SGI - 1 =  (odds with intervention / odds without intervention) - 1 = (odds with - odds without) / odds without
+df[, `:=`(Effect_pct = round((Effect-1)*100, 2),
+          CI_95ct_lower_pct = round((CI_95ct_lower-1)*100, 2),
+          CI_95ct_upper_pct = round((CI_95ct_upper-1)*100, 2))]
 
 
 ## Main Plot ----
@@ -24,7 +26,7 @@ png(file = paste0(dir, "results/main_results_plot.png"),
     width = 7, height = 5, units = "in", res = 1200)
 
 # Create the plot
-plot(1:nrow(df), df$Effect_pct, ylim = c(0, max(df$CI_95ct_upper_pct)), 
+plot(1:nrow(df), df$Effect_pct, ylim = c(min(df$CI_95ct_lower_pct), 0), 
      xlab = "", ylab = "Change in Odds of SGI (%)", main = "",
      xaxt = "n", yaxt = "n", pch = 16, cex = 1.5, col = "steelblue")
 

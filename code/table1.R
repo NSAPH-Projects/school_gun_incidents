@@ -19,6 +19,7 @@ trimmed_data <- full_data[mean_dist_commercial_dealers >= trim_quantiles[1] &
 
 print("## Set up Table 1 ----")
 
+# to do: rename "exposure" to "intervention" to match terminology in our paper
 table1 <- data.table(Variable = c("Data size, outcome, and exposure",
                                   "Number of (school-containing) census tracts",
                                   "Number of census tracts that had at least one SGI",

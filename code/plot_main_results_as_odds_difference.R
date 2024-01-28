@@ -14,6 +14,7 @@ df <- df[Trim == "5.95" & Cat_Confounder == "state.urbanicity"] # get main model
 # convert odds ratio to change (difference) in odds, as percent
 # minus 1 because a difference of 0 corresponds to an odds ratio of 1
 # i.e., odds ratio of SGI - 1 =  (odds with intervention / odds without intervention) - 1 = (odds with - odds without) / odds without
+# note that a null effect would be an odds difference of 0
 df[, `:=`(Effect_pct = round((Effect-1)*100, 2),
           CI_95ct_lower_pct = round((CI_95ct_lower-1)*100, 2),
           CI_95ct_upper_pct = round((CI_95ct_upper-1)*100, 2))]
@@ -22,10 +23,11 @@ df[, `:=`(Effect_pct = round((Effect-1)*100, 2),
 ## Main Plot ----
 
 # Prepare to save plot
-png(file = paste0(dir, "results/main_results_plot.png"),
+png(file = paste0(dir, "results/main_results_as_odds_difference.png"),
     width = 7, height = 5, units = "in", res = 1200)
 
 # Create the plot
+# note that a null effect would be an odds difference of 0
 plot(1:nrow(df), df$Effect_pct, ylim = c(min(df$CI_95ct_lower_pct), 0), 
      xlab = "", ylab = "Change in Odds of SGI (%)", main = "",
      xaxt = "n", yaxt = "n", pch = 16, cex = 1.5, col = "steelblue")
@@ -41,6 +43,7 @@ arrows(1:nrow(df), df$CI_95ct_lower_pct, 1:nrow(df), df$CI_95ct_upper_pct,
 axis(1, at = 1:nrow(df), labels = df$Model, tick = FALSE, las = 1, cex.axis = 0.7)
 
 # Add horizontal line at the value of a null effect
+# note that a null effect would be an odds difference of 0
 abline(h = 0, lty = 2, col = "black")
 
 # Add Vertical line to divide the causal vs associational models

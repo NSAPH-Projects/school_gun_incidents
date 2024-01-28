@@ -17,6 +17,7 @@ causal_results_paths <- list.files(paste0(dir, "results/causal_analyses/"),
 
 ## Read in results ----
 
+# note that "exposure" is called "intervention" in the paper
 read_one_causal_txt <- function(path){
   results <- fread(path)
   
@@ -34,8 +35,8 @@ read_one_causal_txt <- function(path){
   } else results$Exposure <- "Distance to Commercial Firearms Dealer"
   
   if (grepl(pattern = "5.95", x = path)){
-    results$`Exposure Trimming` <- "Exposure trimmed at\n5th and 95th percentiles"
-  } else results$`Exposure Trimming` <- "Exposure trimmed at\n1st and 99th percentiles"
+    results$`Exposure Trimming` <- "Data trimmed at\n5th, 95th percentiles"
+  } else results$`Exposure Trimming` <- "Data trimmed at\n1st, 99th percentiles"
   
   if (grepl(pattern = "state.urbanicity", x = path)){
     results$`Categorical Confounder(s)` <- "Controlling for state and urbanicity"
@@ -46,6 +47,9 @@ read_one_causal_txt <- function(path){
 
 # compile all results into one table
 causal_results <- rbindlist(lapply(causal_results_paths, read_one_causal_txt))
+
+# remove the analyses that don't use urbanicity as a (categorical) variable
+causal_results <- causal_results[`Categorical Confounder(s)` == "Controlling for state and urbanicity"]
 
 # setorder(causal_results, Exposure, Trim, Cat_Confounder) 
 # all_dealers_table <- causal_results[Exposure == "mean_distance_all_persistent_dealers"]
@@ -58,8 +62,10 @@ causal_results <- rbindlist(lapply(causal_results_paths, read_one_causal_txt))
 
 # Make covariate balance plots ----
 
+# plot covariate balance for main analysis
+# note that "exposure" is called "intervention" in the paper
 main_models <- ggplot(causal_results[Exposure == "Distance to Commercial Firearms Dealer" &
-                                       `Exposure Trimming` == "Exposure trimmed at\n5th and 95th percentiles" &
+                                       `Exposure Trimming` == "Data trimmed at\n5th, 95th percentiles" &
                                        `Categorical Confounder(s)` == "Controlling for state and urbanicity"],
                       aes(x = `Absolute Correlation`, y = reorder(Covariate, `Absolute Correlation`),
                           group = Dataset, color = Dataset, shape = Dataset)) +
@@ -68,27 +74,26 @@ main_models <- ggplot(causal_results[Exposure == "Distance to Commercial Firearm
                  geom_vline(xintercept = 0) +
                  geom_vline(xintercept = 0.1, linetype = "dashed", color = "black") +
                  theme_minimal() +
-                 labs(x = "Absolute Correlation with Exposure",
+                 labs(x = "Absolute Correlation with Intervention",
                       y = "",
-                      title = "Covariate Balance Plot for Main Causal Models")
+                      title = "Covariate Balance for Main Causal Models")
 ggsave(filename = paste0(dir, "results/causal_analyses/main_causal_models_covariate_balance.png"),
        plot = main_models)
 
-for (exposure in c("Distance to Any Firearms Dealer", "Distance to Commercial Firearms Dealer")){
-  p <- ggplot(causal_results[Exposure == exposure],
-              aes(x = `Absolute Correlation`, y = reorder(Covariate, `Absolute Correlation`),
-                  group = Dataset, color = Dataset, shape = Dataset)) +
-    geom_point() +
-    geom_line(orientation = "y") +
-    geom_vline(xintercept = 0) +
-    geom_vline(xintercept = 0.1, linetype = "dashed", color = "black") +
-    theme_minimal() +
-    labs(x = "Absolute Correlation with Exposure",
-         y = "",
-         title = paste0("Covariate Balance, exposure defined as\n", exposure)) +
-    facet_grid(rows = vars(`Categorical Confounder(s)`),
-               cols = vars(`Exposure Trimming`),
-               labeller = )
-  ggsave(filename = paste0(dir, "results/causal_analyses/", exposure, " Covariate Balance.png"),
-         plot = p)
-}
+# plot covariate balance for sensitivity analyses (faceted)
+# note that "exposure" is called "intervention" in the paper
+p <- ggplot(causal_results,
+            aes(x = `Absolute Correlation`, y = reorder(Covariate, `Absolute Correlation`),
+                group = Dataset, color = Dataset, shape = Dataset)) +
+  geom_point() +
+  geom_line(orientation = "y") +
+  geom_vline(xintercept = 0) +
+  geom_vline(xintercept = 0.1, linetype = "dashed", color = "black") +
+  theme_minimal() +
+  labs(x = "Absolute Correlation with Intervention",
+       y = "",
+       title = paste0("Covariate Balance in Sensitivity Analyses")) +
+  facet_grid(rows = vars(`Exposure`),
+             cols = vars(`Exposure Trimming`))
+ggsave(filename = paste0(dir, "results/sensitivity_analyses/Sensitivity Analyses Covariate Balance.png"),
+       plot = p)

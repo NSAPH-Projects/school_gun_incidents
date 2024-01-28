@@ -12,7 +12,7 @@ source(paste0(dir, "lib/functions_to_load_data.R"))
 
 ## Load datasets ----
 df <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
-data_main_analysis <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanicity", quantitative_covariates))
+data_main_analysis <- get_analysis_df(df, "mean_dist_commercial_dealers", c(categorical_covariates, quantitative_covariates))
 exposure5.95 <- quantile(data_main_analysis$a, c(0.05, 0.95))
 data_trimmed <- data_main_analysis[data_main_analysis$a >= exposure5.95[1] &
                                      data_main_analysis$a <= exposure5.95[2], ]

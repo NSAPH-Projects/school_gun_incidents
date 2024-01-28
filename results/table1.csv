@@ -23,10 +23,10 @@ Percent without a vehicle,3.85 (7.36),3.86 (7.48),4
 "Percent with bachelor's degree, ages 25+",19.53 (10.66),19.98 (10.75),4
 "Percent with master's degree, ages 25+",8.84 (6.9),9.14 (7.01),4
 Mental health variables by census tract,,,
-Total crime index,21.38 (3.62),21.32 (3.63),4
-"Depression, crude prevalence (%)",15.9 (3.34),15.85 (3.34),5
-Safety variables by census tract,,,
-"Frequent mental health distress, crude prevalence (%)",104 (68.08),103 (67.53),5
+"Depression, crude prevalence (%)",21.38 (3.62),21.32 (3.63),5
+"Frequent mental health distress, crude prevalence (%)",15.9 (3.34),15.85 (3.34),5
+Crime rate variables by census tract,,,
+Total crime index,104 (68.08),103 (67.53),4
 Gun-affinity variables by census tract,,,
 Firearms retailers per 100 square miles,30.47 (76.01),26.55 (62.17),2
 Percent who hunted with a shotgun,2.6 (1.39),2.5 (1.32),4

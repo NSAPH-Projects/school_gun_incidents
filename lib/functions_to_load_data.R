@@ -20,7 +20,7 @@ covariates_list[["socioeconomic"]] <- c("log_med_HH_income",
                                         "educationalattainment_ACSMASTDEG_P")
 covariates_list[["mental_health"]] <- c("mean_depression",
                                      "mean_distress")
-covariates_list[["safety"]] <- c("crime_CRMCYTOTC")
+covariates_list[["crime"]] <- c("crime_CRMCYTOTC")
 covariates_list[["gun_affinity"]] <- c("firearm_retailers_per_100sqmi",
                                        "sports_MP33018a_B_P",
                                        "CompositeIndex2014to2021")
@@ -46,9 +46,9 @@ quant_covars_full_names <- c("Total population",
                              "Percent without a vehicle",
                              "Percent with bachelor's degree, ages 25+",
                              "Percent with master's degree, ages 25+",
-                             "Total crime index",
                              "Depression, crude prevalence (%)",
                              "Frequent mental health distress, crude prevalence (%)",
+                             "Total crime index",
                              "Firearms retailers per 100 square miles",
                              "Percent who hunted with a shotgun",
                              "Composite index of state firearms laws",
@@ -73,10 +73,10 @@ data_outcome_and_exposure_sources <- c("1", "3", "1,2")
 quant_covars_sources <- c("4", "4", "4", "4",
                           "1",
                           rep("4", 2 +
-                                length(covariates_list[["socioeconomic"]]) +
-                                 1),
-                          "5", "5",
-                          "2", "4", "6",
+                                length(covariates_list[["socioeconomic"]])),
+                          "5", "5", # mental health
+                          "4", # crime rate
+                          "2", "4", "6", # gun affinity
                           rep("4", length(covariates_list[["racioethnic"]])))
 cat_covars_sources <- c("", "7")
 

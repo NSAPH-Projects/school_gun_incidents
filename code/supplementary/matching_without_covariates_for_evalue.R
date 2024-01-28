@@ -11,7 +11,7 @@ library(argparse)
 parser <- ArgumentParser()
 
 parser$add_argument("-c", "--covariate_name",
-                    help="Covariates 'demographic' or 'socioeconomic' or 'gun_affinity' or 'racioethnic'", 
+                    help="Covariates 'demographic' or 'socioeconomic' or 'mental_health' or 'crime' or 'gun_affinity' or 'racioethnic'", 
                     type="character")
 args = parser$parse_args()
 
@@ -33,7 +33,7 @@ df <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
 ## Main body ----
 
 ## Get data, excluding classes of covariates ----
-data_without_covariate <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanicity", quantitative_covariates[!(quantitative_covariates %in% covariates_list[[args$covariate_name]])]))
+data_without_covariate <- get_analysis_df(df, "mean_dist_commercial_dealers", c(categorical_covariates, quantitative_covariates[!(quantitative_covariates %in% covariates_list[[args$covariate_name]])]))
 
 ## GPS matching ----
 
@@ -41,7 +41,7 @@ data_without_covariate <- get_analysis_df(df, "mean_dist_commercial_dealers", c(
 match_without_covariate <- all_matching_results_1model(seed = 100,
                                                        data = data_without_covariate,
                                                        trim = c(0.05, 0.95),
-                                                       cat_covariate_names = c("State_Name", "urbanicity"),
+                                                       cat_covariate_names = categorical_covariates,
                                                        run_gee_model = F,
                                                        quant_covariates = quantitative_covariates[!(quantitative_covariates %in% covariates_list[[args$covariate_name]])])
 

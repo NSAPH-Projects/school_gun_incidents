@@ -23,10 +23,10 @@ all_matching_results_1model <- function(seed,
   results_list <- list()
   
   # GPS matching
-  matched_pop <- get_gps_matched_pseudo_pop(data$y,
-                                            data$a,
-                                            data[, c(cat_covariate_names, quant_covariates)],
-                                            trim,
+  matched_pop <- get_gps_matched_pseudo_pop(outcome = data$y,
+                                            exposure = data$a,
+                                            covariates = data[, c(cat_covariate_names, quant_covariates)],
+                                            trim_quantiles = trim,
                                             caliper = caliper)
   # Store how many observations were matched
   results_list[["num_obs_matched"]] <- sum(matched_pop$pseudo_pop$counter_weight > 0)

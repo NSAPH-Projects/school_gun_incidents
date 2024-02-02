@@ -26,7 +26,7 @@ all_matching_results_1model <- function(seed,
   matched_pop <- get_gps_matched_pseudo_pop(outcome = data$y,
                                             exposure = data$a,
                                             covariates = data[, c(cat_covariate_names, quant_covariates)],
-                                            trim_quantiles = trim,
+                                            trim = trim,
                                             caliper = caliper)
   # Store how many observations were matched
   results_list[["num_obs_matched"]] <- sum(matched_pop$pseudo_pop$counter_weight > 0)
@@ -115,7 +115,11 @@ all_matching_results_1model <- function(seed,
   return(results_list) # numerical output, to be stored in results table
 }
 
-get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95), caliper = 0.2){
+get_gps_matched_pseudo_pop <- function(outcome,
+                                       exposure,
+                                       covariates,
+                                       trim = c(0.05, 0.95),
+                                       caliper = 0.2){
   return(generate_pseudo_pop(Y = outcome,
                              w = exposure,
                              c = as.data.frame(covariates),
@@ -130,7 +134,7 @@ get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quant
                              covar_bl_method = "absolute",
                              covar_bl_trs = 0.1,
                              covar_bl_trs_type = "mean",
-                             trim_quantiles = trim_quantiles, 
+                             trim = trim, 
                              optimized_compile = TRUE, 
                              max_attempt = 5,
                              matching_fun = "matching_l1",
@@ -238,7 +242,7 @@ all_weighting_results_1model <- function(seed,
   return(results_list) # numerical output, to be stored in results table
 }
 
-get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95)){
+get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim = c(0.05, 0.95)){
   return(generate_pseudo_pop(Y = outcome,
                              w = exposure,
                              c = as.data.frame(covariates),
@@ -253,7 +257,7 @@ get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quan
                              covar_bl_method = "absolute",
                              covar_bl_trs = 0.1,
                              covar_bl_trs_type = "mean",
-                             trim_quantiles = trim_quantiles, 
+                             trim = trim, 
                              optimized_compile = TRUE, 
                              max_attempt = 5,
                              matching_fun = "matching_l1",

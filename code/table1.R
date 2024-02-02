@@ -103,8 +103,8 @@ table1[Variable == "Median distance to closest commercial dealer (miles)", `:=`(
 print("## Calculate number of unique values for categorical variables in Table 1 ----")
 
 for (var in categorical_covariates){
-  table1[Variable == var, `:=`(`Full Data` = uniqueN(full_data[[var]]),
-                               `Trimmed Data` = uniqueN(trimmed_data[[var]]))]
+  table1[Variable == var, `:=`(`Full Data` = paste(uniqueN(full_data[[var]]), "unique values"),
+                               `Trimmed Data` = paste(uniqueN(trimmed_data[[var]]), "unique values"))]
 }
 
 

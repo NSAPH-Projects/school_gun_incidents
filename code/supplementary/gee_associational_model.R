@@ -5,14 +5,16 @@ library(gee)
 library(MASS)
 library(data.table)
 
-## Load functions ----
+## Filepaths ----
 dir <- "../../" # repository folder; this file is in code/sensitivity_analyses
+results_path <- paste0(dir, "results/sensitivity_analyses/gee_associational_model/gee_associational_model.csv")
 
+## Load functions ----
 source(paste0(dir, "lib/functions_to_load_data.R"))
 
 ## Load datasets ----
 df <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
-data_main_analysis <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanicity", quantitative_covariates))
+data_main_analysis <- get_analysis_df(df, "mean_dist_commercial_dealers", c(categorical_covariates, quantitative_covariates))
 exposure5.95 <- quantile(data_main_analysis$a, c(0.05, 0.95))
 data_trimmed <- data_main_analysis[data_main_analysis$a >= exposure5.95[1] &
                                      data_main_analysis$a <= exposure5.95[2], ]
@@ -45,4 +47,5 @@ results_as_table <- data.table(Exposure = "mean_dist_commercial_dealers",
                                CI_90ct_upper = round(exp(gee_results["a",]["Estimate"] + 1.645 * gee_results["a",]["Robust S.E."]), 4),
                                Exposure_Unit = "Mile",
                                Effect_Unit = "Odds")
-fwrite(results_as_table, file = paste0(dir, "results/sensitivity_analyses/gee_associational_model/gee_associational_model.csv"))
+if (!dir.exists(results_path)) dir.create(results_path, recursive = T)
+fwrite(results_as_table, file = results_path)

@@ -1,0 +1,42 @@
+Variable,Full Data,Trimmed Data,Source
+"Data size, outcome, and exposure",,,
+Number of (school-containing) census tracts,"56,834","51,150",1
+Number of census tracts that had at least one SGI,"1,187","1,126",3
+Median distance to closest commercial dealer (miles),2.02,2.02,"1,2"
+Demographic variables by census tract,,,
+Total population,"4,213 (1,694)","4,309 (1,697)",4
+Daytime population,"4,283 (3,522)","4,333 (3,484)",4
+Population in institutionalized group quarters,45.43 (196),43.97 (186),4
+Housing units per 100 square miles,"191,107 (480,140)","199,584 (493,782)",4
+Schools per 100 square miles,213 (535),222 (546),1
+Census tract area in square miles,43.16 (228),21.27 (85.23),4
+Percent aged 18+,77.82 (5.43),77.76 (5.4),4
+Socio-economic variables by census tract,,,
+Log median household income (log $),11.08 (0.75),11.1 (0.76),4
+"Log median household income, ages 16-24 (log $)",7.3 (6.27),7.17 (6.37),4
+Percent of households receiving food stamps/SNAP,12.34 (11.4),12.13 (11.4),4
+Percent of households with public assistance income,2.73 (3.17),2.72 (3.17),4
+Percent of households below poverty line,13.14 (10.25),12.82 (10.18),4
+Percent unemployed,4.6 (3.7),4.59 (3.67),4
+"Percent unemployed, ages 16-24",1.35 (1.78),1.35 (1.77),4
+Percent without a vehicle,3.85 (7.36),3.86 (7.48),4
+"Percent with bachelor's degree, ages 25+",19.53 (10.66),19.98 (10.75),4
+"Percent with master's degree, ages 25+",8.84 (6.9),9.14 (7.01),4
+Mental health variables by census tract,,,
+"Depression, crude prevalence (%)",21.38 (3.62),21.32 (3.63),5
+"Frequent mental health distress, crude prevalence (%)",15.9 (3.34),15.85 (3.34),5
+Crime rate variables by census tract,,,
+Total crime index,104 (68.08),103 (67.53),4
+Gun-affinity variables by census tract,,,
+Firearms retailers per 100 square miles,30.47 (76.01),26.55 (62.17),2
+Percent who hunted with a shotgun,2.6 (1.39),2.5 (1.32),4
+Composite index of state firearms laws,64.96 (14.54),65.35 (14.33),6
+Racial-ethnic variables by census tract,,,
+Percent white,62.82 (26.53),62.14 (26.54),4
+Percent Black,12.78 (20.04),13.22 (20.33),4
+Percent Asian,5.07 (8.99),5.39 (9.26),4
+Percent multiracial,9.87 (7.03),9.93 (6.94),4
+Percent Hispanic/Latino,17.99 (21.68),18.12 (21.56),4
+Geographic variables,,,
+State,49,49,""
+Urbanicity,6,6,7

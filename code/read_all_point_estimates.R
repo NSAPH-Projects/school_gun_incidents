@@ -2,7 +2,6 @@
 
 library(data.table)
 library(readr)
-# library(ggplot2)
 library(xtable)
 
 
@@ -14,7 +13,7 @@ associational_results_paths <- list.files(paste0(dir, "results/associational_ana
                                           pattern = ".*.csv",
                                           full.names = T)
 causal_results_paths <- list.files(paste0(dir, "results/causal_analyses/"),
-                                   pattern = ".*.csv",
+                                   pattern = "(.*match.csv)|(.*weight.csv)", # don't want to get _correlation.csv files
                                    full.names = T)
 
 
@@ -29,11 +28,22 @@ read_one_associational_txt <- function(path){
                          Effect,
                          CI_95ct_lower,
                          CI_95ct_upper)]
+  results[, Model := fcase(Model == "naivelogistic", "Logistic",
+                           Model == "naivenegbin", "Negative Binomial",
+                           default = Model)]
   return(results)
 }
 
 read_one_causal_txt <- function(path){
   results <- fread(path)
+  if (!("Cat_Confounder" %in% colnames(results))){
+    if (grepl(pattern = "state.urbanicity", x = path)){
+      results$Cat_Confounder <- "state.urbanicity"
+    } else{
+      results$Cat_Confounder <- "state"
+    }
+  }
+  
   if (results$Model == "Match"){
     results <- results[, .(Exposure,
                            Trim,
@@ -60,11 +70,11 @@ read_one_causal_txt <- function(path){
                                   CI_95ct_lower = GEE_CI_95ct_lower,
                                   CI_95ct_upper = GEE_CI_95ct_upper)]
     results <- rbind(results_CRSE, results_GEE_SE)
-  } else{
+  } else{ # if (results$Model == "Weight")
     results <- results[, .(Exposure,
                            Trim,
                            Cat_Confounder,
-                           Model,
+                           Model = "GPS Weighting",
                            Effect = logistic_regression_estimated_odds,
                            CI_95ct_lower = lb_95ci,
                            CI_95ct_upper = ub_95ci)]
@@ -81,10 +91,15 @@ all_results <- rbind(associational_results, causal_results)
 setorder(all_results, Exposure, Trim, Cat_Confounder, Model) 
 all_dealers_table <- all_results[Exposure == "mean_distance_all_persistent_dealers"]
 commercial_dealers_table <- all_results[Exposure == "mean_dist_commercial_dealers"]
-rownames(causal_results) <- rep("", nrow(causal_results)) # for xtable later
 
 
-## Create LaTeX table ----
+## Create LaTeX table(s), if desired ----
 
-xtable(all_dealers_table)
-xtable(commercial_dealers_table)
+# xtable(all_dealers_table, include.rownames = F)
+# xtable(commercial_dealers_table, include.rownames = F)
+
+
+## Save table(s) as csv ----
+
+fwrite(x = all_dealers_table, file = paste0(dir, "results/all_dealers_association_and_causal_results.csv"))
+fwrite(x = commercial_dealers_table, file = paste0(dir, "results/commercial_dealers_association_and_causal_results.csv"))

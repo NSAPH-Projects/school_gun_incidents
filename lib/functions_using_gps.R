@@ -23,10 +23,10 @@ all_matching_results_1model <- function(seed,
   results_list <- list()
   
   # GPS matching
-  matched_pop <- get_gps_matched_pseudo_pop(data$y,
-                                            data$a,
-                                            data[, c(cat_covariate_names, quant_covariates)],
-                                            trim,
+  matched_pop <- get_gps_matched_pseudo_pop(outcome = data$y,
+                                            exposure = data$a,
+                                            covariates = data[, c(cat_covariate_names, quant_covariates)],
+                                            trim = trim,
                                             caliper = caliper)
   # Store how many observations were matched
   results_list[["num_obs_matched"]] <- sum(matched_pop$pseudo_pop$counter_weight > 0)
@@ -115,7 +115,11 @@ all_matching_results_1model <- function(seed,
   return(results_list) # numerical output, to be stored in results table
 }
 
-get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95), caliper = 0.2){
+get_gps_matched_pseudo_pop <- function(outcome,
+                                       exposure,
+                                       covariates,
+                                       trim = c(0.05, 0.95),
+                                       caliper = 0.2){
   id <- 1:length(exposure)
   w <- data.frame(w = exposure, id = id)
   c <- as.data.frame(covariates)
@@ -124,7 +128,7 @@ get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quant
 
   pseudo_pop <- generate_pseudo_pop(w = w,
                              c = c,
-	                     ci_appr = "matching",
+                             ci_appr = "matching",
                              gps_density = "normal",
                              use_cov_transform = TRUE,
                              transformers = list("pow2", "pow3"),
@@ -134,7 +138,7 @@ get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quant
                              covar_bl_method = "absolute",
                              covar_bl_trs = 0.1,
                              covar_bl_trs_type = "mean",
-                             exposure_trim_qtls = trim_quantiles, 
+                             exposure_trim_qtls = trim, 
                              max_attempt = 5,
                              dist_measure = "l1",
                              delta_n = caliper,
@@ -243,7 +247,10 @@ all_weighting_results_1model <- function(seed,
   return(results_list) # numerical output, to be stored in results table
 }
 
-get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95)){
+get_gps_weighted_pseudo_pop <- function(outcome,
+                                        exposure,
+                                        covariates,
+                                        trim = c(0.05, 0.95)){
   id <- 1:length(exposure)
   w <- data.frame(w = exposure, id = id)
   c <- as.data.frame(covariates)
@@ -262,7 +269,7 @@ get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quan
                              covar_bl_method = "absolute",
                              covar_bl_trs = 0.1,
                              covar_bl_trs_type = "mean",
-                             exposure_trim_qtls = trim_quantiles, 
+                             exposure_trim_qtls = trim,
                              max_attempt = 5,
                              dist_measure = "l1",
                              delta_n = 0.2,

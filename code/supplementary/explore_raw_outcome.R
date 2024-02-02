@@ -15,6 +15,7 @@ raw_outcome_data <- read_excel(paste0(dir, "data/input/private/Public v3.1 K-12 
 raw_outcome_data <- as.data.table(raw_outcome_data)
 raw_outcome_data[, Date := as.Date(Date)]
 raw_outcome_data <- raw_outcome_data[Date >= "2014-01-01" & Date <= "2023-08-31"] # the study period is January 2014 to August 2023, inclusive
+cat("Total number of incidents between January 1, 2014 and August 31, 2023:", nrow(raw_outcome_data))
 
 
 print("## Get school gun incidents (counts, not binary SGI variable in main analysis) ----")

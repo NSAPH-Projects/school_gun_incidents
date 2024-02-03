@@ -1,5 +1,10 @@
 ##### Note: GEE model may take up to 96 GB to run #####
 
+## Install packages ----
+if (!("gee" %in% rownames(installed.packages()))) install.packages("gee")
+if (!("MASS" %in% rownames(installed.packages()))) install.packages("MASS")
+if (!("data.table" %in% rownames(installed.packages()))) install.packages("data.table")
+
 ## Load packages ----
 library(gee)
 library(MASS)

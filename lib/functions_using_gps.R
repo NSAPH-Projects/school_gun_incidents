@@ -228,10 +228,10 @@ all_weighting_results_1model <- function(seed,
     
     # for capped pseudopopulations, recalculate covariate balance
     if (capped < 1){
-      adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
+      adjusted_corr_obj <- check_covar_balance(w = pseudo_pop$pseudo_pop$w,
                                                c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
                                                ci_appr = "matching",
-                                               counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
+                                               counter_weight = pseudo_pop$pseudo_pop$counter_weight,
                                                nthread = 1,
                                                covar_bl_method = "absolute",
                                                covar_bl_trs = 0.1,

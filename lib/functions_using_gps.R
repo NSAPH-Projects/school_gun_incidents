@@ -49,15 +49,15 @@ all_matching_results_1model <- function(seed,
   
   # Before getting clustered robust standard errors (CRSE) and GEE model with clusters,
   # convert data to long format (to make clustering explicit)
-  pseudopop_long <- matched_pop_capped99$pseudo_pop[, lapply(.SD, function(x) rep(x, counter_weight)), by = row_index]
+  pseudopop_long <- as.data.table(matched_pop_capped99$pseudo_pop)[, lapply(.SD, function(x) rep(x, counter_weight)), by = id]
   
   # Store clustered robust standard errors (CRSE) for logistic model
   logit_model <- glm(Y ~ w,
                      family = binomial(link = "logit"),
-                     data = pseudopop_long[, c("Y", "w", "row_index")])
+                     data = pseudopop_long[, c("Y", "w", "id")])
   cl_sd_results <- coeftest(logit_model,
                             vcov. = vcovCL(logit_model,
-                                           cluster = pseudopop_long$row_index,
+                                           cluster = pseudopop_long$id,
                                            type = "HC0"))
   results_list[["cl_sd_lb_95ci"]] <- round(exp(cl_sd_results[2,1] - 1.96 * cl_sd_results[2,2]), 4)
   results_list[["cl_sd_ub_95ci"]] <- round(exp(cl_sd_results[2,1] + 1.96 * cl_sd_results[2,2]), 4)
@@ -69,8 +69,8 @@ all_matching_results_1model <- function(seed,
     # Fit GEE model
     outcome <- gee(formula = Y ~ w,
                    family = "binomial",
-                   data = pseudopop_long[, c("Y", "w", "row_index")], 
-                   id = pseudopop_long$row_index,
+                   data = pseudopop_long[, c("Y", "w", "id")], 
+                   id = pseudopop_long$id,
                    corstr = "exchangeable") # allows same correlation coefficient for the same row index
     
     # Store GEE model results
@@ -91,10 +91,10 @@ all_matching_results_1model <- function(seed,
     
     # for capped pseudopopulations, recalculate covariate balance
     if (capped < 1){
-      adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
+      adjusted_corr_obj <- check_covar_balance(w = pseudo_pop$pseudo_pop$w,
                                                c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
                                                ci_appr = "matching",
-                                               counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
+                                               counter_weight = pseudo_pop$pseudo_pop$counter_weight,
                                                nthread = 1,
                                                covar_bl_method = "absolute",
                                                covar_bl_trs = 0.1,
@@ -147,7 +147,11 @@ get_gps_matched_pseudo_pop <- function(outcome,
   return(pseudo_pop)
 }
 
-get_matched_correlations <- function(matched_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
+get_matched_correlations <- function(matched_pop,
+                                     cat_covariate_names,
+                                     w_orig,
+                                     unordered_vars_orig,
+                                     quant_covariates = quantitative_covariates){
   covariate_names <- c(cat_covariate_names, quant_covariates)
   cor_unmatched <- matched_pop$original_corr_results$absolute_corr[covariate_names]
   cor_matched <- matched_pop$adjusted_corr_results$absolute_corr[covariate_names]

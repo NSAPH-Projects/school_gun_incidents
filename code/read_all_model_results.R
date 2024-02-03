@@ -28,9 +28,12 @@ read_one_associational_txt <- function(path){
                          Effect,
                          CI_95ct_lower,
                          CI_95ct_upper)]
-  results[, Model := fcase(Model == "naivelogistic", "Logistic",
-                           Model == "naivenegbin", "Negative Binomial",
-                           default = Model)]
+  results[, Model := ifelse(Model %in% c("logistic", "naivelogistic"), "Logistic",
+                            ifelse(Model %in% c("negbin", "naivenegbin"), "Negative Binomial",
+                                   Model))]
+  # results[, Model := fcase(Model %in% c("logistic", "naivelogistic"), "Logistic",
+  #                          Model %in% c("negbin", "naivenegbin"), "Negative Binomial",
+  #                          default = Model)]
   return(results)
 }
 
@@ -45,31 +48,24 @@ read_one_causal_txt <- function(path){
   }
   
   if (results$Model == "Match"){
-    results <- results[, .(Exposure,
-                           Trim,
-                           Cat_Confounder,
-                           Model,
-                           CR_Effect = logistic_regression_estimated_odds,
-                           CR_CI_95ct_lower = cl_sd_lb_95ci,
-                           CR_CI_95ct_upper = cl_sd_ub_95ci,
-                           GEE_Effect = GEE_estimated_odds,
-                           GEE_CI_95ct_lower = GEE_lb_95ci,
-                           GEE_CI_95ct_upper = GEE_ub_95ci)]
     results_CRSE <- results[, .(Exposure,
                                 Trim,
                                 Cat_Confounder,
                                 Model = "GPS Matching (CRSE)",
-                                Effect = CR_Effect,
-                                CI_95ct_lower = CR_CI_95ct_lower,
-                                CI_95ct_upper = CR_CI_95ct_upper)]
-    results_GEE_SE <- results[, .(Exposure,
-                                  Trim,
-                                  Cat_Confounder,
-                                  Model = "GPS Matching (GEE)",
-                                  Effect = GEE_Effect,
-                                  CI_95ct_lower = GEE_CI_95ct_lower,
-                                  CI_95ct_upper = GEE_CI_95ct_upper)]
-    results <- rbind(results_CRSE, results_GEE_SE)
+                                Effect = logistic_regression_estimated_odds, # CR_Effect
+                                CI_95ct_lower = cl_sd_lb_95ci,
+                                CI_95ct_upper = cl_sd_ub_95ci)]
+    if ("GEE_Effect" %in% colnames(results)){
+      results_GEE_SE <- results[, .(Exposure,
+                                    Trim,
+                                    Cat_Confounder,
+                                    Model = "GPS Matching (GEE)",
+                                    Effect = GEE_estimated_odds,
+                                    CI_95ct_lower = GEE_lb_95ci,
+                                    CI_95ct_upper = GEE_ub_95ci)]
+      results <- rbind(results_CRSE, results_GEE_SE)
+    } else results <- results_CRSE
+    
   } else{ # if (results$Model == "Weight")
     results <- results[, .(Exposure,
                            Trim,

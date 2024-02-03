@@ -1,0 +1,5 @@
+Exposure,Trim,Cat_Confounder,Model,Effect,CI_95ct_lower,CI_95ct_upper
+Euclidean Distance to Commercial Dealer,5.95,state.urbanicity,GPS Matching (CRSE),0.853,0.7855,0.9263
+Euclidean Distance to Commercial Dealer,5.95,state.urbanicity,GPS Weighting,0.8907,0.8728,0.909
+Euclidean Distance to Commercial Dealer,5.95,state.urbanicity,Logistic,0.8987,0.8524,0.9474
+Euclidean Distance to Commercial Dealer,5.95,state.urbanicity,Negative Binomial,0.9009,0.8554,0.9488

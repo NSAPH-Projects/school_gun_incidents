@@ -6,7 +6,7 @@ library(data.table)
 
 print("## Read data ----")
 
-dir <- "../" # run code in the script location
+dir <- paste0(here::here(), "/") # repository path
 
 # use Euclidean distance instead of walking distance for the intervention
 euclidean_distance_to_commercial <- read_excel(paste0(dir, "data/input/private/sensitivity_euclidean.xlsx"))

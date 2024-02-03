@@ -15,10 +15,15 @@ parser$add_argument("-c", "--covariate_name",
                     type="character")
 args = parser$parse_args()
 
-
-## Load functions ----
+## File paths ----
 
 dir <- "../../" # repository folder; this file is in code/sensitivity_analyses
+
+results_folder <- paste0(dir, "results/sensitivity_analyses/e_value/")
+if (!dir.exists(results_folder)) dir.create(results_folder, recursive = T)
+
+
+## Load functions ----
 
 source(paste0(dir, "lib/functions_to_load_data.R"))
 source(paste0(dir, "lib/functions_to_measure_covariate_balance.R"))
@@ -46,7 +51,7 @@ match_without_covariate <- all_matching_results_1model(seed = 100,
                                                        quant_covariates = quantitative_covariates[!(quantitative_covariates %in% covariates_list[[args$covariate_name]])])
 
 # check covariate balance for GPS-matched pseudopopulations and save as png
-ggsave(paste0(dir, "results/sensitivity_analyses/e_value/", args$covariate_name, "_correlation_plot.png"),
+ggsave(paste0(results_folder, args$covariate_name, "_correlation_plot.png"),
        make_correlation_plot(match_without_covariate$cov_bal.capped0.99))
 
 # get logistic regression results from GPS-matched pseudopopulations and save results as csv file
@@ -62,4 +67,4 @@ results_as_table <- data.table(Exposure = "mean_dist_commercial_dealers",
                                CI_90ct_upper = NA,
                                Exposure_Unit = "Mile",
                                Effect_Unit = "Odds")
-fwrite(results_as_table, file = paste0(dir, "results/sensitivity_analyses/e_value/gps_matching_without_", args$covariate_name, "_variables.csv"))
+fwrite(results_as_table, file = paste0(results_folder, "gps_matching_without_", args$covariate_name, "_variables.csv"))

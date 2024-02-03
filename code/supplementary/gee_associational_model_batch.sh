@@ -3,8 +3,8 @@
 #SBATCH -p shared
 #SBATCH --mem=80G
 #SBATCH --nodes=1
-#SBATCH -o logs/gee_associational_log.txt
-#SBATCH -e logs/gee_associational_log.txt
+#SBATCH -o logs/gee_associational_log_with_results.txt
+#SBATCH -e logs/gee_associational_log_with_results.txt
 
 echo "**** Job starts ****"
 date +"%Y-%m-%d %T"

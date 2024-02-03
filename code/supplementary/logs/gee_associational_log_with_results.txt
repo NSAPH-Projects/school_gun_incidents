@@ -1,0 +1,57 @@
+**** Job starts ****
+2024-02-03 12:48:54
+**** JHPCE info ****
+User: mqin
+Job id: 1908849
+Job name: gee_associational_model_batch.sh
+Node name: compute-057
+Loading conda_R/4.3.x
+Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27
+running glm to get initial regression estimate
+                        (Intercept)                                   a 
+                      -3.991779e+00                       -7.631168e-02 
+                        urbanicity2                         urbanicity3 
+                      -8.818957e-03                       -3.545698e-02 
+                        urbanicity4                         urbanicity5 
+                       5.011403e-02                       -1.962477e-01 
+                        urbanicity6           populationtotals_TOTPOP20 
+                      -7.474291e-02                        1.109814e-04 
+           populationtotals_DPOP_CY pop_institutionalized_groupquarters 
+                      -1.033121e-05                       -3.212919e-04 
+                housing_per_100sqmi                 schools_per_100sqmi 
+                      -6.190880e-07                        4.085584e-04 
+                      area_sq_miles                       percent_adult 
+                      -1.508661e-04                        7.734959e-03 
+                  log_med_HH_income            log_med_HH_income_15to24 
+                      -1.522349e-02                        4.260865e-03 
+          householdincome_ACSSNAP_P          householdincome_ACSPUBAI_P 
+                       1.160452e-02                        1.677179e-02 
+             households_ACSHHBPOV_P   EmploymentUnemployment_UNEMP_CY_P 
+                      -9.222352e-03                       -3.496515e-03 
+ EmploymentUnemployment_UNAGE16CY_P        vehiclesavailable_ACSOVEH0_P 
+                       2.516523e-03                       -3.072473e-03 
+ educationalattainment_ACSBACHDEG_P  educationalattainment_ACSMASTDEG_P 
+                      -1.788190e-03                        1.851110e-02 
+                    mean_depression                       mean_distress 
+                       4.245090e-02                        3.197137e-04 
+                    crime_CRMCYTOTC       firearm_retailers_per_100sqmi 
+                       2.653493e-03                        1.325651e-05 
+                sports_MP33018a_B_P            CompositeIndex2014to2021 
+                       1.768739e-02                       -3.550812e-03 
+    raceandhispanicorigin_WHITE20_P     raceandhispanicorigin_BLACK20_P 
+                      -2.464209e-02                        1.287811e-03 
+    raceandhispanicorigin_ASIAN20_P   raceandhispanicorigin_RACE2UP20_P 
+                      -2.308714e-02                       -2.234023e-03 
+         hispanicorigin_HISPPOP20_P 
+                      -1.187026e-02 
+                       Exposure                   Model   Cat_Confounder Trim
+1: mean_dist_commercial_dealers GEE associational model state.urbanicity 5.95
+   Effect CI_95ct_lower CI_95ct_upper CI_90ct_lower CI_90ct_upper Exposure_Unit
+1: 0.9289        0.8971        0.9618        0.9022        0.9565          Mile
+   Effect_Unit
+1:        Odds
+Error in fwrite(results_as_table, file = paste0(results_path, "gee_associational_model.csv")) : 
+  Is a directory: '/users/mqin/mqin_projects/school_gun_incidents/results/sensitivity_analyses/gee_associational_model/gee_associational_model.csv'. Failed to open existing file for writing. Do you have write permission to it? Is this Windows and does another process such as Excel have it open?
+Execution halted
+**** Job ends ****
+Sat Feb  3 04:11:32 PM EST 2024

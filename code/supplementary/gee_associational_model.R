@@ -52,5 +52,6 @@ results_as_table <- data.table(Exposure = "mean_dist_commercial_dealers",
                                CI_90ct_upper = round(exp(gee_results["a",]["Estimate"] + 1.645 * gee_results["a",]["Robust S.E."]), 4),
                                Exposure_Unit = "Mile",
                                Effect_Unit = "Odds")
+print(results_as_table)
 if (!dir.exists(results_path)) dir.create(results_path, recursive = T)
 fwrite(results_as_table, file = paste0(results_path, "gee_associational_model.csv"))

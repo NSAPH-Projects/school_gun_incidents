@@ -1,0 +1,2 @@
+Exposure,Model,Cat_Confounder,Excluded_Confounder_Class,Trim,Effect,CI_95ct_lower,CI_95ct_upper,CI_90ct_lower,CI_90ct_upper,Exposure_Unit,Effect_Unit
+mean_dist_commercial_dealers,Matching without covariates for e-value,state.urbanicity,racioethnic,5.95,0.8912,,,,,Mile,Odds

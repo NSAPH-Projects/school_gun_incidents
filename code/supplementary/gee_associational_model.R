@@ -6,8 +6,8 @@ library(MASS)
 library(data.table)
 
 ## Filepaths ----
-dir <- "../../" # repository folder; this file is in code/sensitivity_analyses
-results_path <- paste0(dir, "results/sensitivity_analyses/gee_associational_model/gee_associational_model.csv")
+dir <- paste0(here::here(), "/") # repository folder; this file is in code/sensitivity_analyses
+results_path <- paste0(dir, "results/sensitivity_analyses/gee_associational_model/")
 
 ## Load functions ----
 source(paste0(dir, "lib/functions_to_load_data.R"))
@@ -48,4 +48,4 @@ results_as_table <- data.table(Exposure = "mean_dist_commercial_dealers",
                                Exposure_Unit = "Mile",
                                Effect_Unit = "Odds")
 if (!dir.exists(results_path)) dir.create(results_path, recursive = T)
-fwrite(results_as_table, file = results_path)
+fwrite(results_as_table, file = paste0(results_path, "gee_associational_model.csv"))

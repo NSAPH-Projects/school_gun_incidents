@@ -55,7 +55,7 @@ read_one_causal_txt <- function(path){
                                 Effect = logistic_regression_estimated_odds, # CR_Effect
                                 CI_95ct_lower = cl_sd_lb_95ci,
                                 CI_95ct_upper = cl_sd_ub_95ci)]
-    if ("GEE_Effect" %in% colnames(results)){
+    if ("GEE_estimated_odds" %in% colnames(results)){
       results_GEE_SE <- results[, .(Exposure,
                                     Trim,
                                     Cat_Confounder,

@@ -30,7 +30,7 @@ png(file = paste0(results_path, "main_results_as_odds_ratio.png"),
 
 # Create the plot
 # note that a null effect would be an odds ratio of 1
-plot(1:nrow(df), df$Effect_pct, ylim = c(min(df$CI_95ct_lower_pct), 1), 
+plot(1:nrow(df), df$Effect_pct, ylim = c(min(df$CI_95ct_lower_pct), 1.1), # set upper y limit higher than 1 for visibility
      xlab = "", ylab = "Odds Ratio of SGI", main = "",
      xaxt = "n", yaxt = "n", pch = 16, cex = 1.5, col = "steelblue")
 

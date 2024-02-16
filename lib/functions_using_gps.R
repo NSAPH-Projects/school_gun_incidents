@@ -209,7 +209,7 @@ all_weighting_results_1model <- function(seed,
   
   # Fit logistic regression outcome model on capped weighted population, since covariate balance is good (AC < 0.1)
   # (do not proceed to logistic regression on uncapped weighted population since covariate balance is poor)
-  weighting_results <- get_gps_matched_logistic_results(weighted_pop_capped99)$coefficients["w", ]
+  weighting_results <- get_gps_weighted_logistic_results(weighted_pop_capped99)$coefficients["w", ]
   
   # Save point estimate, 95%, and 90% confidence intervals for odds (exponentiated log odds)
   results_list[["logistic_regression_estimated_odds"]] <- round(exp(weighting_results["Estimate"]), 4)

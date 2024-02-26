@@ -1,0 +1,2 @@
+Exposure,Model,Cat_Confounder,Trim,Exposure_Unit,Effect_Unit,num_obs_matched,counter_max,counter99,logistic_regression_estimated_odds,cl_sd_lb_95ci,cl_sd_ub_95ci,cl_sd_lb_90ci,cl_sd_ub_90ci,mean_AC_matched,mean_AC_unadjusted,max_AC_matched,max_AC_unadjusted,GEE_estimated_odds,GEE_lb_95ci,GEE_ub_95ci,GEE_lb_90ci,GEE_ub_90ci
+Euclidean Distance to Commercial Dealer,Match,state.urbanicity,5.95,Mile,Odds,49281,36522,370.51 (99th percentile),0.853,0.7855,0.9263,0.796,0.9141,0.0756266360652196,0.130107492906164,0.250765892580441,0.325993029586615,0.8525,0.8157,0.891,0.8215,0.8847

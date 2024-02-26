@@ -17,15 +17,17 @@ all_matching_results_1model <- function(seed,
                                         trim,
                                         cat_covariate_names,
                                         run_gee_model = F,
-                                        quant_covariates = quantitative_covariates){
+                                        quant_covariates = quantitative_covariates,
+                                        caliper = 0.2){
   set.seed(seed)
   results_list <- list()
   
   # GPS matching
-  matched_pop <- get_gps_matched_pseudo_pop(data$y,
-                                            data$a,
-                                            data[, c(cat_covariate_names, quant_covariates)],
-                                            trim)
+  matched_pop <- get_gps_matched_pseudo_pop(outcome = data$y,
+                                            exposure = data$a,
+                                            covariates = data[, c(cat_covariate_names, quant_covariates)],
+                                            trim = trim,
+                                            caliper = caliper)
   # Store how many observations were matched
   results_list[["num_obs_matched"]] <- sum(matched_pop$pseudo_pop$counter_weight > 0)
   
@@ -47,15 +49,15 @@ all_matching_results_1model <- function(seed,
   
   # Before getting clustered robust standard errors (CRSE) and GEE model with clusters,
   # convert data to long format (to make clustering explicit)
-  pseudopop_long <- matched_pop_capped99$pseudo_pop[, lapply(.SD, function(x) rep(x, counter_weight)), by = row_index]
+  pseudopop_long <- as.data.table(matched_pop_capped99$pseudo_pop)[, lapply(.SD, function(x) rep(x, counter_weight)), by = id]
   
   # Store clustered robust standard errors (CRSE) for logistic model
   logit_model <- glm(Y ~ w,
                      family = binomial(link = "logit"),
-                     data = pseudopop_long[, c("Y", "w", "row_index")])
+                     data = pseudopop_long[, c("Y", "w", "id")])
   cl_sd_results <- coeftest(logit_model,
                             vcov. = vcovCL(logit_model,
-                                           cluster = pseudopop_long$row_index,
+                                           cluster = pseudopop_long$id,
                                            type = "HC0"))
   results_list[["cl_sd_lb_95ci"]] <- round(exp(cl_sd_results[2,1] - 1.96 * cl_sd_results[2,2]), 4)
   results_list[["cl_sd_ub_95ci"]] <- round(exp(cl_sd_results[2,1] + 1.96 * cl_sd_results[2,2]), 4)
@@ -67,9 +69,9 @@ all_matching_results_1model <- function(seed,
     # Fit GEE model
     outcome <- gee(formula = Y ~ w,
                    family = "binomial",
-                   data = pseudopop_long[, c("Y", "w", "row_index")], 
-                   id = pseudopop_long$row_index,
-                   corstr = "exchangeable") # allows same correlation coefficient between states
+                   data = pseudopop_long[, c("Y", "w", "id")], 
+                   id = pseudopop_long$id,
+                   corstr = "exchangeable") # allows same correlation coefficient for the same row index
     
     # Store GEE model results
     results_list[["GEE_estimated_odds"]] <- round(exp(summary(outcome)$coefficients["w",]["Estimate"]), 4)
@@ -89,10 +91,10 @@ all_matching_results_1model <- function(seed,
     
     # for capped pseudopopulations, recalculate covariate balance
     if (capped < 1){
-      adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
+      adjusted_corr_obj <- check_covar_balance(w = pseudo_pop$pseudo_pop$w,
                                                c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
                                                ci_appr = "matching",
-                                               counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
+                                               counter_weight = pseudo_pop$pseudo_pop$counter_weight,
                                                nthread = 1,
                                                covar_bl_method = "absolute",
                                                covar_bl_trs = 0.1,
@@ -103,7 +105,7 @@ all_matching_results_1model <- function(seed,
     
     # save covariate balance plot
     results_list[[paste0("cov_bal.capped", capped)]] <- 
-      get_matched_correlation_plot(pseudo_pop, 
+      get_matched_correlations(pseudo_pop, 
                                    cat_covariate_names, 
                                    data$a, 
                                    subset(data, select = cat_covariate_names), 
@@ -113,13 +115,21 @@ all_matching_results_1model <- function(seed,
   return(results_list) # numerical output, to be stored in results table
 }
 
-get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95)){
-  return(generate_pseudo_pop(Y = outcome,
-                             w = exposure,
-                             c = as.data.frame(covariates),
+get_gps_matched_pseudo_pop <- function(outcome,
+                                       exposure,
+                                       covariates,
+                                       trim = c(0.05, 0.95),
+                                       caliper = 0.2){
+  id <- 1:length(exposure)
+  w <- data.frame(w = exposure, id = id)
+  c <- as.data.frame(covariates)
+  c$id <- id
+  outcome <- data.table(Y = outcome, id = id)
+
+  pseudo_pop <- generate_pseudo_pop(w = w,
+                             c = c,
                              ci_appr = "matching",
-                             pred_model = "sl",
-                             gps_model = "parametric",
+                             gps_density = "normal",
                              use_cov_transform = TRUE,
                              transformers = list("pow2", "pow3"),
                              sl_lib = c("m_xgboost"),
@@ -128,15 +138,20 @@ get_gps_matched_pseudo_pop <- function(outcome, exposure, covariates, trim_quant
                              covar_bl_method = "absolute",
                              covar_bl_trs = 0.1,
                              covar_bl_trs_type = "mean",
-                             trim_quantiles = trim_quantiles, 
-                             optimized_compile = TRUE, 
+                             exposure_trim_qtls = trim, 
                              max_attempt = 5,
-                             matching_fun = "matching_l1",
-                             delta_n = 0.2,
-                             scale = 1.0))
+                             dist_measure = "l1",
+                             delta_n = caliper,
+                             scale = 1.0)
+  pseudo_pop$pseudo_pop <- merge(pseudo_pop$pseudo_pop, outcome, by = "id")
+  return(pseudo_pop)
 }
 
-get_matched_correlation_plot <- function(matched_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
+get_matched_correlations <- function(matched_pop,
+                                     cat_covariate_names,
+                                     w_orig,
+                                     unordered_vars_orig,
+                                     quant_covariates = quantitative_covariates){
   covariate_names <- c(cat_covariate_names, quant_covariates)
   cor_unmatched <- matched_pop$original_corr_results$absolute_corr[covariate_names]
   cor_matched <- matched_pop$adjusted_corr_results$absolute_corr[covariate_names]
@@ -150,11 +165,12 @@ get_matched_correlation_plot <- function(matched_pop, cat_covariate_names, w_ori
   cor_matched <- cor_matched[!is.na(cor_matched)]
   
   abs_cor <- data.frame(Covariate = covariate_names,
-                        Unmatched = cor_unmatched,
+                        Unadjusted = cor_unmatched,
                         Matched = cor_matched)
-  abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unmatched)
-  abs_cor <- abs_cor %>% gather(c(Unmatched, Matched), key = 'Dataset', value = 'Absolute Correlation')
+  abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unadjusted)
+  abs_cor <- abs_cor %>% gather(c(Unadjusted, Matched), key = 'Dataset', value = 'Absolute Correlation')
   abs_cor <- as.data.table(abs_cor)
+  abs_cor[, Dataset := factor(Dataset, levels = c("Unadjusted", "Matched"))]
   return(abs_cor)
 }
 
@@ -193,7 +209,7 @@ all_weighting_results_1model <- function(seed,
   
   # Fit logistic regression outcome model on capped weighted population, since covariate balance is good (AC < 0.1)
   # (do not proceed to logistic regression on uncapped weighted population since covariate balance is poor)
-  weighting_results <- get_gps_matched_logistic_results(weighted_pop_capped99)$coefficients["w", ]
+  weighting_results <- get_gps_weighted_logistic_results(weighted_pop_capped99)$coefficients["w", ]
   
   # Save point estimate, 95%, and 90% confidence intervals for odds (exponentiated log odds)
   results_list[["logistic_regression_estimated_odds"]] <- round(exp(weighting_results["Estimate"]), 4)
@@ -212,10 +228,10 @@ all_weighting_results_1model <- function(seed,
     
     # for capped pseudopopulations, recalculate covariate balance
     if (capped < 1){
-      adjusted_corr_obj <- check_covar_balance(w = as.data.table(pseudo_pop$pseudo_pop$w),
+      adjusted_corr_obj <- check_covar_balance(w = pseudo_pop$pseudo_pop$w,
                                                c = subset(pseudo_pop$pseudo_pop, select = quant_covariates),
                                                ci_appr = "matching",
-                                               counter_weight = as.data.table(pseudo_pop$pseudo_pop$counter_weight),
+                                               counter_weight = pseudo_pop$pseudo_pop$counter_weight,
                                                nthread = 1,
                                                covar_bl_method = "absolute",
                                                covar_bl_trs = 0.1,
@@ -225,20 +241,30 @@ all_weighting_results_1model <- function(seed,
     }
     
     # save covariate balance plot
-    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlation_plot(pseudo_pop, cat_covariate_names, data$a, subset(data, select = cat_covariate_names), quant_covariates)
-    # cov_bal <- make_correlation_plot(pseudo_pop, "weighting", cat_covariate_names, data$a, subset(data, select = cat_covariate_names))
+    results_list[[paste0("cov_bal.capped", capped)]] <- get_weighted_correlations(pseudo_pop,
+                                                                                  cat_covariate_names,
+                                                                                  data$a,
+                                                                                  subset(data, select = cat_covariate_names),
+                                                                                  quant_covariates)
   }
   
   return(results_list) # numerical output, to be stored in results table
 }
 
-get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quantiles = c(0.05, 0.95)){
-  return(generate_pseudo_pop(Y = outcome,
-                             w = exposure,
-                             c = as.data.frame(covariates),
+get_gps_weighted_pseudo_pop <- function(outcome,
+                                        exposure,
+                                        covariates,
+                                        trim = c(0.05, 0.95)){
+  id <- 1:length(exposure)
+  w <- data.frame(w = exposure, id = id)
+  c <- as.data.frame(covariates)
+  c$id <- id
+  outcome <- data.table(Y = outcome, id = id)
+  
+  pseudo_pop <- generate_pseudo_pop(w = w,
+                             c = c,
                              ci_appr = "weighting",
-                             pred_model = "sl",
-                             gps_model = "parametric",
+                             gps_density = "normal",
                              use_cov_transform = TRUE,
                              transformers = list("pow2", "pow3"),
                              sl_lib = c("m_xgboost"),
@@ -247,15 +273,16 @@ get_gps_weighted_pseudo_pop <- function(outcome, exposure, covariates, trim_quan
                              covar_bl_method = "absolute",
                              covar_bl_trs = 0.1,
                              covar_bl_trs_type = "mean",
-                             trim_quantiles = trim_quantiles, 
-                             optimized_compile = TRUE, 
+                             exposure_trim_qtls = trim,
                              max_attempt = 5,
-                             matching_fun = "matching_l1",
+                             dist_measure = "l1",
                              delta_n = 0.2,
-                             scale = 1.0))
+                             scale = 1.0)
+  pseudo_pop$pseudo_pop <- merge(pseudo_pop$pseudo_pop, outcome, by = "id")
+  return(pseudo_pop)
 }
 
-get_weighted_correlation_plot <- function(weighted_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
+get_weighted_correlations <- function(weighted_pop, cat_covariate_names, w_orig, unordered_vars_orig, quant_covariates = quantitative_covariates){
   covariate_names <- c(cat_covariate_names, quant_covariates)
   cor_unweighted <- weighted_pop$original_corr_results$absolute_corr[covariate_names]
   cor_weighted <- weighted_pop$adjusted_corr_results$absolute_corr[covariate_names]
@@ -269,11 +296,12 @@ get_weighted_correlation_plot <- function(weighted_pop, cat_covariate_names, w_o
   cor_weighted <- cor_weighted[!is.na(cor_weighted)]
   
   abs_cor <- data.frame(Covariate = covariate_names,
-                        Unweighted = cor_unweighted,
+                        Unadjusted = cor_unweighted,
                         Weighted = cor_weighted)
-  abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unweighted)
-  abs_cor <- abs_cor %>% gather(c(Unweighted, Weighted), key = 'Dataset', value = 'Absolute Correlation')
+  abs_cor$Covariate <- reorder(abs_cor$Covariate, abs_cor$Unadjusted)
+  abs_cor <- abs_cor %>% gather(c(Unadjusted, Weighted), key = 'Dataset', value = 'Absolute Correlation')
   abs_cor <- as.data.table(abs_cor)
+  abs_cor[, Dataset := factor(Dataset, levels = c("Unadjusted", "Weighted"))]
   return(abs_cor)
 }
 

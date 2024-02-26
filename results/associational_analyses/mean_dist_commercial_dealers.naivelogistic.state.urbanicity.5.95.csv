@@ -1,0 +1,2 @@
+Exposure,Model,Cat_Confounder,Trim,Effect,CI_95ct_lower,CI_95ct_upper,CI_90ct_lower,CI_90ct_upper,Exposure_Unit,Effect_Unit
+mean_dist_commercial_dealers,naivelogistic,state.urbanicity,5.95,0.925,0.8922,0.9591,0.8974,0.9536,Mile,Odds

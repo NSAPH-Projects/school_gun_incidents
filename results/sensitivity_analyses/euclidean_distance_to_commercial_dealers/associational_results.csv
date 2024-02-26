@@ -1,0 +1,3 @@
+Exposure,Model,Cat_Confounder,Trim,Effect,CI_95ct_lower,CI_95ct_upper,CI_90ct_lower,CI_90ct_upper,Exposure_Unit,Effect_Unit
+Euclidean Distance to Commercial Dealer,logistic,state.urbanicity,5.95,0.8987,0.8524,0.9474,0.8597,0.9394,Mile,Odds
+Euclidean Distance to Commercial Dealer,negbin,state.urbanicity,5.95,0.9009,0.8554,0.9488,0.8625,0.941,Mile,Odds

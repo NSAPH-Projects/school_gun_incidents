@@ -1,4 +1,4 @@
-**Project**: Distance Between Schools and Gun Retailers and Risk of School Gun Incidents in the United States
+**Project**: Distance Between Schools and Gun Retailers and Odds of School Gun Incidents in the United States
 
 **Authors**: Falco Bargagli Stoffi, Michelle Qin
 
@@ -52,4 +52,4 @@ bash matching_without_covariates_for_evalue.sh
 13. [code/sensitivity_analyses/gee_associational_model.R](./code/sensitivity_analyses/gee_associational_model.R): logistic regression using states as GEE clusters; used as a sensitivity analysis to check for spatial confounding.
 14. [code/plot_results/main_results.R](./code/plot_results/main_results.R): creates plot of main results (causal and associational, using state as the categorical variable and trimming exposure at 5th and 95th percentiles).
 
-**Contact Us**: michelleqin@college.harvard.edu, fbargaglistoffi@hsph.harvard.edu
+**Contact Us**: mqin8@jh.edu, fbargaglistoffi@hsph.harvard.edu

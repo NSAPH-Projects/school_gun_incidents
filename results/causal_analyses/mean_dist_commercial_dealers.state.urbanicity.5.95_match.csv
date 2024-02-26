@@ -1,0 +1,2 @@
+Exposure,Model,Trim,Exposure_Unit,Effect_Unit,num_obs_matched,counter_max,counter99,logistic_regression_estimated_odds,cl_sd_lb_95ci,cl_sd_ub_95ci,cl_sd_lb_90ci,cl_sd_ub_90ci,GEE_estimated_odds,GEE_lb_95ci,GEE_ub_95ci,GEE_lb_90ci,GEE_ub_90ci,mean_AC_matched,mean_AC_unadjusted,max_AC_matched,max_AC_unadjusted
+mean_dist_commercial_dealers,Match,5.95,Mile,Odds,50169,35354,512 (99th percentile),0.8635,0.8305,0.8979,0.8357,0.8923,0.89,0.8649,0.9157,0.8689,0.9115,0.0685514954331905,0.138015063695389,0.223307731365689,0.346915580202829

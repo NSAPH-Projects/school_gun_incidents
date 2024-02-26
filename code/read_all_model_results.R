@@ -7,12 +7,12 @@ library(xtable)
 
 ## Load filepaths for results ----
 
-dir <- "../" # run code in the script location
+dir <- paste0(here::here(), "/") # location of repository
 
-associational_results_paths <- list.files(paste0(dir, "results/associational_analyses/"),
+associational_results_paths <- list.files(here::here(dir, "results/associational_analyses/"),
                                           pattern = ".*.csv",
                                           full.names = T)
-causal_results_paths <- list.files(paste0(dir, "results/causal_analyses/"),
+causal_results_paths <- list.files(here::here(dir, "results/causal_analyses/"),
                                    pattern = "(.*match.csv)|(.*weight.csv)", # don't want to get _correlation.csv files
                                    full.names = T)
 

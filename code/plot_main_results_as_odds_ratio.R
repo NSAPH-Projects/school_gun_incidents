@@ -5,17 +5,17 @@ library(data.table)
 
 ## Get main results ----
 
-dir <- "../" # run code in the script location
+dir <- here::here() # location of repository
 
 # read in main results
-df <- fread(file = paste0(dir, "results/commercial_dealers_association_and_causal_results.csv"))
+df <- fread(file = here::here(dir, "results/commercial_dealers_association_and_causal_results.csv"))
 df <- df[Trim == "5.95" & Cat_Confounder == "state.urbanicity"] # get main models only
 
 # get odds ratio of SGI = odds with intervention / odds without intervention
 # note that a null effect would be an odds ratio of 1
-df[, `:=`(Effect_pct = round((Effect), 2),
-          CI_95ct_lower_pct = round((CI_95ct_lower), 2),
-          CI_95ct_upper_pct = round((CI_95ct_upper), 2))]
+df[, `:=`(Effect = round((Effect), 2),
+          CI_95ct_lower = round((CI_95ct_lower), 2),
+          CI_95ct_upper = round((CI_95ct_upper), 2))]
 
 
 ## Main Plot ----
@@ -26,7 +26,7 @@ png(file = paste0(dir, "results/main_results_as_odds_ratio.png"),
 
 # Create the plot
 # note that a null effect would be an odds ratio of 1
-plot(1:nrow(df), df$Effect_pct, ylim = c(min(df$CI_95ct_lower_pct), 1.1), # set upper y limit higher than 1 for visibility 
+plot(1:nrow(df), df$Effect, ylim = c(min(df$CI_95ct_lower), 1.1), # set upper y limit higher than 1 for visibility 
      xlab = "", ylab = "Odds Ratio of SGI", main = "",
      xaxt = "n", yaxt = "n", pch = 16, cex = 1.5, col = "steelblue")
 
@@ -34,7 +34,7 @@ plot(1:nrow(df), df$Effect_pct, ylim = c(min(df$CI_95ct_lower_pct), 1.1), # set 
 grid(lty = "dotted", col = "lightgray")
 
 # Add error bars for the confidence intervals
-arrows(1:nrow(df), df$CI_95ct_lower_pct, 1:nrow(df), df$CI_95ct_upper_pct, 
+arrows(1:nrow(df), df$CI_95ct_lower, 1:nrow(df), df$CI_95ct_upper, 
        length = 0.05, angle = 90, code = 3, col = "steelblue")
 
 # Add model names as x-axis labels (horizontal and smaller)

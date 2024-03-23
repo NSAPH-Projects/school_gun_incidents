@@ -21,7 +21,9 @@ df[, `:=`(Effect = round((Effect), 2),
 ## Main Plot ----
 
 # Prepare to save plot
-png(file = paste0(dir, "results/main_results_as_odds_ratio.png"),
+results_dir <- here::here(dir, "results")
+if (!dir.exists(results_dir)) dir.create(results_dir, recursive = T)
+png(file = here::here(results_dir, "main_results_as_odds_ratio.png"),
     width = 7, height = 5, units = "in", res = 1200)
 
 # Create the plot

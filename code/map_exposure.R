@@ -8,11 +8,11 @@ library(viridis)
 
 ## Read in raw data, get main exposure (distance to commercial dealer) with GEOID (census tract) ----
 
-dir <- "../" # run code in the script location
+dir <- here::here() # location of repository
 
 exposure <- "mean_dist_commercial_dealers" # main exposure
 
-tracts_data <- read_excel(paste0(dir, "data/input/private/gun_violence_v3.2_persistent.xlsx"))
+tracts_data <- read_excel(here::here(dir, "data/input/private/gun_violence_v3.2_persistent.xlsx"))
 tracts_data <- tracts_data[tracts_data$num_schools > 0, ]
 tracts_data <- tracts_data[!is.na(tracts_data[[exposure]]), ]
 
@@ -47,6 +47,8 @@ p <- ggplot(exposure_with_geometry) +
   scale_fill_viridis() +
   theme_bw()
 
-ggsave(filename = paste0(dir, "results/exploratory/mean_dist_commercial_dealers.png"),
+results_dir <- here::here(dir, "results/exploratory")
+if (!dir.exists(results_dir)) dir.create(results_dir, recursive = T)
+ggsave(filename = here::here(results_dir, "mean_dist_commercial_dealers.png"),
        plot = p)
 

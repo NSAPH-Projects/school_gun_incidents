@@ -29,14 +29,14 @@ args = parser$parse_args()
 
 
 ## Load functions ----
-dir <- "../" # run code in the script location
+dir <- here::here() # location of repository
 
-source(paste0(dir, "lib/functions_to_load_data.R"))
-source(paste0(dir, "lib/functions_to_measure_covariate_balance.R"))
-source(paste0(dir, "lib/functions_using_gps.R"))
+source(here::here(dir, "lib/functions_to_load_data.R"))
+source(here::here(dir, "lib/functions_to_measure_covariate_balance.R"))
+source(here::here(dir, "lib/functions_using_gps.R"))
 
 ## Load datasets ----
-df <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
+df <- fread(here::here(dir, "data/intermediate/final_data_sep2023.csv"))
 
 ## Get datasets for main analysis ----
 data <- vector("list", 2)
@@ -52,12 +52,14 @@ data[["mean_dist_commercial_dealers"]][["state"]] <- get_analysis_df(df, "mean_d
 data[["mean_dist_commercial_dealers"]][["state.urbanicity"]] <- get_analysis_df(df, "mean_dist_commercial_dealers", c("State_Name", "urbanicity", quantitative_covariates))
 
 
-## Perform causal analysis
-
+## Set up directories and filepaths for causal analysis ----
 seed_ = args$seed
 trim_ = list("5.95"=c(0.05, 0.95), "1.99"=c(0.01, 0.99))[[args$percentiles]]
 data_ = data[[args$exposure]][[args$sensitivity_analysis]]
 covars_ = list("state"="State_Name", "state.urbanicity"=c("State_Name", "urbanicity"))[[args$sensitivity_analysis]]
+
+main_causal_dir <- here::here(dir, "results/causal_analyses")
+if (!dir.exists(main_causal_dir)) dir.create(main_causal_dir, recursive = T)
 
 
 ## Matching CausalGPS  ----
@@ -73,8 +75,8 @@ results_match <- all_matching_results_1model(
 var_arg_a_p_match = paste0(args$exposure, ".", args$sensitivity_analysis, ".", args$percentiles,"_match")
 
 # save covariate balance as csv and plot as png
-fwrite(results_match$cov_bal.capped0.99, paste0(dir, "results/causal_analyses/", var_arg_a_p_match, "_correlation.csv"))
-ggsave(paste0(dir, "results/causal_analyses/", var_arg_a_p_match, "_correlation_plot.png"),
+fwrite(results_match$cov_bal.capped0.99, here::here(main_causal_dir, paste0(var_arg_a_p_match, "_correlation.csv")))
+ggsave(here::here(main_causal_dir, paste0(var_arg_a_p_match, "_correlation_plot.png")),
        make_correlation_plot(results_match$cov_bal.capped0.99))
 
 # get mean and max AC of matched (number of matches capped at 99th percentile) and unadjusted pseudopopulation
@@ -103,7 +105,7 @@ results_as_table <- data.table(Exposure = args$e,
                                Exposure_Unit = "Mile",
                                Effect_Unit = "Odds")
 results_as_table <- cbind(results_as_table, as.data.table(results_match))
-fwrite(results_as_table, paste0(dir, "results/causal_analyses/", var_arg_a_p_match, ".csv"))
+fwrite(results_as_table, here::here(main_causal_dir, paste0(var_arg_a_p_match, ".csv")))
 
 
 ## Weighted CausalGPS ----
@@ -118,8 +120,8 @@ results_weight <- all_weighting_results_1model(
 )
 
 # save covariate balance as csv and plot as png
-fwrite(results_weight$cov_bal.capped0.99, paste0(dir, "results/causal_analyses/", var_arg_a_p_weight, "_correlation.csv"))
-ggsave(paste0(dir, "results/causal_analyses/", var_arg_a_p_weight, "_correlation_plot.png"),
+fwrite(results_weight$cov_bal.capped0.99, here::here(main_causal_dir, paste0(var_arg_a_p_weight, "_correlation.csv")))
+ggsave(here::here(main_causal_dir, paste0(var_arg_a_p_weight, "_correlation_plot.png")),
        make_correlation_plot(results_weight$cov_bal.capped0.99))
 
 # get mean and max AC of weighted (capped at 99th percentile) and unadjusted pseudopopulation
@@ -148,4 +150,4 @@ results_as_table <- data.table(Exposure = args$e,
                                Exposure_Unit = "Mile",
                                Effect_Unit = "Odds")
 results_as_table <- cbind(results_as_table, as.data.table(results_weight))
-fwrite(results_as_table, paste0(dir, "results/causal_analyses/", var_arg_a_p_weight, ".csv"))
+fwrite(results_as_table, here::here(main_causal_dir, paste0(var_arg_a_p_weight, ".csv")))

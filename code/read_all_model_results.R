@@ -7,7 +7,7 @@ library(xtable)
 
 ## Load filepaths for results ----
 
-dir <- paste0(here::here(), "/") # location of repository
+dir <- here::here() # location of repository
 
 associational_results_paths <- list.files(here::here(dir, "results/associational_analyses/"),
                                           pattern = ".*.csv",
@@ -97,5 +97,7 @@ commercial_dealers_table <- all_results[Exposure == "mean_dist_commercial_dealer
 
 ## Save table(s) as csv ----
 
-fwrite(x = all_dealers_table, file = paste0(dir, "results/all_dealers_association_and_causal_results.csv"))
-fwrite(x = commercial_dealers_table, file = paste0(dir, "results/commercial_dealers_association_and_causal_results.csv"))
+results_dir <- here::here(dir, "results")
+if (!dir.exists(results_dir)) dir.create(results_dir, recursive = T)
+fwrite(x = all_dealers_table, file = here::here(results_dir, "all_dealers_association_and_causal_results.csv"))
+fwrite(x = commercial_dealers_table, file = here::here(results_dir, "commercial_dealers_association_and_causal_results.csv"))

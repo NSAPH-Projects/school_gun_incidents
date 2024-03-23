@@ -6,11 +6,11 @@ library(ggplot2)
 
 ## Load filepaths for results ----
 
-dir <- "../" # run code in the script location
+dir <- here::here() # location of repository
 
-source(paste0(dir, "lib/functions_to_load_data.R")) # used to get variables' full names
+source(here::here(dir, "lib/functions_to_load_data.R")) # used to get variables' full names
 
-causal_results_paths <- list.files(paste0(dir, "results/causal_analyses/"),
+causal_results_paths <- list.files(here::here(dir, "results/causal_analyses/"),
                                    pattern = "correlation.csv",
                                    full.names = T)
 
@@ -55,12 +55,18 @@ causal_results <- causal_results[`Categorical Confounder(s)` == "Controlling for
 # all_dealers_table <- causal_results[Exposure == "mean_distance_all_persistent_dealers"]
 # commercial_dealers_table <- causal_results[Exposure == "mean_dist_commercial_dealers"]
 
-# fwrite(x = causal_results, file = paste0(dir, "results/causal_analyses/all_causal_models_covariate_balance.csv"))
-# fwrite(x = all_dealers_table, file = paste0(dir, "results/causal_analyses/all_dealers_all_causal_models_covariate_balance.csv"))
-# fwrite(x = commercial_dealers_table, file = paste0(dir, "results/causal_analyses/commercial_dealers_all_causal_models_covariate_balance.csv"))
+# fwrite(x = causal_results, file = here::here(dir, "results/causal_analyses/all_causal_models_covariate_balance.csv"))
+# fwrite(x = all_dealers_table, file = here::here(dir, "results/causal_analyses/all_dealers_all_causal_models_covariate_balance.csv"))
+# fwrite(x = commercial_dealers_table, file = here::here(dir, "results/causal_analyses/commercial_dealers_all_causal_models_covariate_balance.csv"))
 
 
 # Make covariate balance plots ----
+
+# check that directories for results exist; if not, create them
+main_causal_results_dir <- here::here(dir, "results/causal_analyses")
+if (!dir.exists(main_causal_results_dir)) dir.create(main_causal_results_dir, recursive = T)
+sensitivity_results_dir <- here::here(dir, "results/sensitivity_analyses")
+if (!dir.exists(sensitivity_results_dir)) dir.create(sensitivity_results_dir, recursive = T)
 
 # plot covariate balance for main analysis
 # note that "exposure" is called "intervention" in the paper
@@ -77,7 +83,7 @@ main_models <- ggplot(causal_results[Exposure == "Distance to Commercial Firearm
                  labs(x = "Absolute Correlation with Intervention",
                       y = "",
                       title = "Covariate Balance for Main Causal Models")
-ggsave(filename = paste0(dir, "results/causal_analyses/main_causal_models_covariate_balance.png"),
+ggsave(filename = here::here(main_causal_results_dir, "main_causal_models_covariate_balance.png"),
        plot = main_models)
 
 # plot covariate balance for sensitivity analyses (faceted)
@@ -95,5 +101,5 @@ p <- ggplot(causal_results,
        title = paste0("Covariate Balance in Sensitivity Analyses")) +
   facet_grid(rows = vars(`Exposure`),
              cols = vars(`Exposure Trimming`))
-ggsave(filename = paste0(dir, "results/sensitivity_analyses/Sensitivity Analyses Covariate Balance.png"),
+ggsave(filename = here::here(sensitivity_results_dir, "Sensitivity Analyses Covariate Balance.png"),
        plot = p)

@@ -6,19 +6,19 @@ library(data.table)
 
 print("## Read data ----")
 
-dir <- "../" # run code in the script location
+dir <- here::here() # location of repository
 
-tracts_data <- read_excel(paste0(dir, "data/input/private/gun_violence_v3.2_persistent.xlsx"))
+tracts_data <- read_excel(here::here(dir, "data/input/private/gun_violence_v3.2_persistent.xlsx"))
 tracts_data <- as.data.table(tracts_data)
 
-laws_data <- read_excel(paste0(dir, "data/input/private/state_firearm_laws_summary.xlsx"))
+laws_data <- read_excel(here::here(dir, "data/input/private/state_firearm_laws_summary.xlsx"))
 laws_data <- as.data.table(laws_data)
 
-census_divisions_data <- fread(paste0(dir, "data/input/open/census_regions_divisions.csv"))
+census_divisions_data <- fread(here::here(dir, "data/input/open/census_regions_divisions.csv"))
 
-urbanicity_data <- fread(paste0(dir, "data/input/open/NCHSURCodes2013.csv"))
+urbanicity_data <- fread(here::here(dir, "data/input/open/NCHSURCodes2013.csv"))
 
-codebook <- read_excel(paste0(dir, "data/input/private/data_dictionary_v3.xlsx"))
+codebook <- read_excel(here::here(dir, "data/input/private/data_dictionary_v3.xlsx"))
 
 
 print("## Merge Datasets ----")
@@ -86,4 +86,6 @@ for (var in colnames(tracts_data)){
 
 print("## Save final datasets ----")
 
-fwrite(tracts_data, paste0(dir, "data/intermediate/final_data_sep2023.csv"))
+intermediate_data_dir <- here::here(dir, "data/intermediate")
+if (!dir.exists(intermediate_data_dir)) dir.create(intermediate_data_dir, recursive = T)
+fwrite(tracts_data, here::here(intermediate_data_dir, "final_data_sep2023.csv"))

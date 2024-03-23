@@ -16,13 +16,13 @@ parser$add_argument("-p", "--percentiles", default="5.95",
 args = parser$parse_args()
 
 ## Load functions ----
-dir <- "../" # run code in the script location
+dir <- here::here() # location of repository
 
-source(paste0(dir, "lib/functions_to_load_data.R"))
-source(paste0(dir, "lib/functions_to_get_associational_models.R"))
+source(here::here(dir, "lib/functions_to_load_data.R"))
+source(here::here(dir, "lib/functions_to_get_associational_models.R"))
 
 ## Load datasets ----
-df <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
+df <- fread(here::here(dir, "data/intermediate/final_data_sep2023.csv"))
 
 ## Get datasets for main analysis ----
 data <- vector("list", 2)
@@ -90,5 +90,7 @@ results_as_table <- data.table(Exposure = args$e,
                                CI_90ct_upper = ub_90ci,
                                Exposure_Unit = "Mile",
                                Effect_Unit = "Odds")
-fwrite(results_as_table, file = paste0(dir, "results/associational_analyses/",
-                                       args$e, ".", args$m, ".", args$s, ".", args$p, ".csv"))
+associational_results_dir <- here::here(dir, "results/associational_analyses")
+if (!dir.exists(associational_results_dir)) dir.create(associational_results_dir, recursive = T)
+fwrite(results_as_table, file = here::here(associational_results_dir,
+                                       paste0(args$e, ".", args$m, ".", args$s, ".", args$p, ".csv")))

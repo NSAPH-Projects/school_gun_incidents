@@ -6,11 +6,11 @@ library(xtable)
 
 print("## Get data ----")
 
-dir <- "../" # run code in the script location
+dir <- here::here() # location of repository
 
-full_data <- fread(paste0(dir, "data/intermediate/final_data_sep2023.csv"))
+full_data <- fread(here::here(dir, "data/intermediate/final_data_sep2023.csv"))
 
-source(paste0(dir, "lib/functions_to_load_data.R"))
+source(here::here(dir, "lib/functions_to_load_data.R"))
 
 trim_quantiles <- quantile(full_data$mean_dist_commercial_dealers, c(0.05, 0.95))
 trimmed_data <- full_data[mean_dist_commercial_dealers >= trim_quantiles[1] &
@@ -133,4 +133,6 @@ print(xtable(table1), include.rownames = F)
 
 print("## Save Table 1 as csv ----")
 
-fwrite(table1, paste0(dir, "results/table1.csv"))
+results_dir <- here::here(dir, "results")
+if (!dir.exists(results_dir)) dir.create(results_dir, recursive = T)
+fwrite(table1, here::here(results_dir, "table1.csv"))

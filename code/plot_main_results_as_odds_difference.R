@@ -5,10 +5,10 @@ library(data.table)
 
 ## Get main results ----
 
-dir <- "../" # run code in the script location
+dir <- here::here() # location of repository
 
 # read in main results
-df <- fread(file = paste0(dir, "results/commercial_dealers_association_and_causal_results.csv"))
+df <- fread(file = here::here(dir, "results/commercial_dealers_association_and_causal_results.csv"))
 df <- df[Trim == "5.95" & Cat_Confounder == "state.urbanicity"] # get main models only
 
 # convert odds ratio to change (difference) in odds, as percent
@@ -23,7 +23,9 @@ df[, `:=`(Effect_pct = round((Effect-1)*100, 2),
 ## Main Plot ----
 
 # Prepare to save plot
-png(file = paste0(dir, "results/main_results_as_odds_difference.png"),
+results_dir <- here::here(dir, "results")
+if (!dir.exists(results_dir)) dir.create(results_dir, recursive = T)
+png(file = here::here(results_dir, "main_results_as_odds_difference.png"),
     width = 7, height = 5, units = "in", res = 1200)
 
 # Create the plot

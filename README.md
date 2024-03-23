@@ -1,55 +1,43 @@
-**Project**: Distance Between Schools and Gun Retailers and Odds of School Gun Incidents in the United States
+**Project:** Distance Between Schools and Gun Retailers and Odds of School Gun Incidents in the United States
 
-**Authors**: Falco Bargagli Stoffi, Michelle Qin
+**Authors:** Falco Bargagli Stoffi, Michelle Qin
 
-**Contributors**: Michelle Audirac, Nishtha Sardana
+**Contributors:** Michelle Audirac, Nishtha Sardana
 
-**Created**: June 2022
+**Created:** June 2022
 
-**Overview**: Causal inference to estimate causal and associative effects of average firearm-dealer-to-school proximity on occurrence of a school gun incident within a school-containing census tract in the United States.
+**Overview:** Causal inference to estimate causal and associative effects of average firearm-dealer-to-school proximity on occurrence of a school gun incident within a school-containing census tract in the United States.
 
-**Analysis**: To run the analyses and regenerate the results,
+### How to Run the Code in This Repository
 
-* Request `data_input_private.zip` from the authors. Unzip in this location [data/input/private](./data/input/private/).
-* Install [CausalGPS package](https://github.com/cran/CausalGPS) R package (use version 0.2.8.9 or higher)
-* Decide whether to run the Generalized Estimating Equations (GEE) models (1 causal analysis and 1 sensitivity analysis). GEE models may take up to 96 GB to run (and up to 250 GB for the "trim 1/99" sensitivity analysis).
-* To run all analyses, including the GEE models:
+1. Request `data_input_private.zip` from the authors. Unzip in the [data/input/private/](./data/input/private/) folder.
+2. Generate the dataset used for analysis and Table 1 by running:
+   ```
+   cd code
+   Rscript --vanilla make_datasets.R
+   Rscript --vanilla make_table1.R
+   ```
+3. Install the [CausalGPS](https://github.com/NSAPH-Software/CausalGPS) R package (use version 0.4.0 or higher).
+4. Decide whether to run the GPS matching model that uses Generalized Estimating Equations (GEE) for the outcome model.
+   - Set `run_gee_model = F` or `run_gee_model = T` in `causal_analyses.R` accordingly.
+   - GEE models may take up to 96 GB to run (and up to 250 GB for the "trim 1/99" sensitivity analysis).
+5. Perform all main analyses by running:
 
-```
-cd code
-Rscript --vanilla make_datasets.R
-bash associational_analyses.sh
-bash continuous_treatment_causal_analyses.sh
-cd sensitivity_analysis
-bash matching_without_covariates_for_evalue.sh
-bash gee_associational_model.sh
-```
+   ```
+   bash associational_analyses.sh
+   bash causal_analyses.sh
+   ```
 
-* To run all analyses _except_ the GEE models, set ```run_gee_model = F``` on line 65 of ```code/continuous_treatment_causal_analyses.sh```. Then run: 
+6. Consolidate and visualize the results by running:
+   ```
+   Rscript --vanilla read_and_plot_covariate_balance.R
+   Rscript --vanilla read_all_model_results.R
+   Rscript --vanilla plot_main_results_as_odds_ratio.R
+   ```
+7. Perform additional sensitivity analyses by running (i) commented lines in `associational_analyses.sh` and `causal_analyses.sh` and (ii) code in the `supplementary/` folder.
+   - When selecting which code to run in `supplementary/`, you will again need to decide whether to run GEE models (for GPS matching models and for the state-level spatial confounding robustness check, denoted `gee_associational_model`).
+   - If you choose to run the batch scripts in this repo, first create a `logs/` folder within `supplementary/` to save the output.
 
-```
-cd code
-Rscript --vanilla make_datasets.R
-bash associational_analyses.sh
-bash continuous_treatment_causal_analyses.sh
-cd sensitivity_analysis
-bash matching_without_covariates_for_evalue.sh
-```
+### Contact Us
 
-**Code Description**:
-1. [code/make_datasets.R](./code/make_datasets.R): combines our various data sources, excludes certain outlier rows, and creates one csv for our analyses: `data/intermediate/all_tracts_2020_subset_vars_revised.csv`.
-2. [lib/functions_to_load_data.R](./lib/functions_to_load_data.R): contains multiple functions, such as a function to read in the columns we want from `all_tracts_2020_subset_vars_revised.csv`, which are used by most of the following files.
-3. [notebooks/distributions_of_variables.Rmd](./notebooks/_knit/distributions_of_variables.md): explores summary statistics of our variables (Table 1 in our manuscript).
-4.  [lib/functions_to_get_associational_models.R](./lib/functions_to_get_associational_models.R): contains 1 function (glm), to run our associational logistic and binomial regressions; called by [code/associational_analyses.R](./code/associational_analyses.R)
-5. [code/associational_analyses.R](./code/associational_analyses.R): performs our associational analyses, i.e., logistic and binomial regression.
-6. [code/associational_analyses.sh](./code/associational_analyses.sh): bash script used to run [code/associational_analyses.R](./code/associational_analyses.R).
-7. [lib/functions_using_gps.R](./lib/functions_using_gps.R): requires the [CausalGPS package](https://github.com/cran/CausalGPS) to be installed and contains functions used by [code/continuous_treatment_causal_analyses.R](./code/continuous_treatment_causal_analyses.R) and [code/sensitivity_analyses/matching_without_covariates_for_evalue.R](./code/sensitivity_analyses/matching_without_covariates_for_evalue.R).
-8. [lib/functions_to_measure_covariate_balance.R](./lib/functions_to_measure_covariate_balance.R): some functions to measure correlation between covariates and exposure (covariate balance); used by [code/continuous_treatment_causal_analyses.R](./code/continuous_treatment_causal_analyses.R) and [code/sensitivity_analyses/matching_without_covariates_for_evalue.R](./code/sensitivity_analyses/matching_without_covariates_for_evalue.R).
-9. [code/continuous_treatment_causal_analyses.R](./code/continuous_treatment_causal_analyses.R): performs our main causal analysis.
-10. [code/continuous_treatment_causal_analyses.sh](./code/continuous_treatment_causal_analyses.sh): bash script used to run [code/continuous_treatment_causal_analyses.R](./code/continuous_treatment_causal_analyses.R).
-11. [code/sensitivity_analyses/matching_without_covariates_for_evalue.R](./code/sensitivity_analyses/matching_without_covariates_for_evalue.R): repeats our main analysis while excluding classes of covariates, so that the results may be inputted to [the E-value calculator](https://www.evalue-calculator.com/evalue/).
-12. [code/sensitivity_analyses/matching_without_covariates_for_evalue.sh](./code/sensitivity_analyses/matching_without_covariates_for_evalue.sh): bash script used to run [code/sensitivity_analyses/matching_without_covariates_for_evalue.R](./code/sensitivity_analyses/matching_without_covariates_for_evalue.R).
-13. [code/sensitivity_analyses/gee_associational_model.R](./code/sensitivity_analyses/gee_associational_model.R): logistic regression using states as GEE clusters; used as a sensitivity analysis to check for spatial confounding.
-14. [code/plot_results/main_results.R](./code/plot_results/main_results.R): creates plot of main results (causal and associational, using state as the categorical variable and trimming exposure at 5th and 95th percentiles).
-
-**Contact Us**: mqin8@jh.edu, fbargaglistoffi@hsph.harvard.edu
+Michelle Qin (mqin8 [at] jh.edu), Falco Bargagli Stoffi (fbargaglistoffi [at] hsph.harvard.edu)
